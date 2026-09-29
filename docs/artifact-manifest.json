@@ -1,10 +1,10 @@
 {
-  "verified_at": "2026-09-29T23:16:57.416377+00:00",
-  "executable_sha256": "bbaa80bd3de0c71ac1d083290db0aa5a30a1f689c8b16629d4d6165b2387069d",
-  "zip_sha256": "09ff45f502971e73526f1ebdfc4fa65a5f20b9416aba4e2e142331957eb51fd6",
+  "verified_at": "2026-09-29T23:27:32.979145+00:00",
+  "executable_sha256": "895a61dd60ee78648a1ab8cc30f8070c4688b97311714e34254eff7e252be969",
+  "zip_sha256": "301a7c821a6313715c118024ee91cc501ffb884ec8edff8117ab839d9759aef7",
   "logo_sha256": "6312cce90437a33b45f9aea20003ff57328cd0a080c8210ee1691a3a2556b923",
-  "test_summary": "\u2714 Test run with 32 tests in 1 suite passed after 0.402 seconds.",
-  "signature": "Ad-hoc; strict signature verification passed on generated cache bundle",
-  "architecture": "arm64",
+  "test_summary": "\u2714 Test run with 33 tests in 1 suite passed after 0.392 seconds.",
+  "signature": "Ad-hoc; all-architecture strict verification passed on generated and extracted archive bundles",
+  "architecture": "universal arm64/x86_64",
   "google_account_validation": "not performed"
 }

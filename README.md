@@ -224,20 +224,30 @@ This is the working roadmap. Unchecked items are **not done yet** and have no pr
 
 - [x] **Guided connection:** native project/API, consent, Desktop import, browser sign-in and first-sync instructions with contextual troubleshooting. Cloud configuration and live access still require validation.
 - [ ] **Real-account validation:** consent, refresh/revocation, reconnect, account isolation, My Drive and Shared Drive synchronization, restricted permissions, API quotas and failures.
-- [ ] **Notification validation:** permission grant, visible delivery, cooldown accumulation, restart behavior, and long-running polling under real API load.
+- [ ] **Notification validation — partial:** cooldown accumulation, duplicate record IDs, moved-out items and atomic acknowledgement across SQLite reopen are tested. OS permission/delivery, crash between OS acceptance and database acknowledgement, and long-running live polling remain unverified.
 - [x] **Observed hierarchy browser:** navigate retained metadata at a chosen cutoff, with missing-ancestor labels, per-item observation times, search, and raw inspection. Historical existence/access remains unknown; dedicated historical exports are not implemented.
-- [ ] **Large-drive profiling — partial:** 100,000-file SQLite/search/navigation/memory and in-flight sort cancellation benchmark completed; date sorting improved from 57.16 s to 0.18 s on this host. Huge-index GUI latency, deep hierarchies and history still need profiling. See [measurements and limits](docs/VERIFICATION.md#local-performance-measurements).
+- [x] **Bounded scale profiling:** 100,000-file core benchmark and 25,000-item native UI check completed, including memory and in-flight sort cancellation. Date sorting improved from 57.16 s to 0.18 s on this host. Deep hierarchies, huge histories and live API throughput remain outside this measured workload. See [measurements and limits](docs/VERIFICATION.md#local-performance-measurements).
 - [x] **Ancestor navigation:** clickable breadcrumbs with shared-root, unknown-parent, and cycle handling.
 - [ ] **Accessibility audit — partial:** keyboard navigation, Cmd-F focus, invalid-input recovery, named search fields and directional sort/watch labels checked in the native app. Full VoiceOver spoken-output review remains unverified.
-- [ ] **Compatibility:** run on the declared older macOS versions and Intel hardware, then document the tested matrix.
-- [ ] **Distribution:** reproducible release automation, Developer ID signing, notarization and verified release artifacts.
-- [ ] **Optional Workspace Events integration:** assess Pub/Sub subscriptions and renewal as an alternative monitoring source; currently there is no adapter or always-on agent.
+- [ ] **Compatibility — partial:** universal arm64/x86_64 release compilation and archive verification pass. Native runtime is checked on this Apple silicon host only; older macOS and Intel hardware runs remain unverified.
+- [ ] **Distribution — partial:** build-only packaging, fresh bundle staging, universal architecture/resource/signature checks and extracted-ZIP verification are automated. Developer ID signing/notarization and a distributed release remain blocked; this host has no Developer ID Application identity.
+- [x] **Optional Workspace Events assessment:** reviewed current Google requirements; retain foreground polling for this preview. The optional adapter is deferred pending a project/infrastructure decision and live access; see below. No adapter or always-on agent exists.
+
+### Optional Workspace Events assessment
+
+Reviewed **2026-09-29**, as part of the existing roadmap. Google's creation guide labels Drive targets **Developer Preview** and requires an enabled Cloud project, Pub/Sub delivery topic/subscription and publisher IAM for `drive-api-event-push@system.gserviceaccount.com`. This adds cloud configuration and operational ownership rather than simplifying desktop onboarding. [Official subscription setup](https://developers.google.com/workspace/events/guides/create-subscription).
+
+Metadata read-only is listed among supported authorization scopes, but each chosen event type still needs a supported scope and target access. An adapter must verify its event/scope combinations without silently expanding the app's permissions. [Scopes](https://developers.google.com/workspace/events/guides/auth), [create reference](https://developers.google.com/workspace/events/reference/rest/v1/subscriptions/create).
+
+Subscription lifetimes require renewal: generally up to seven days without resource payloads, four hours with them (a delegation-specific exception is irrelevant to this personal desktop setup). Delivery/renewal interruptions need explicit coverage gaps and reconciliation against Changes; CloudEvents must remain a separate evidence source. [Subscription lifetime reference](https://developers.google.com/workspace/events/reference/rest/v1/subscriptions).
+
+**Decision:** defer the optional adapter. It may suit managed deployments with approved infrastructure, but requires live target eligibility, Pub/Sub access, renewal ownership and a privacy/billing review. No cloud resources or IAM grants were created. This API feasibility check is separate from the requested competitor comparison, which remains on hold until the implementation plan is complete.
 
 Additional ideas remain exploratory: explicit Python-cache import, an account switcher, optional People-name resolution, and encrypted local metadata. They are not available today. Remote mutation, file-content downloads, and Google Drive for desktop transfer-queue monitoring are outside the current read-only scope.
 
 ## Testing and verification
 
-Run `./script/test.sh` for the Swift Testing suite and `./script/build_and_run.sh` to build and inspect the actual packaged app. The current verified suite has **32 passing tests**, including real SQLite and loopback integrations plus synthetic Google responses. A passing test suite does not validate a live Google account.
+Run `./script/test.sh` for the Swift Testing suite. With the app closed, `./script/build.sh` produces and verifies a universal preview archive without launching it; `./script/build_and_run.sh` rebuilds and launches the app. `./script/verify_bundle.sh /absolute/path/DriveExplorer.app` checks a generated or extracted bundle. `dist/SHA256SUMS` records the ZIP hash. These are repeatable local build steps, not a claim of bit-for-bit reproducibility across toolchain versions. The current verified suite has **33 passing tests**, including real SQLite and loopback integrations plus synthetic Google responses. A passing test suite does not validate a live Google account.
 
 [Verification](docs/VERIFICATION.md) is the detailed record of checks, screenshots, and remaining gaps. [Research](docs/RESEARCH.md) lists API documentation and projects that informed the design. [Parity](docs/PARITY.md) compares native behavior with the separate development reference.
 

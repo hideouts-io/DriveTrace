@@ -1,0 +1,22 @@
+{
+  "dataset": "25000 synthetic items, 100 root folders, 24900 PDFs",
+  "idleResidentKiB": 396192,
+  "measurement": "Wall time includes native input and accessibility capture/settling, not isolated UI frame latency. One observation per workflow.",
+  "workflows": [
+    {
+      "workflow": "Largest files",
+      "automationElapsedMs": 3277,
+      "result": "~\t\t\t48 text Largest files 24,900 items Find what takes up space. Unknown sizes stay distinct from zero-byte files."
+    },
+    {
+      "workflow": "Search 24999",
+      "automationElapsedMs": 4690,
+      "result": "~\t\t\t48 text Largest files 1 items Find what takes up space. Unknown sizes stay distinct from zero-byte files."
+    },
+    {
+      "workflow": "My Drive folder roots",
+      "automationElapsedMs": 1442,
+      "result": "~\t\t\t48 text My Drive 100 items Find, sort and inspect the files in your accessible Drive."
+    }
+  ]
+}

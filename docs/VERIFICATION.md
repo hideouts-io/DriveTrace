@@ -4,7 +4,7 @@ Verified 2026-09-29 on macOS 27.0 (26A428), Apple silicon, Swift 6.4. This is a 
 
 ## Implemented and automated
 
-`./script/test.sh` passes **32 Swift Testing tests**, zero failures. The XCTest wrapper prints “0 tests”; the following Swift Testing result is the actual 32-test run. Full output: `test-results.txt`.
+`./script/test.sh` passes **33 Swift Testing tests**, zero failures. The XCTest wrapper prints “0 tests”; the following Swift Testing result is the actual 33-test run. Full output: `test-results.txt`.
 
 Coverage includes:
 
@@ -15,6 +15,7 @@ Coverage includes:
 - Exact actor/resource attribution, source deduplication, removal as inaccessibility, compound filters, query escaping, unknown-size ordering, cycles and unresolved paths.
 - CSV, JSON and JSONL file/event exports, formula-leading cells, absent sizes, source/actor preservation, RFC3339 round-trips and offset-aware time comparisons.
 - Desktop-client configuration rejection (malformed, Web, service account, invalid ID, oversize), optional secret and extra-field acceptance, S256 PKCE and state parameters; a real local TCP OAuth callback rejects the wrong state, accepts the right code, and terminates on cancellation. No Google token is used by these tests.
+- Watch batching against real SQLite: duplicate record IDs, moved-out parent evidence, cooldown boundary, pending records surviving reopen without acknowledgement, and atomic acknowledgement that preserves later queued records. Disabled rules do not become due; invalid stored delivery times fail explicitly. This does not test macOS delivery.
 - A 10,000-file SQLite stage/promote/load/filter/sort scenario. The measured test duration is recorded in `test-results.txt`; it was approximately 0.4 seconds on this host. This is not a GUI benchmark or a million-file scalability claim.
 
 ## Local performance measurements
@@ -23,13 +24,15 @@ Run `swift run -c release --scratch-path "$HOME/Library/Caches/DriveExplorerBuil
 
 On this host, 100,000 files (1,000 flat root folders, identical modification timestamps) took 2.30 s to stage/promote and 0.45 s to load files/facts. Modification-time sorting fell from **57.16 s to 0.18 s** after replacing per-record formatter construction/string normalization with Foundation ISO8601 format-style parsing and numeric date comparison. Size filtering took 0.012 s, navigation/path preparation 0.115 s, and cancellation of an in-flight sort 0.027 s. Peak process RSS was about 292 MiB, including the benchmark's input/loaded arrays and SQLite staging.
 
-These are single-run synthetic core measurements, not GUI latency, a deep-tree stress test, API throughput or million-file guarantees. The app cancels superseded searches and prepares cached navigation off the main actor. Keyboard workflows were checked with the normal 91-item demo. Large-drive UI profiling remains partial; full VoiceOver speech review remains unverified.
+These are single-run synthetic core measurements, not GUI latency, a deep-tree stress test, API throughput or million-file guarantees. The app cancels superseded searches and prepares cached navigation off the main actor. Keyboard workflows were checked with the normal 91-item demo and a separate 25,000-item synthetic fixture in the actual universal app. The latter displayed 24,900 nonfolder items in Largest Files, one exact-name match for `24999`, and 100 root folders in My Drive. Observed input-through-accessibility-capture times were 3.28 s, 4.69 s and 1.44 s respectively; these include automation/settling overhead and are **not isolated frame latency**. Idle RSS after these checks was 386.9 MiB. [UI scale results](ui-scale-results.json) preserve these observations. The original 91-item demo was saved and restored byte-for-byte, with its record count rechecked; the temporary synthetic fixture was removed.
+
+The measured bounds do not cover deep folder hierarchies, huge historical snapshot sets, million-item indexes or live API throughput. Full VoiceOver speech review remains unverified; keyboard and accessibility-tree checks cannot establish spoken-output usability.
 
 ## Packaged native app
 
-`./script/build_and_run.sh` completes Release compilation, icon generation, ad-hoc signing and strict signature verification, archives the bundle and opens the actual app. Output: `build-results.txt`. `dist/DriveExplorer.app` links to the generated bundle under `~/Library/Caches/DriveExplorerBuild`; `dist/DriveExplorer.zip` contains the portable `.app`. Build-cache placement avoids this host's Documents file-provider metadata breaking code-signature verification.
+`./script/build.sh` builds arm64 and x86_64 Release slices, stages a fresh bundle, generates the icon, ad-hoc signs and checks every architecture. It verifies the bundle identity, minimum OS, icon, canonical PNG and license; then extracts the ZIP into a temporary directory and repeats verification. `./script/build_and_run.sh` closes the existing app, runs packaging and opens the actual app. Build-only packaging refuses to overwrite a running app. `dist/SHA256SUMS` contains the archive checksum. Output: `build-results.txt`. `dist/DriveExplorer.app` links to the generated bundle under `~/Library/Caches/DriveExplorerBuild`; `dist/DriveExplorer.zip` contains the portable `.app`. Build-cache placement avoids this host's Documents file-provider metadata breaking code-signature verification.
 
-The generated executable is arm64. Developer ID signing, notarization, sandbox distribution and Intel/older-macOS runs are **unverified / not supplied**. Source publication is separate from binary distribution; no signed/notarized release is supplied and the build does not install the app.
+The generated executable is universal arm64/x86_64; both slices compile and pass signature/architecture checks. Native launch is verified on Apple silicon. Developer ID signing, notarization, sandbox distribution and Intel/older-macOS runtime are **unverified / not supplied**. A read-only identity check found zero Developer ID Application identities on this host. No signing credentials were requested or exported. Source publication is separate from binary distribution; no signed/notarized release is supplied and the build does not install the app.
 
 ## Verified in the rendered native app
 
@@ -73,8 +76,8 @@ Use the [setup steps](../README.md#connect-your-google-account); never paste sec
 
 - The Observed history browser navigates the latest available per-file snapshots at a chosen cutoff. It includes retained observations of removed/inaccessible items and does not model their historical existence or accessibility. Per-file snapshot details reconstruct ancestor paths at their local detection cutoff. Unknown ancestors are labelled; reconstruction does not prove continuous coverage, accessibility, or location at Google action time. Previous/current parent IDs remain direct evidence.
 - Activity queries cover My Drive and accessible Shared Drive ancestors, seeded with seven days. Shared-with-me items outside those ancestors, events Google does not expose, and pre-seed history may be absent. Range events display their end time; the raw payload retains the original range.
-- The visible Activity window loads the latest 10,000 records. Metadata queries operate on the full in-memory index; server-side size search is unsupported. A reproducible 100,000-file core benchmark covers SQLite, sorting, filtering, navigation preparation and cancellation. Huge-drive GUI latency and deep-hierarchy/history memory remain unverified.
-- Watches depend on indexed ancestry, visible Activity/Changes records, and the running app. Their actual notification delivery is unverified. There is no always-on agent, Workspace Events/Pub/Sub adapter, or Drive for desktop transfer queue.
+- The visible Activity window loads the latest 10,000 records. Metadata queries operate on the full in-memory index; server-side size search is unsupported. A reproducible 100,000-file core benchmark covers SQLite, sorting, filtering, navigation preparation and cancellation. A 25,000-item native UI check measures visible result completion and process RSS with automation overhead; deeper/larger hierarchy/history behavior remains unverified.
+- Watches depend on indexed ancestry, visible Activity/Changes records, and the running app. Their cooldown/persistence logic is tested, but actual notification delivery is unverified. A crash after the OS accepts a request and before acknowledgement can cause repeat delivery; exactly-once notification delivery is not claimed. There is no always-on agent, Workspace Events/Pub/Sub adapter, or Drive for desktop transfer queue.
 - No Python-cache importer, simultaneous multi-account switcher, People-name enrichment, file-content preview/download, or mutation actions. A new native account connection starts a fresh baseline.
 - Known breadcrumb ancestors are clickable in current folders and Observed history. Full VoiceOver coverage remains unverified. Historical browsing loads its snapshot set into memory; huge-history scalability and dedicated historical exports are not implemented.
 - Cache data is local but not encrypted by the app. Disconnect removes tokens, not the Google-side grant or cached metadata; explicit clear controls and Google account security settings have separate purposes.
@@ -96,3 +99,9 @@ The app is ready for a user-controlled Desktop OAuth configuration. Keep the dow
 7. **Account separation:** if you have a second test account, connect it and confirm the index is separate. Return to the first account and confirm its history remains isolated.
 
 Record each check as verified, failed, permission-limited, or not tested. Keep detailed evidence locally; publish only sanitized outcomes. Never label a partial initial scan as complete or a synthetic fixture test as a real-account result.
+
+## Remaining gates and research order
+
+The current plan is **not complete**. The next external gate is user-controlled Google setup/consent through the native guide, followed by the live checks above. Keep all credential JSON and tokens on the Mac. Notification permission and observed delivery need a deliberate local check with a live watch. Intel and older macOS runtime need suitable machines/VMs. Signed distribution needs a Developer ID Application identity and a user-configured notarization credential profile; neither is supplied here.
+
+Deep-history/extreme-scale profiling remains beyond the bounded 100,000-file core and 25,000-item UI workloads. Full VoiceOver spoken-output review remains unverified and needs a listening review; AX text and keyboard navigation alone do not prove it. The optional Workspace Events feasibility assessment is in the README; its adapter remains deferred. No new competitor comparison or research-inspired feature implementation has begun.

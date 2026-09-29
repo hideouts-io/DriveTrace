@@ -15,3 +15,7 @@ client_secret*.json
 *.mobileprovision
 private/
 exports/
+token*.json
+*.key
+*.p8
+*.pfx
