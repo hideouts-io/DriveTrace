@@ -280,3 +280,30 @@ func sample(_ id: String, name: String, size: String?) -> DriveFile {
     #expect(navigation.roots["empty"]?.isEmpty == true)
     #expect(navigation.locations["a"]?.contains("unresolved") == true)
 }
+
+@Test func watchCooldownAndAcknowledgementSurviveReopen() async throws {
+    let (db, path) = try temporaryDatabase()
+    let rule = WatchRule(id: "watched", name: "Synthetic folder", actions: ["MOVED"], enabled: true, cooldown: 300)
+    let event = DriveEvent(id: "record-1", fileID: "outside", name: "Synthetic move", action: "MOVED", time: "2026-09-01T00:01:00Z", detected: "2026-09-01T00:01:00Z", source: .changes, actor: nil, parents: ["elsewhere"], previousParents: ["watched"], previousName: nil, raw: "{}")
+    let last = "2026-09-01T00:00:00Z"
+    let queued = try watchBatch(rule: rule, files: [], events: [event,event], pending: [], lastSent: last, now: #require(parseDate("2026-09-01T00:01:00Z")))
+    #expect(queued.recordIDs == ["record-1"]); #expect(!queued.deliveryDue)
+    try await db.setSetting("pendingNotifications.watched", value: encoded(queued.recordIDs))
+    try await db.setSetting("notified.watched", value: last)
+    try await db.close()
+    let reopened = try Database(path: path)
+    let pending = try JSONDecoder().decode([String].self, from: Data(try #require(await reopened.setting("pendingNotifications.watched")).utf8))
+    let due = try watchBatch(rule: rule, files: [], events: [], pending: pending, lastSent: await reopened.setting("notified.watched"), now: #require(parseDate("2026-09-01T00:05:00Z")))
+    #expect(due.deliveryDue); #expect(due.recordIDs == ["record-1"])
+    try await reopened.setSetting("pendingNotifications.watched", value: encoded(pending + ["record-2"]))
+    try await reopened.acknowledgeWatch(ruleID: rule.id, delivered: due.recordIDs, sentAt: "2026-09-01T00:05:00Z")
+    try await reopened.close()
+    let final = try Database(path: path)
+    #expect(try await final.setting("notified.watched") == "2026-09-01T00:05:00Z")
+    let remaining = try JSONDecoder().decode([String].self, from: Data(try #require(await final.setting("pendingNotifications.watched")).utf8))
+    #expect(remaining == ["record-2"])
+    #expect(throws: MonitorError.self) { try watchBatch(rule: rule, files: [], events: [], pending: [], lastSent: "invalid", now: Date()) }
+    var disabled = rule; disabled.enabled = false
+    #expect(try !watchBatch(rule: disabled, files: [], events: [event], pending: [], lastSent: nil, now: Date()).deliveryDue)
+    try await final.close()
+}

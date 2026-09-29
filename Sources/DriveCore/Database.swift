@@ -87,6 +87,16 @@ public actor Database {
     }
     public func setting(_ key: String) throws -> String? { try execute("SELECT value FROM settings WHERE key=?", [.text(key)]).first?.first }
     public func setSetting(_ key: String, value: String) throws { _ = try execute("INSERT OR REPLACE INTO settings VALUES(?,?)", [.text(key), .text(value)]) }
+    /// Acknowledges exactly the delivered batch and cooldown together; a crash cannot clear the queue without its timestamp.
+    public func acknowledgeWatch(ruleID: String, delivered: [String], sentAt: String) throws {
+        guard parseDate(sentAt) != nil else { throw MonitorError.invalid("Watch acknowledgement requires an RFC3339 delivery time.") }
+        try transaction {
+            let key = "pendingNotifications." + ruleID
+            let existing = try setting(key).map { try JSONDecoder().decode([String].self, from: Data($0.utf8)) } ?? []
+            try setSetting(key, value: encoded(Set(existing).subtracting(delivered).sorted()))
+            try setSetting("notified." + ruleID, value: sentAt)
+        }
+    }
     public func cursor(_ stream: String) throws -> String? { try execute("SELECT token FROM cursors WHERE stream=?", [.text(stream)]).first?.first }
     public func files() throws -> [DriveFile] { try execute("SELECT payload FROM files", []).map { try JSONDecoder().decode(DriveFile.self, from: Data($0[0].utf8)) } }
     public func file(_ id: String) throws -> DriveFile? {

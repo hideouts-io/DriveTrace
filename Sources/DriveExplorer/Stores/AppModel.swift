@@ -274,22 +274,21 @@ import DriveCore
     }
     private func notify(events: [DriveEvent]) async throws {
         guard notifications, !isDemo else { return }
+        guard let database else { throw MonitorError.database("Cannot deliver watch notifications without an open database.") }
         for rule in watches where rule.enabled {
-            let ids = descendants(rule.id, files: files)
-            let relevant = events.filter { event in (ids.contains(event.fileID) || !ids.isDisjoint(with: event.parents + event.previousParents)) && (rule.actions.isEmpty || rule.actions.contains(event.action)) }
             let pendingKey = "pendingNotifications." + rule.id
             let existing = try await decodeSetting(pendingKey, type: [String].self) ?? []
-            let pending = Set(existing).union(relevant.map(\.id))
-            guard !pending.isEmpty else { continue }
-            try await database?.setSetting(pendingKey, value: encoded(pending.sorted()))
-            let last = try await database?.setting("notified.\(rule.id)")
-            if let date = parseDate(last), Date().timeIntervalSince(date) < Double(rule.cooldown) { continue }
-            let content = UNMutableNotificationContent(); content.title = "\(rule.name) · \(pending.count) new records"; content.body = "Open Drive Explorer to review the recorded activity."; content.sound = .default
+            let last = try await database.setting("notified." + rule.id)
+            let batch = try watchBatch(rule: rule, files: files, events: events, pending: existing, lastSent: last, now: Date())
+            guard !batch.recordIDs.isEmpty else { continue }
+            try await database.setSetting(pendingKey, value: encoded(batch.recordIDs))
+            guard batch.deliveryDue else { continue }
+            let content = UNMutableNotificationContent(); content.title = "\(rule.name) · \(batch.recordIDs.count) new records"; content.body = "Open Drive Explorer to review the recorded activity."; content.sound = .default
             try await UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil))
-            try await database?.setSetting("notified.\(rule.id)", value: timestamp(Date()))
-            try await database?.setSetting(pendingKey, value: "[]")
+            try await database.acknowledgeWatch(ruleID: rule.id, delivered: batch.recordIDs, sentAt: timestamp(Date()))
         }
     }
+
     func importClient() {
         let panel = NSOpenPanel(); panel.allowedContentTypes = [.json]; panel.allowsMultipleSelection = false
         guard let window = NSApp.keyWindow else { error = "Open the connection guide before importing a client."; return }
