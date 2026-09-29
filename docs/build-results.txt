@@ -1,0 +1,11 @@
+Local verification output; home-directory paths sanitized to ~.
+
+Building for production...
+[3 / 11] DriveCore
+[5 / 12] DriveCore
+[8 / 9] DriveExplorer-product
+[9 / 10] DriveExplorer-product
+[12 / 14] DriveExplorer-product
+[13 / 14] DriveExplorer-product
+Build complete! (10.95 sec)
+~/Library/Caches/DriveExplorerBuild/DriveExplorer.app: replacing existing signature

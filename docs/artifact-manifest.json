@@ -1,0 +1,10 @@
+{
+  "verified_at": "2026-09-29T22:27:43.768678+00:00",
+  "executable_sha256": "19267342ce86c55fba92d5846a23357310e8641bce71bc2208c223caab816684",
+  "zip_sha256": "374f1e04f76f45eaa51c7717db68bafc093f095110f43b8ebc19501d91821738",
+  "logo_sha256": "6312cce90437a33b45f9aea20003ff57328cd0a080c8210ee1691a3a2556b923",
+  "test_summary": "\u2714 Test run with 27 tests in 1 suite passed after 0.395 seconds.",
+  "signature": "Ad-hoc; strict signature verification passed on generated cache bundle",
+  "architecture": "arm64",
+  "google_account_validation": "not performed"
+}

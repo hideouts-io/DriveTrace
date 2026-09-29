@@ -1,0 +1,80 @@
+Local verification output; home-directory paths sanitized to ~.
+
+Building for debugging...
+[2 / 21]
+[3 / 22] DriveCore
+[5 / 23] DriveCore
+[9 / 18] DriveExplorer-product
+[13 / 22] DriveExplorer
+[21 / 30] DriveExplorer-product
+[26 / 36] DriveExplorer-product
+[30 / 38] DriveExplorer-product
+[35 / 46] DriveCoreTests-product
+[38 / 49] DriveCoreTests-product
+[40 / 46] DriveCoreTests-product
+[42 / 46] DriveCoreTests-product
+Build complete! (3.92 sec)
+Test Suite 'All tests' started at 2026-09-29 15:26:42.891.
+Test Suite 'All tests' passed at 2026-09-29 15:26:42.892.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+◇ Test run started.
+↳ Testing Library Version: 2084
+↳ Target Platform: arm64e-apple-macos14.0
+◇ Suite GoogleIntegrationTests started.
+◇ Test invalidMetadataFailsExplicitly() started.
+◇ Test membershipDoesNotResurrectAfterRestart() started.
+◇ Test allUnknownStorageRemainsUnknown() started.
+◇ Test loopbackCancellationFinishes() started.
+◇ Test timestampsRoundTrip() started.
+◇ Test exportsRoundTripAndProtectSpreadsheetCells() started.
+◇ Test retiringDriveScopePreservesHistoryAndOtherMembership() started.
+◇ Test compoundFiltersAndSortUnknowns() started.
+◇ Test loopbackRejectsWrongStateThenAcceptsValidCallback() started.
+◇ Test baselineIsAtomicAndSurvivesReopen() started.
+◇ Test timestampFiltersCompareInstantsNotLexicalOffsets() started.
+◇ Test eventExportsKeepAttributionAndSource() started.
+◇ Test historicalPathsNeverUseFutureAncestorNames() started.
+◇ Test multiScopeMembershipAndRemoval() started.
+◇ Test activityAttributionAndDeduplication() started.
+◇ Test folderCyclesTerminate() started.
+◇ Test schemaOneMigratesWithoutLosingFiles() started.
+◇ Test largeIndexSearchAndPersistence() started.
+◇ Test desktopOAuthConfigurationAndPKCE() started.
+◇ Test malformedPageRollsBackChangesAndCursor() started.
+◇ Test newerSchemaIsRejectedWithoutDowngrade() started.
+◇ Test fullSyncPaginatesAndResumes() started.
+✔ Test allUnknownStorageRemainsUnknown() passed after 0.006 seconds.
+✔ Test folderCyclesTerminate() passed after 0.006 seconds.
+✔ Test exportsRoundTripAndProtectSpreadsheetCells() passed after 0.006 seconds.
+✔ Test eventExportsKeepAttributionAndSource() passed after 0.006 seconds.
+✔ Test desktopOAuthConfigurationAndPKCE() passed after 0.008 seconds.
+✔ Test timestampsRoundTrip() passed after 0.008 seconds.
+✔ Test invalidMetadataFailsExplicitly() passed after 0.008 seconds.
+✔ Test timestampFiltersCompareInstantsNotLexicalOffsets() passed after 0.008 seconds.
+✔ Test compoundFiltersAndSortUnknowns() passed after 0.009 seconds.
+✔ Test loopbackCancellationFinishes() passed after 0.009 seconds.
+✔ Test malformedPageRollsBackChangesAndCursor() passed after 0.025 seconds.
+✔ Test activityAttributionAndDeduplication() passed after 0.025 seconds.
+✔ Test retiringDriveScopePreservesHistoryAndOtherMembership() passed after 0.026 seconds.
+✔ Test historicalPathsNeverUseFutureAncestorNames() passed after 0.027 seconds.
+✔ Test multiScopeMembershipAndRemoval() passed after 0.027 seconds.
+✔ Test baselineIsAtomicAndSurvivesReopen() passed after 0.027 seconds.
+✔ Test loopbackRejectsWrongStateThenAcceptsValidCallback() passed after 0.029 seconds.
+✔ Test newerSchemaIsRejectedWithoutDowngrade() passed after 0.030 seconds.
+✔ Test membershipDoesNotResurrectAfterRestart() passed after 0.030 seconds.
+✔ Test schemaOneMigratesWithoutLosingFiles() passed after 0.032 seconds.
+✔ Test fullSyncPaginatesAndResumes() passed after 0.034 seconds.
+◇ Test repeatedPageDoesNotPromotePartialIndex() started.
+✔ Test repeatedPageDoesNotPromotePartialIndex() passed after 0.004 seconds.
+◇ Test incompleteSearchPreservesPreviousEvidence() started.
+✔ Test incompleteSearchPreservesPreviousEvidence() passed after 0.004 seconds.
+◇ Test authAndRateLimitRetriesThenSucceeds() started.
+✔ Test authAndRateLimitRetriesThenSucceeds() passed after 0.001 seconds.
+◇ Test exhaustedRetriesSurfaceLastError() started.
+✔ Test exhaustedRetriesSurfaceLastError() passed after 0.001 seconds.
+◇ Test cancelledSyncDoesNotRequestPages() started.
+✔ Test cancelledSyncDoesNotRequestPages() passed after 0.002 seconds.
+✔ Suite GoogleIntegrationTests passed after 0.048 seconds.
+10,000-file SQLite stage/promote/load/filter/sort: 0.3755919933319092 seconds
+✔ Test largeIndexSearchAndPersistence() passed after 0.395 seconds.
+✔ Test run with 27 tests in 1 suite passed after 0.395 seconds.
