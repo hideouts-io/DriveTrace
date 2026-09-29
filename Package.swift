@@ -10,6 +10,7 @@ let package = Package(
         .systemLibrary(name: "CSQLite", pkgConfig: "sqlite3"),
         .target(name: "DriveCore", dependencies: ["CSQLite"]),
         .executableTarget(name: "DriveExplorer", dependencies: ["DriveCore"], resources: [.copy("Resources/drive-explorer-logo.png")]),
+        .executableTarget(name: "DriveBenchmarks", dependencies: ["DriveCore"], path: "Benchmarks"),
         .testTarget(name: "DriveCoreTests", dependencies: ["DriveCore", "DriveExplorer"])
     ]
 )

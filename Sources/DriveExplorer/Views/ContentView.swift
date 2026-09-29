@@ -33,7 +33,7 @@ struct ContentView: View {
                 Divider()
                 HStack(spacing: 8) {
                     Circle().fill(model.isDemo ? .orange : model.gaps.isEmpty ? .green : .orange).frame(width: 6, height: 6)
-                    Text(model.busy ? model.progress : model.isDemo ? "Demo data · local SQLite" : model.lastSync.map { "Last complete poll \(displayDate($0))" } ?? "Index not yet synchronized")
+                    Text(model.busy ? model.progress : model.operationNotice ?? (model.isDemo ? "Demo data · local SQLite" : model.lastSync.map { "Last complete poll \(displayDate($0))" } ?? "Index not yet synchronized"))
                     Spacer()
                     if model.busy { ProgressView().controlSize(.small); Button("Cancel", action: model.cancel).accessibilityIdentifier("cancelOperation") }
                     Text(model.autoRefresh ? "Polling every 60 seconds" : "Manual refresh").foregroundStyle(.secondary)
@@ -44,7 +44,7 @@ struct ContentView: View {
                 ToolbarItemGroup {
                     Button(action: model.sync) { Label("Refresh", systemImage: "arrow.clockwise") }.disabled(model.busy || (!model.connected && !model.isDemo)).accessibilityIdentifier("refreshDrive")
                     Button { model.showFilters.toggle() } label: { Label("Filters", systemImage: "line.3.horizontal.decrease.circle") }.accessibilityIdentifier("showFilters")
-                    Menu { ForEach(ExportFormat.allCases, id: \.self) { format in Button(format.rawValue.uppercased()) { model.export(format) } } } label: { Label("Export", systemImage: "square.and.arrow.up") }.disabled(model.selection == "history" || (model.selection == "activity" ? model.filteredEvents.isEmpty : model.results.isEmpty)).accessibilityIdentifier("exportFiles")
+                    Menu { ForEach(ExportFormat.allCases, id: \.self) { format in Button(format.rawValue.uppercased()) { model.export(format) } } } label: { Label("Export", systemImage: "square.and.arrow.up") }.disabled(model.searching || model.selection == "history" || (model.selection == "activity" ? model.filteredEvents.isEmpty : model.results.isEmpty)).accessibilityIdentifier("exportFiles")
                     Button { model.showInspector.toggle() } label: { Label("Inspector", systemImage: "sidebar.right") }.accessibilityIdentifier("showInspector")
                 }
             }

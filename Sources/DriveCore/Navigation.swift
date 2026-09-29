@@ -40,3 +40,39 @@ public struct ObservedFile: Identifiable, Codable, Sendable {
     public let file: DriveFile
     public init(observedAt: String, file: DriveFile) { self.observedAt = observedAt; self.file = file }
 }
+
+public struct FolderNode: Identifiable, Sendable {
+    public let id: String
+    public let name: String
+    public let children: [FolderNode]?
+}
+public struct FileNavigation: Sendable {
+    public let index: [String: DriveFile]
+    public let locations: [String: String]
+    public let roots: [String: [FolderNode]]
+}
+/// Prepares navigation once per index reload, rather than rescanning every file for each sidebar folder.
+public func prepareNavigation(files: [DriveFile], root: DriveFile?, roots: [String]) throws -> FileNavigation {
+    var index = Dictionary(uniqueKeysWithValues: files.map { ($0.id, $0) })
+    if var root { root.parents = []; index[root.id] = root }
+    var children: [String: [DriveFile]] = [:]
+    for file in files where file.isFolder {
+        try Task.checkCancellation()
+        for parent in file.parents ?? [] { children[parent, default: []].append(file) }
+    }
+    func nodes(_ parent: String, visited: Set<String>) throws -> [FolderNode] {
+        try Task.checkCancellation()
+        return try (children[parent] ?? []).filter { !visited.contains($0.id) }.sorted { lhs, rhs in
+            lhs.name == rhs.name ? lhs.id < rhs.id : lhs.name < rhs.name
+        }.map { file in
+            let nested = try nodes(file.id, visited: visited.union([file.id]))
+            return FolderNode(id: file.id, name: file.name, children: nested.isEmpty ? nil : nested)
+        }
+    }
+    let trees = try Dictionary(uniqueKeysWithValues: Set(roots).map { ($0, try nodes($0, visited: [$0])) })
+    let locations = try Dictionary(uniqueKeysWithValues: files.map { file in
+        try Task.checkCancellation()
+        return (file.id, filePath(file.id, index: index, visited: []))
+    })
+    return FileNavigation(index: index, locations: locations, roots: trees)
+}

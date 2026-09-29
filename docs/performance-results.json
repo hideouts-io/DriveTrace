@@ -1,0 +1,70 @@
+{
+  "measured_at": "2026-09-29T23:16:57.414698+00:00",
+  "environment": "macOS 27.0 (26A428), Apple silicon, Swift 6.4, Release",
+  "dataset": "100000 synthetic files including 1000 root folders; identical modified timestamps; no Google requests",
+  "limits": "Single-run core benchmark, not GUI latency or live API throughput. Peak RSS is process-wide high water, not per-stage allocation.",
+  "before": [
+    {
+      "seconds": 2.2414979934692383,
+      "stage": "sqlite_stage_promote",
+      "peakResidentBytes": 212729856,
+      "records": 100000
+    },
+    {
+      "seconds": 0.44690001010894775,
+      "stage": "sqlite_load_facts",
+      "peakResidentBytes": 212729856,
+      "records": 100000
+    },
+    {
+      "seconds": 57.16405498981476,
+      "stage": "modified_sort",
+      "peakResidentBytes": 288686080,
+      "records": 100000
+    },
+    {
+      "seconds": 0.019214987754821777,
+      "stage": "size_filter",
+      "peakResidentBytes": 289521664,
+      "records": 10000
+    }
+  ],
+  "after": [
+    {
+      "records": 100000,
+      "peakResidentBytes": 212271104,
+      "stage": "sqlite_stage_promote",
+      "seconds": 2.302454948425293
+    },
+    {
+      "records": 100000,
+      "peakResidentBytes": 212271104,
+      "stage": "sqlite_load_facts",
+      "seconds": 0.44560909271240234
+    },
+    {
+      "records": 100000,
+      "peakResidentBytes": 282050560,
+      "stage": "modified_sort",
+      "seconds": 0.18375802040100098
+    },
+    {
+      "records": 10000,
+      "peakResidentBytes": 282836992,
+      "stage": "size_filter",
+      "seconds": 0.012273907661437988
+    },
+    {
+      "records": 100000,
+      "peakResidentBytes": 305889280,
+      "stage": "navigation_paths_and_tree",
+      "seconds": 0.11548197269439697
+    },
+    {
+      "records": 100000,
+      "peakResidentBytes": 306036736,
+      "stage": "inflight_sort_cancellation",
+      "seconds": 0.027463078498840332
+    }
+  ]
+}

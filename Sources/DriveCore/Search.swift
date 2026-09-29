@@ -59,7 +59,8 @@ public func within(_ value: String?, after: String, before: String) -> Bool {
     if !before.isEmpty { guard let upper = parseDate(before), date <= upper else { return false } }
     return true
 }
-public func orderedFiles(_ files: [DriveFile], order: FileOrder, ascending: Bool, facts: FileFacts) -> [DriveFile] {
+public func orderedFiles(_ files: [DriveFile], order: FileOrder, ascending: Bool, facts: FileFacts) throws -> [DriveFile] {
+    try Task.checkCancellation()
     let index = Dictionary(uniqueKeysWithValues: files.map { ($0.id, $0) })
     func key(_ file: DriveFile) -> String? {
         switch order {
@@ -74,14 +75,22 @@ public func orderedFiles(_ files: [DriveFile], order: FileOrder, ascending: Bool
         default: nil
         }
     }
-    let keys = Dictionary(uniqueKeysWithValues: files.map { file -> (String, String?) in
-        let value = key(file)
-        if [.created, .modified, .discovered, .activity].contains(order) { return (file.id, parseDate(value).map(timestamp)) }
-        return (file.id, value)
-    })
-    return files.sorted { lhs, rhs in
+    let dateOrder = [.created, .modified, .discovered, .activity].contains(order)
+    var dateKeys: [String: Date] = [:]
+    var keys: [String: String] = [:]
+    for file in files {
+        try Task.checkCancellation()
+        if dateOrder { dateKeys[file.id] = parseDate(key(file)) }
+        else { keys[file.id] = key(file) }
+    }
+    return try files.sorted { lhs, rhs in
+        try Task.checkCancellation()
         let comparison: ComparisonResult
-        if order == .size || order == .quota || order == .activityCount {
+        if dateOrder {
+            let a = dateKeys[lhs.id], b = dateKeys[rhs.id]
+            if a == nil && b != nil { return false }; if a != nil && b == nil { return true }
+            comparison = a == b ? .orderedSame : (a ?? .distantPast) < (b ?? .distantPast) ? .orderedAscending : .orderedDescending
+        } else if order == .size || order == .quota || order == .activityCount {
             let a: Int64? = order == .size ? lhs.bytes : order == .quota ? lhs.quotaBytes : Int64(facts.activityCounts[lhs.id] ?? 0)
             let b: Int64? = order == .size ? rhs.bytes : order == .quota ? rhs.quotaBytes : Int64(facts.activityCounts[rhs.id] ?? 0)
             if a == nil && b != nil { return false }; if a != nil && b == nil { return true }
@@ -99,6 +108,7 @@ public func orderedFiles(_ files: [DriveFile], order: FileOrder, ascending: Bool
     }
 }
 public func serverQuery(_ filter: FileFilter) throws -> String {
+    try validateFilter(filter)
     guard filter.minimumBytes == nil, filter.maximumBytes == nil, filter.ext.isEmpty, filter.fileID.isEmpty, filter.discoveredAfter.isEmpty, filter.discoveredBefore.isEmpty else {
         throw MonitorError.invalid("Google query does not support this size, extension or file-ID filter. Use Local index, or open a file by ID.")
     }

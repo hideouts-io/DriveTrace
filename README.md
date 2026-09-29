@@ -56,7 +56,7 @@ The app runs directly on macOS with system frameworks. It has no Python service,
 | Area | Status | What that means |
 | --- | --- | --- |
 | Native application | **Implemented / local preview** | SwiftUI windows, tables, sidebar, inspector, settings, charts, and keyboard commands. |
-| Local indexing and search | **Implemented / tested** | Real SQLite integration and synthetic file/filter tests, including a 10,000-file scenario. |
+| Local indexing and search | **Implemented / tested** | Real SQLite integration and synthetic file/filter tests, including a 10,000-file integration scenario and separate 100,000-file core benchmark. |
 | Google API integration | **Implemented / live validation not done yet** | Pagination, retries, changes, and Activity have synthetic service-response tests; no real account has been used for validation. |
 | Desktop OAuth | **Implemented / live validation not done yet** | PKCE/state and a real local loopback callback are tested; Google consent and Keychain token lifecycle still need a real account. |
 | Folder notifications | **Implemented / delivery not verified** | Native rules and cooldown behavior are present; actual macOS notification delivery needs testing. |
@@ -176,7 +176,7 @@ A Picker/`drive.file` design limits access to selected/app-used files and includ
 ## Using the explorer
 
 - `⌘1` All files, `⌘2` Newest items, `⌘3` Largest files, `⌘4` Activity, `⌘5` Storage, `⌘6` Sharing, `⌘7` My Drive, `⌘8` Watches, `⌘9` Observed history.
-- `⌘⇧F` toggles the advanced filter builder. Filters combine with AND. Dates use complete RFC3339 timestamps, for example `2026-09-01T00:00:00Z`. Saved searches store filters; sort order is chosen independently.
+- `⌘F` opens/focuses file search. `⌘⇧F` toggles the advanced filter builder. Filters combine with AND. Dates use complete RFC3339 timestamps, for example `2026-09-01T00:00:00Z`. Invalid date/size ranges show an error and block search saving; Clear search resets all inputs. Superseded local searches are cancelled. Saved searches store filters; sort order is chosen independently.
 - Table headers or the sort picker choose ordering. Missing sizes stay last in either direction. Equal values use name and then file ID as stable secondary keys.
 - Double-click folders to browse them; click any known ancestor in the breadcrumb trail to navigate back. Shared Drive roots keep their own identity, and missing parents or cycles remain labelled. The sidebar expands known folder children. File context menus open Google Drive, show activity, or watch a folder. Shortcuts expose their target ID in the inspector; inaccessible or unindexed targets are labelled.
 - The inspector separates owner, creation, modification, first discovery, quota usage and action evidence. Snapshot details reconstruct paths using only ancestor snapshots observed by that cutoff, with explicit coverage limits. An owner is never assumed to be an uploader. Activity actors can be a `people/...` resource, “Me,” or unavailable; the app does not request additional People scopes just to resolve names.
@@ -226,9 +226,9 @@ This is the working roadmap. Unchecked items are **not done yet** and have no pr
 - [ ] **Real-account validation:** consent, refresh/revocation, reconnect, account isolation, My Drive and Shared Drive synchronization, restricted permissions, API quotas and failures.
 - [ ] **Notification validation:** permission grant, visible delivery, cooldown accumulation, restart behavior, and long-running polling under real API load.
 - [x] **Observed hierarchy browser:** navigate retained metadata at a chosen cutoff, with missing-ancestor labels, per-item observation times, search, and raw inspection. Historical existence/access remains unknown; dedicated historical exports are not implemented.
-- [ ] **Large-drive profiling:** measure memory, cancellation and UI latency beyond the current 10,000-file scenario; improve query/paging design where measurements justify it.
+- [ ] **Large-drive profiling — partial:** 100,000-file SQLite/search/navigation/memory and in-flight sort cancellation benchmark completed; date sorting improved from 57.16 s to 0.18 s on this host. Huge-index GUI latency, deep hierarchies and history still need profiling. See [measurements and limits](docs/VERIFICATION.md#local-performance-measurements).
 - [x] **Ancestor navigation:** clickable breadcrumbs with shared-root, unknown-parent, and cycle handling.
-- [ ] **Accessibility audit:** complete the full keyboard/VoiceOver review across all screens.
+- [ ] **Accessibility audit — partial:** keyboard navigation, Cmd-F focus, invalid-input recovery, named search fields and directional sort/watch labels checked in the native app. Full VoiceOver spoken-output review remains unverified.
 - [ ] **Compatibility:** run on the declared older macOS versions and Intel hardware, then document the tested matrix.
 - [ ] **Distribution:** reproducible release automation, Developer ID signing, notarization and verified release artifacts.
 - [ ] **Optional Workspace Events integration:** assess Pub/Sub subscriptions and renewal as an alternative monitoring source; currently there is no adapter or always-on agent.
@@ -237,7 +237,7 @@ Additional ideas remain exploratory: explicit Python-cache import, an account sw
 
 ## Testing and verification
 
-Run `./script/test.sh` for the Swift Testing suite and `./script/build_and_run.sh` to build and inspect the actual packaged app. The current verified suite has **29 passing tests**, including real SQLite and loopback integrations plus synthetic Google responses. A passing test suite does not validate a live Google account.
+Run `./script/test.sh` for the Swift Testing suite and `./script/build_and_run.sh` to build and inspect the actual packaged app. The current verified suite has **32 passing tests**, including real SQLite and loopback integrations plus synthetic Google responses. A passing test suite does not validate a live Google account.
 
 [Verification](docs/VERIFICATION.md) is the detailed record of checks, screenshots, and remaining gaps. [Research](docs/RESEARCH.md) lists API documentation and projects that informed the design. [Parity](docs/PARITY.md) compares native behavior with the separate development reference.
 

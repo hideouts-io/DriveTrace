@@ -1,10 +1,11 @@
 Building for production...
-[2 / 10]
-[3 / 11] DriveCore
-[5 / 12] DriveCore
-[8 / 9] DriveExplorer-product
-[9 / 10] DriveExplorer-product
-[12 / 14] DriveExplorer-product
-[13 / 14] DriveExplorer-product
-Build complete! (12.01 sec)
+[Planning 41 / 154]
+[Planning deferred tasks]
+[4 / 12] DriveCore
+[6 / 13] DriveCore
+[10 / 11] DriveExplorer-product
+[11 / 12] DriveExplorer-product
+[14 / 16] DriveExplorer-product
+[15 / 16] DriveExplorer-product
+Build complete! (14.22 sec)
 ~/Library/Caches/DriveExplorerBuild/DriveExplorer.app: replacing existing signature

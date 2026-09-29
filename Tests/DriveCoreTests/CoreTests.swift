@@ -81,8 +81,8 @@ func sample(_ id: String, name: String, size: String?) -> DriveFile {
     var missing = match; missing.size = nil; #expect(!matches(missing, filter: filter))
     let facts = FileFacts(firstSeen: [:], lastActivity: [:], activityCounts: [:])
     let files = [sample("a", name: "A", size: nil), sample("b", name: "B", size: "0"), sample("c", name: "C", size: "20")]
-    #expect(orderedFiles(files, order: .size, ascending: true, facts: facts).map(\.id) == ["b","c","a"])
-    #expect(orderedFiles(files, order: .size, ascending: false, facts: facts).map(\.id) == ["c","b","a"])
+    #expect(try orderedFiles(files, order: .size, ascending: true, facts: facts).map(\.id) == ["b","c","a"])
+    #expect(try orderedFiles(files, order: .size, ascending: false, facts: facts).map(\.id) == ["c","b","a"])
     #expect(throws: MonitorError.self) { try serverQuery(filter) }
     var google = FileFilter(); google.text = "O'Brien\\draft"
     #expect(try serverQuery(google).contains("O\\'Brien\\\\draft"))
@@ -112,7 +112,7 @@ func sample(_ id: String, name: String, size: String?) -> DriveFile {
     let loaded = try await db.files(); #expect(loaded.count == 10000)
     var filter = FileFilter(); filter.minimumBytes = 9_000 * 1024
     let matches = loaded.filter { DriveCore.matches($0, filter: filter) }
-    let sorted = orderedFiles(matches, order: .size, ascending: false, facts: try await db.facts())
+    let sorted = try orderedFiles(matches, order: .size, ascending: false, facts: try await db.facts())
     #expect(sorted.count == 1000); #expect(sorted.first?.id == "9999")
     print("10,000-file SQLite stage/promote/load/filter/sort: \(Date().timeIntervalSince(start)) seconds")
     try await db.close()
@@ -244,4 +244,39 @@ func sample(_ id: String, name: String, size: String?) -> DriveFile {
     child.parents = ["shared", "another"]
     let multiple = folderTrail("child", index: [child.id: child], roots: ["shared": "Team Drive"])
     #expect(multiple.contains { $0.label == "Multiple parents; first shown" && $0.folderID == nil })
+}
+
+@Test func invalidAndReversedSearchRangesAreRejected() throws {
+    var filter = FileFilter(); filter.createdAfter = "yesterday"
+    #expect(throws: MonitorError.self) { try validateFilter(filter) }
+    #expect(throws: MonitorError.self) { try serverQuery(filter) }
+    filter.createdAfter = "2026-09-02T00:00:00Z"; filter.createdBefore = "2026-09-01T00:00:00Z"
+    #expect(throws: MonitorError.self) { try validateFilter(filter) }
+    filter.createdAfter = "2026-09-01T01:00:00+02:00"
+    try validateFilter(filter)
+    filter.minimumBytes = 100; filter.maximumBytes = 99
+    #expect(throws: MonitorError.self) { try validateFilter(filter) }
+    #expect(throws: MonitorError.self) { try validateDateRange(after: "bad", before: "", label: "Activity range") }
+}
+@Test func cancelledSortStopsAndDateOrderingUsesInstants() async throws {
+    var first = sample("first", name: "Z", size: nil), second = sample("second", name: "A", size: nil)
+    first.modifiedTime = "2026-09-01T01:00:00+02:00"; second.modifiedTime = "2026-09-01T00:00:00Z"
+    let files = [first, second]
+    let facts = FileFacts(firstSeen: [:], lastActivity: [:], activityCounts: [:])
+    #expect(try orderedFiles(files, order: .modified, ascending: true, facts: facts).map(\.id) == ["first", "second"])
+    let cancelled = Task {
+        withUnsafeCurrentTask { $0?.cancel() }
+        return try orderedFiles(files, order: .modified, ascending: true, facts: facts)
+    }
+    await #expect(throws: CancellationError.self) { try await cancelled.value }
+}
+@Test func preparedNavigationPreservesRootsAndTerminatesCycles() throws {
+    var a = DriveFile(id: "a", name: "A", mimeType: "application/vnd.google-apps.folder")
+    var b = DriveFile(id: "b", name: "B", mimeType: "application/vnd.google-apps.folder")
+    a.parents = ["root", "b"]; b.parents = ["a"]
+    let navigation = try prepareNavigation(files: [a,b], root: nil, roots: ["root", "empty"])
+    #expect(navigation.roots["root"]?.first?.children?.first?.id == "b")
+    #expect(navigation.roots["root"]?.first?.children?.first?.children == nil)
+    #expect(navigation.roots["empty"]?.isEmpty == true)
+    #expect(navigation.locations["a"]?.contains("unresolved") == true)
 }

@@ -1,15 +1,6 @@
 import SwiftUI
 import DriveCore
 
-struct FolderNode: Identifiable {
-    let id: String; let name: String; let children: [FolderNode]?
-}
-func folderNodes(files: [DriveFile], parent: String, visited: Set<String>) -> [FolderNode] {
-    files.filter { $0.isFolder && ($0.parents ?? []).contains(parent) && !visited.contains($0.id) }.sorted { $0.name < $1.name }.map { file in
-        let children = folderNodes(files: files, parent: file.id, visited: visited.union([file.id]))
-        return FolderNode(id: file.id, name: file.name, children: children.isEmpty ? nil : children)
-    }
-}
 struct SidebarView: View {
     @Bindable var model: AppModel
     var body: some View {
@@ -23,14 +14,14 @@ struct SidebarView: View {
             } header: { Text("Explore") }
             Section("Drive") {
                 item("My Drive", icon: "folder", id: "my")
-                OutlineGroup(folderNodes(files: model.files, parent: model.rootID, visited: [model.rootID]), children: \.children) { node in
+                OutlineGroup(model.folderTrees[model.rootID] ?? [], children: \.children) { node in
                     Label(node.name, systemImage: "folder").tag("folder:" + node.id).accessibilityIdentifier("folder-\(node.id)")
                         .contextMenu { if let file = model.index[node.id] { Button("Watch folder") { model.watch(file) }; Button("Open in Google Drive") { model.open(file) } } }
                 }
                 item("Shared with me", icon: "person.2", id: "shared")
                 ForEach(model.drives) { drive in
                     DisclosureGroup {
-                        OutlineGroup(folderNodes(files: model.files, parent: drive.id, visited: [drive.id]), children: \.children) { node in
+                        OutlineGroup(model.folderTrees[drive.id] ?? [], children: \.children) { node in
                             Label(node.name, systemImage: "folder").tag("folder:" + node.id).accessibilityIdentifier("folder-" + node.id)
                         }
                     } label: { Label(drive.name, systemImage: "externaldrive.badge.person.crop").tag("drive:" + drive.id).accessibilityIdentifier("drive-" + drive.id) }

@@ -5,6 +5,7 @@ struct ExplorerView: View {
     @Bindable var model: AppModel
     @State private var searchName = ""
     @State private var saving = false
+    @FocusState private var searchFocused: Bool
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 14) {
@@ -27,11 +28,11 @@ struct ExplorerView: View {
                 }
                 HStack(spacing: 10) {
                     Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-                    TextField("Search file names…", text: $model.filter.text).textFieldStyle(.plain).accessibilityIdentifier("fileSearch")
-                    Button { model.filter = FileFilter(); model.serverResults = nil; model.updateResults() } label: { Image(systemName: "xmark.circle.fill") }.buttonStyle(.plain).foregroundStyle(.secondary).accessibilityLabel("Clear search").accessibilityIdentifier("clearSearch")
+                    TextField("Search file names…", text: $model.filter.text).textFieldStyle(.plain).accessibilityIdentifier("fileSearch").accessibilityLabel("Search file names").focused($searchFocused)
+                    Button(action: model.resetSearch) { Image(systemName: "xmark.circle.fill") }.buttonStyle(.plain).foregroundStyle(.secondary).accessibilityLabel("Clear search").accessibilityIdentifier("clearSearch")
                     Divider().frame(height: 20)
                     Picker("Sort", selection: $model.order) { ForEach(FileOrder.allCases, id: \.self) { Text(orderLabel($0)).tag($0) } }.labelsHidden().frame(width: 160).accessibilityIdentifier("sortOrder")
-                    Button { model.ascending.toggle() } label: { Image(systemName: model.ascending ? "arrow.up" : "arrow.down") }.help(model.ascending ? "Ascending; click for descending" : "Descending; click for ascending").accessibilityIdentifier("sortDirection")
+                    Button { model.ascending.toggle() } label: { Image(systemName: model.ascending ? "arrow.up" : "arrow.down") }.help(model.ascending ? "Ascending; click for descending" : "Descending; click for ascending").accessibilityLabel(model.ascending ? "Sort descending" : "Sort ascending").accessibilityValue(model.ascending ? "Currently ascending" : "Currently descending").accessibilityIdentifier("sortDirection")
                 }.padding(10).background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 9))
                 if model.selection == "newest" {
                     HStack {
@@ -50,10 +51,12 @@ struct ExplorerView: View {
                 if model.showFilters { FilterView(model: model) }
                 HStack {
                     Label(model.serverResults == nil ? "Local index · \(model.files.count.formatted()) cached items" : model.serverCoverage, systemImage: "internaldrive").font(.caption).foregroundStyle(.secondary)
+                    if model.searching { ProgressView("Searching…").controlSize(.small).accessibilityIdentifier("searchProgress") }
                     Spacer()
-                    Button("Save search…") { saving = true }.buttonStyle(.link).font(.caption).accessibilityIdentifier("saveSearch")
+                    Button("Save search…") { saving = true }.buttonStyle(.link).font(.caption).disabled(model.filterValidationError != nil || model.searching).accessibilityIdentifier("saveSearch")
                 }
                 if !model.gaps.isEmpty { DisclosureGroup("\(model.gaps.count) coverage gaps · results may be incomplete") { ForEach(model.gaps, id: \.self) { Text($0).font(.caption).textSelection(.enabled) } }.foregroundStyle(.orange) }
+                if !model.showFilters, let error = model.filterValidationError { Text(error).font(.caption).foregroundStyle(.red) }
             }.padding(22)
             Divider()
             HSplitView {
@@ -61,6 +64,10 @@ struct ExplorerView: View {
                 if model.showInspector { InspectorView(model: model).frame(minWidth: 260, idealWidth: 300, maxWidth: 330) }
             }
         }
+        .onChange(of: model.focusSearchRequested) { _, requested in
+            if requested { searchFocused = true; model.focusSearchRequested = false }
+        }
+        .onAppear { if model.focusSearchRequested { searchFocused = true; model.focusSearchRequested = false } }
         .sheet(isPresented: $saving) {
             VStack(alignment: .leading, spacing: 18) {
                 Text("Save this search").font(.title2.bold())
@@ -93,7 +100,7 @@ struct FileTable: View {
             TableColumn("Modified", value: \.sortableModified) { file in Text(displayDate(file.modifiedTime)).foregroundStyle(.secondary) }.width(min: 120, ideal: 130)
             TableColumn("Owner", value: \.ownerLabel) { file in Text(file.ownerLabel).lineLimit(1).foregroundStyle(.secondary) }.width(min: 80, ideal: 90)
         }
-        .accessibilityIdentifier("filesTable")
+        .accessibilityIdentifier("filesTable").disabled(model.searching)
         .onChange(of: headerSort) { _, sort in
             guard let first = sort.first else { return }
             if first.keyPath == \DriveFile.name { model.order = .name }
@@ -113,7 +120,7 @@ struct FileTable: View {
                 if let shortcut = file.shortcutDetails { Button("Inspect shortcut target") { model.selectedFile = shortcut.targetId; model.showInspector = true } }
             }
         } primaryAction: { ids in if let id = ids.first, let file = model.index[id] { if file.isFolder { model.navigate("folder:" + id) } else { model.open(file) } } }
-        .overlay { if model.results.isEmpty { ContentUnavailableView("No matching files", systemImage: "doc.text.magnifyingglass", description: Text("Adjust the filters or refresh your Drive index.")) } }
+        .overlay { if model.results.isEmpty && !model.searching && model.filterValidationError == nil { ContentUnavailableView("No matching files", systemImage: "doc.text.magnifyingglass", description: Text("Adjust the filters or refresh your Drive index.")) } }
     }
     private func updateHeaderSort() {
         let direction: SortOrder = model.ascending ? .forward : .reverse

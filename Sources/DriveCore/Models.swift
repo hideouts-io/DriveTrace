@@ -111,9 +111,9 @@ public func timestamp(_ date: Date) -> String {
 }
 public func parseDate(_ text: String?) -> Date? {
     guard let text else { return nil }
-    let formatter = ISO8601DateFormatter(); formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-    if let date = formatter.date(from: text) { return date }
-    formatter.formatOptions = [.withInternetDateTime]; return formatter.date(from: text)
+    let fractional = Date.ISO8601FormatStyle(includingFractionalSeconds: true)
+    let whole = Date.ISO8601FormatStyle(includingFractionalSeconds: false)
+    return (try? fractional.parse(text)) ?? (try? whole.parse(text))
 }
 public func encoded<T: Encodable>(_ value: T) throws -> String {
     let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys, .prettyPrinted]

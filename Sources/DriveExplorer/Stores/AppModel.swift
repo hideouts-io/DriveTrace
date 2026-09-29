@@ -13,7 +13,19 @@ import DriveCore
     var selection: String? = "all"
     var selectedFile: String?
     var filter = FileFilter()
-    var filterValidationError: String?
+    var minimumSizeInput = ""
+    var maximumSizeInput = ""
+    var searching = false
+    var focusSearchRequested = false
+    var filterValidationError: String? {
+        for value in [minimumSizeInput, maximumSizeInput] where !value.isEmpty {
+            guard let bytes = Int64(value), bytes >= 0 else { return "Size must be a nonnegative whole number of bytes. Correct the value or clear the search." }
+        }
+        do { try validateFilter(filter); return nil } catch { return error.localizedDescription }
+    }
+    var activityValidationError: String? {
+        do { try validateDateRange(after: activityAfter, before: activityBefore, label: "Activity range"); return nil } catch { return error.localizedDescription }
+    }
     var order: FileOrder = .name
     var ascending = true
     var results: [DriveFile] = []
@@ -30,6 +42,7 @@ import DriveCore
     var syncVerified = false
     var operationNotice: String?
     var ready = false
+    private var starting = false
     var lastSync: String?
     var rootID = "root"
     var rootMetadata: DriveFile?
@@ -54,7 +67,8 @@ import DriveCore
         baseURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("DriveExplorer", isDirectory: true)
     }
     var filteredEvents: [DriveEvent] {
-        events.filter {
+        guard activityValidationError == nil else { return [] }
+        return events.filter {
             (activityActor.isEmpty || ($0.actor ?? "").localizedCaseInsensitiveContains(activityActor)) &&
             (activityAction.isEmpty || $0.action == activityAction) &&
             (activityTarget.isEmpty || $0.fileID == activityTarget || $0.name.localizedStandardContains(activityTarget)) &&
@@ -62,11 +76,8 @@ import DriveCore
         }
     }
     var selected: DriveFile? { files.first { $0.id == selectedFile } ?? serverResults?.first { $0.id == selectedFile } }
-    var index: [String: DriveFile] {
-        var values = Dictionary(uniqueKeysWithValues: files.map { ($0.id, $0) })
-        if var rootMetadata { rootMetadata.parents = []; values[rootMetadata.id] = rootMetadata }
-        return values
-    }
+    private(set) var index: [String: DriveFile] = [:]
+    private(set) var folderTrees: [String: [FolderNode]] = [:]
     var navigationRoots: [String: String] {
         var roots = Dictionary(uniqueKeysWithValues: drives.map { ($0.id, $0.name) })
         roots[rootID] = "My Drive"
@@ -79,7 +90,8 @@ import DriveCore
         return ["all":"All files", "my":"My Drive", "shared":"Shared with me", "newest":"Newest items", "largest":"Largest files", "activity":"Activity", "history":"Observed history", "security":"Sharing audit", "storage":"Storage overview", "watches":"Folder watches", "trash":"Trash"][selection] ?? "Drive Explorer"
     }
     func start() async {
-        guard !ready else { return }; ready = true
+        guard !ready && !starting else { return }; starting = true
+        defer { ready = true; starting = false }
         do {
             try FileManager.default.createDirectory(at: baseURL, withIntermediateDirectories: true)
             connected = try await credentials.restore()
@@ -105,14 +117,22 @@ import DriveCore
     }
     func reload() async throws {
         guard let database else { throw MonitorError.database("The local database has not opened.") }
-        files = try await database.files(); events = try await database.events(fileID: nil, limit: 10000); facts = try await database.facts()
-        rootMetadata = try await decodeSetting("rootMetadata", type: DriveFile.self)
-        let fullIndex = index
-        facts.locations = Dictionary(uniqueKeysWithValues: files.map { ($0.id, filePath($0.id, index: fullIndex, visited: [])) })
-        rootID = try await database.setting("rootID") ?? "root"
+        let loaded = try await database.files()
+        var loadedFacts = try await database.facts()
+        let root = try await decodeSetting("rootMetadata", type: DriveFile.self)
+        let rootID = try await database.setting("rootID") ?? "root"
+        let drives = try await decodeSetting("drives", type: [SharedDrive].self) ?? []
+        let preparation = Task.detached(priority: .userInitiated) {
+            try prepareNavigation(files: loaded, root: root, roots: [rootID] + drives.map(\.id))
+        }
+        let navigation = try await withTaskCancellationHandler { try await preparation.value } onCancel: { preparation.cancel() }
+        try Task.checkCancellation()
+        loadedFacts.locations = navigation.locations
+        files = loaded; facts = loadedFacts; index = navigation.index; folderTrees = navigation.roots
+        rootMetadata = root; self.rootID = rootID; self.drives = drives
+        events = try await database.events(fileID: nil, limit: 10000)
         lastSync = try await database.setting("lastSync")
         gaps = try await decodeSetting("coverage.gaps", type: [String].self) ?? []
-        drives = try await decodeSetting("drives", type: [SharedDrive].self) ?? []
         saved = try await decodeSetting("saved", type: [SavedSearch].self) ?? []
         watches = try await decodeSetting("watches", type: [WatchRule].self) ?? []
         updateResults()
@@ -122,21 +142,31 @@ import DriveCore
         return try JSONDecoder().decode(type, from: Data(text.utf8))
     }
     func navigate(_ value: String?) {
-        filterValidationError = nil
+        minimumSizeInput = ""; maximumSizeInput = ""
         selection = value; serverResults = nil; selectedFile = nil; filter = FileFilter()
         if value == "largest" { order = .size; ascending = false }
         else if value == "newest" { order = .created; ascending = false }
         else { order = .name; ascending = true }
         updateResults()
     }
+    func resetSearch() {
+        minimumSizeInput = ""; maximumSizeInput = ""; filter = FileFilter(); serverResults = nil; updateResults()
+    }
+    func updateSizes() {
+        filter.minimumBytes = Int64(minimumSizeInput); filter.maximumBytes = Int64(maximumSizeInput)
+        serverResults = nil; updateResults()
+    }
     func updateResults() {
         searchTask?.cancel()
-        if filterValidationError != nil { results = []; return }
+        if filterValidationError != nil { results = []; searching = false; return }
+        searching = true
         let remote = serverResults != nil
         let all = serverResults ?? files, filter = filter, order = order, ascending = ascending, facts = facts, scope = selection, root = rootID
         searchTask = Task {
-            let task = Task.detached(priority: .userInitiated) { () -> [DriveFile] in
-                let scoped = all.filter { file in
+            let task = Task.detached(priority: .userInitiated) { () throws -> [DriveFile] in
+                try Task.checkCancellation()
+                let scoped = try all.filter { file in
+                    try Task.checkCancellation()
                     if remote { return true }
                     if selfScopeFolder(scope) != nil { return (file.parents ?? []).contains(selfScopeFolder(scope)!) }
                     if let scope, scope.hasPrefix("drive:") { return file.driveId == String(scope.dropFirst(6)) }
@@ -148,10 +178,20 @@ import DriveCore
                 }
                 var effective = filter
                 if scope == "trash" { effective.trash = "trash" }
-                return orderedFiles(scoped.filter { remote || (matches($0, filter: effective) && within(facts.firstSeen[$0.id], after: effective.discoveredAfter, before: effective.discoveredBefore)) }, order: order, ascending: ascending, facts: facts)
+                let matching = try scoped.filter { file in
+                    try Task.checkCancellation()
+                    return remote || (matches(file, filter: effective) && within(facts.firstSeen[file.id], after: effective.discoveredAfter, before: effective.discoveredBefore))
+                }
+                return try orderedFiles(matching, order: order, ascending: ascending, facts: facts)
             }
-            let output = await task.value
-            guard !Task.isCancelled else { return }; results = output
+            do {
+                let output = try await withTaskCancellationHandler { try await task.value } onCancel: { task.cancel() }
+                guard !Task.isCancelled else { return }; results = output; searching = false
+            } catch is CancellationError {
+                // A newer search owns the spinner and result set.
+            } catch {
+                guard !Task.isCancelled else { return }; self.error = error.localizedDescription; searching = false; results = []
+            }
         }
     }
     func run(_ body: @escaping @MainActor () async throws -> Void) {
@@ -195,6 +235,7 @@ import DriveCore
     func queryGoogle() {
         run {
             guard !self.isDemo, let client = self.client else { throw MonitorError.invalid("Google search requires a connected account. Use Local index in demo mode.") }
+            if let failure = self.filterValidationError { throw MonitorError.invalid(failure) }
             let query = try serverQuery(self.filter)
             var output: [DriveFile] = []; var page: String?; var seen: Set<String> = []
             repeat {
@@ -211,10 +252,11 @@ import DriveCore
     }
     func saveSearch(name: String) {
         guard !name.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        if let failure = filterValidationError { error = failure; return }
         let item = SavedSearch(id: UUID().uuidString, name: name, filter: filter)
         run { let searches = self.saved + [item]; try await self.database?.setSetting("saved", value: encoded(searches)); self.saved = searches }
     }
-    func loadSearch(_ search: SavedSearch) { selection = "all"; serverResults = nil; filter = search.filter; showFilters = true; updateResults() }
+    func loadSearch(_ search: SavedSearch) { minimumSizeInput = search.filter.minimumBytes.map(String.init) ?? ""; maximumSizeInput = search.filter.maximumBytes.map(String.init) ?? ""; selection = "all"; serverResults = nil; filter = search.filter; showFilters = true; updateResults() }
     func removeSearch(_ id: String) { run { let searches = self.saved.filter { $0.id != id }; try await self.database?.setSetting("saved", value: encoded(searches)); self.saved = searches } }
     func watch(_ folder: DriveFile) {
         run {

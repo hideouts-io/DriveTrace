@@ -28,6 +28,10 @@ import AppKit
                 Button("Folder Watches") { model.navigate("watches") }.keyboardShortcut("8")
                 Button("Observed History") { model.navigate("history") }.keyboardShortcut("9")
                 Divider()
+                Button("Find Files") {
+                    if ["activity", "history", "storage", "watches"].contains(model.selection ?? "") { model.navigate("all") }
+                    model.focusSearchRequested = true
+                }.keyboardShortcut("f")
                 Button("Advanced Search") { model.showFilters.toggle() }.keyboardShortcut("f", modifiers: [.command, .shift])
                 Button("Show Inspector") { model.showInspector.toggle() }.keyboardShortcut("i", modifiers: [.command, .option])
             }

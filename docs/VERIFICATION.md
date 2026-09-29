@@ -4,17 +4,26 @@ Verified 2026-09-29 on macOS 27.0 (26A428), Apple silicon, Swift 6.4. This is a 
 
 ## Implemented and automated
 
-`./script/test.sh` passes **29 Swift Testing tests**, zero failures. The XCTest wrapper prints “0 tests”; the following Swift Testing result is the actual 29-test run. Full output: `test-results.txt`.
+`./script/test.sh` passes **32 Swift Testing tests**, zero failures. The XCTest wrapper prints “0 tests”; the following Swift Testing result is the actual 32-test run. Full output: `test-results.txt`.
 
 Coverage includes:
 
 - Real SQLite schema creation, version-1 migration/reopen, staged baseline visibility, atomic promotion, rollback on malformed Changes records, durable cursors, retained snapshots, observation-cutoff historical paths that exclude future ancestor names, overlapping scope membership, scope retirement and newer-schema rejection.
 - Synthetic Google requests through URLSession/URLProtocol: multi-page file/Changes/Activity ingestion, restart from cursor, repeated tokens, incomplete scans, partial 403 failure, 401 refresh, 429 retry, repeated 503 exhaustion and cancellation.
 - Historical hierarchy cutoff queries across folder renames, child moves, removal, database reopen and history clearing; equivalent timezone offsets include the exact cutoff observation. Breadcrumb tests cover Shared Drive identity, duplicate names, cycles, unavailable parents and multiple-parent disclosure.
+- Rejected malformed/reversed date and size ranges before local/remote queries, offset-aware numeric date sorting, cancelled sorting, prepared folder trees with cycle termination and unresolved paths.
 - Exact actor/resource attribution, source deduplication, removal as inaccessibility, compound filters, query escaping, unknown-size ordering, cycles and unresolved paths.
 - CSV, JSON and JSONL file/event exports, formula-leading cells, absent sizes, source/actor preservation, RFC3339 round-trips and offset-aware time comparisons.
 - Desktop-client configuration rejection (malformed, Web, service account, invalid ID, oversize), optional secret and extra-field acceptance, S256 PKCE and state parameters; a real local TCP OAuth callback rejects the wrong state, accepts the right code, and terminates on cancellation. No Google token is used by these tests.
 - A 10,000-file SQLite stage/promote/load/filter/sort scenario. The measured test duration is recorded in `test-results.txt`; it was approximately 0.4 seconds on this host. This is not a GUI benchmark or a million-file scalability claim.
+
+## Local performance measurements
+
+Run `swift run -c release --scratch-path "$HOME/Library/Caches/DriveExplorerBuild" DriveBenchmarks`. It creates and removes its own synthetic temporary SQLite database; it never opens the account cache or Google APIs. [Machine-readable results](performance-results.json) record the workload and process peak memory.
+
+On this host, 100,000 files (1,000 flat root folders, identical modification timestamps) took 2.30 s to stage/promote and 0.45 s to load files/facts. Modification-time sorting fell from **57.16 s to 0.18 s** after replacing per-record formatter construction/string normalization with Foundation ISO8601 format-style parsing and numeric date comparison. Size filtering took 0.012 s, navigation/path preparation 0.115 s, and cancellation of an in-flight sort 0.027 s. Peak process RSS was about 292 MiB, including the benchmark's input/loaded arrays and SQLite staging.
+
+These are single-run synthetic core measurements, not GUI latency, a deep-tree stress test, API throughput or million-file guarantees. The app cancels superseded searches and prepares cached navigation off the main actor. Keyboard workflows were checked with the normal 91-item demo. Large-drive UI profiling remains partial; full VoiceOver speech review remains unverified.
 
 ## Packaged native app
 
@@ -30,7 +39,8 @@ Computer-use checks used native accessibility identifiers, container IDs and app
 | --- | --- |
 | Branding | Canonical PNG rendered on the welcome screen; bundled ICNS generated from the same image. |
 | Onboarding → Explore demo | Clearly labelled separate synthetic workspace, 91 cached items and 160 source records. |
-| File-name search `Launch` | 14 matching files. |
+| File-name search / keyboard | Cmd-F focused search and `Launch` returned 14 matches. Cmd-F from Activity opened All files and focused search; `Research` returned eight. Cmd-3/5/6/7/8/9 opened the expected screens after navigation caching. |
+| Invalid filters | Invalid Created date displayed a specific RFC3339 error and disabled Save search. Clear search removed invalid date and negative size inputs, restoring 89 active demo items. Activity invalid dates displayed an explicit range error. Sort buttons expose direction and current value; watch toggles identify their folder. |
 | Largest files and ascending/descending toggle | Descending starts with the 6.83 GB video; ascending starts with small known files; missing sizes remain unknown. |
 | Compound filters | Extension `mov` plus minimum `1000000000` bytes gives six files. |
 | Save search | “Large QuickTime videos” persisted in the sidebar across relaunches. |
@@ -63,7 +73,7 @@ Use the [setup steps](../README.md#connect-your-google-account); never paste sec
 
 - The Observed history browser navigates the latest available per-file snapshots at a chosen cutoff. It includes retained observations of removed/inaccessible items and does not model their historical existence or accessibility. Per-file snapshot details reconstruct ancestor paths at their local detection cutoff. Unknown ancestors are labelled; reconstruction does not prove continuous coverage, accessibility, or location at Google action time. Previous/current parent IDs remain direct evidence.
 - Activity queries cover My Drive and accessible Shared Drive ancestors, seeded with seven days. Shared-with-me items outside those ancestors, events Google does not expose, and pre-seed history may be absent. Range events display their end time; the raw payload retains the original range.
-- The visible Activity window loads the latest 10,000 records. Metadata queries operate on the full in-memory index; server-side size search is unsupported. Huge-drive memory/CPU behavior still needs profiling.
+- The visible Activity window loads the latest 10,000 records. Metadata queries operate on the full in-memory index; server-side size search is unsupported. A reproducible 100,000-file core benchmark covers SQLite, sorting, filtering, navigation preparation and cancellation. Huge-drive GUI latency and deep-hierarchy/history memory remain unverified.
 - Watches depend on indexed ancestry, visible Activity/Changes records, and the running app. Their actual notification delivery is unverified. There is no always-on agent, Workspace Events/Pub/Sub adapter, or Drive for desktop transfer queue.
 - No Python-cache importer, simultaneous multi-account switcher, People-name enrichment, file-content preview/download, or mutation actions. A new native account connection starts a fresh baseline.
 - Known breadcrumb ancestors are clickable in current folders and Observed history. Full VoiceOver coverage remains unverified. Historical browsing loads its snapshot set into memory; huge-history scalability and dedicated historical exports are not implemented.

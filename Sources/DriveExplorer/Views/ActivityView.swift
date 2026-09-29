@@ -25,6 +25,7 @@ struct ActivityView: View {
                     Menu("Time range") { Button("All recorded time") { model.activityAfter = ""; model.activityBefore = "" }; ForEach([1,7,30], id: \.self) { days in Button("Last \(days) days") { model.activityAfter = timestamp(Date().addingTimeInterval(Double(-days * 86400))); model.activityBefore = "" } } }
                     Button("Reset") { model.activityActor = ""; model.activityTarget = ""; model.activityAction = ""; model.activityAfter = ""; model.activityBefore = "" }.accessibilityIdentifier("resetActivity")
                 }.textFieldStyle(.roundedBorder)
+                if let error = model.activityValidationError { Text(error).font(.caption).foregroundStyle(.red).accessibilityIdentifier("activityFilterError") }
                 Text("\(filtered.count) matching source records · latest \(model.events.count) loaded (limit 10,000). Changes actors are unknown; Activity identities can be unavailable. Sources are not merged into assumed actions.").font(.caption).foregroundStyle(.secondary)
             }.padding(22)
             Divider()
