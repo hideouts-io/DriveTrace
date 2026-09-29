@@ -192,3 +192,56 @@ func sample(_ id: String, name: String, size: String?) -> DriveFile {
     #expect(try await migrated.files().isEmpty)
     try await migrated.close()
 }
+
+@Test func observedHierarchyUsesCutoffAndRetainsUncertainItems() async throws {
+    let (db, path) = try temporaryDatabase()
+    var folder = DriveFile(id: "folder", name: "Original folder", mimeType: "application/vnd.google-apps.folder"); folder.parents = ["root"]
+    var child = sample("child", name: "Original document", size: "42"); child.parents = ["folder"]
+    try await db.setSetting("rootID", value: "root")
+    try await db.stage([folder, child], stream: "user")
+    try await db.promote(stream: "user", cursor: "first", detected: "2026-09-01T09:00:00Z")
+    folder = DriveFile(id: "folder", name: "Later folder", mimeType: "application/vnd.google-apps.folder"); folder.parents = ["root"]
+    child = sample("child", name: "Later document", size: "42"); child.parents = ["unobserved"]
+    let changes = [folder, child].map { Change(changeType: "file", time: "2026-09-02T09:00:00Z", fileId: $0.id, removed: false, file: $0, driveId: nil) }
+    try await db.apply(ChangePage(changes: changes, nextPageToken: nil, newStartPageToken: "second"), stream: "user", detected: "2026-09-02T09:00:00Z")
+    let removal = Change(changeType: "file", time: "2026-09-03T09:00:00Z", fileId: "child", removed: true, file: nil, driveId: nil)
+    try await db.apply(ChangePage(changes: [removal], nextPageToken: nil, newStartPageToken: "third"), stream: "user", detected: "2026-09-03T09:00:00Z")
+    #expect(try await db.observedFiles(at: "2026-09-01T08:59:59Z").isEmpty)
+    // The offset cutoff equals 09:00 UTC, so the exact-time observation must be included.
+    let early = try await db.observedFiles(at: "2026-09-01T02:00:00-07:00")
+    #expect(Set(early.map { $0.file.name }) == ["Original folder", "Original document"])
+    #expect(try await db.observedPath("child", at: "2026-09-01T02:00:00-07:00") == "My Drive/Original folder/Original document")
+    #expect(try await db.file("child") == nil)
+    try await db.close()
+    let reopened = try Database(path: path)
+    let later = try await reopened.observedFiles(at: "2026-09-04T00:00:00Z")
+    #expect(later.count == 2)
+    let retained = try #require(later.first { $0.id == "child" })
+    #expect(retained.file.name == "Later document")
+    #expect(retained.observedAt == "2026-09-02T09:00:00Z")
+    let index = Dictionary(uniqueKeysWithValues: later.map { ($0.id, $0.file) })
+    #expect(folderTrail("child", index: index, roots: [:]).first?.folderID == nil)
+    #expect(folderTrail("child", index: index, roots: [:]).first?.label == "Unobserved parent: unobserved")
+    await #expect(throws: MonitorError.self) { try await reopened.observedFiles(at: "yesterday") }
+    try await reopened.clearHistory()
+    #expect(try await reopened.observedFiles(at: "2026-09-04T00:00:00Z").isEmpty)
+    try await reopened.close()
+}
+
+@Test func breadcrumbsKeepRootIdentityAndCoverageBoundaries() {
+    var parent = DriveFile(id: "parent", name: "Same name", mimeType: "application/vnd.google-apps.folder"); parent.parents = ["shared"]
+    var child = DriveFile(id: "child", name: "Same name", mimeType: "application/vnd.google-apps.folder"); child.parents = ["parent"]
+    let trail = folderTrail("child", index: [parent.id: parent, child.id: child], roots: ["shared": "Team Drive"])
+    #expect(trail.map(\.folderID) == ["shared", "parent", "child"])
+    #expect(!trail.contains { $0.label == "My Drive" })
+    parent.parents = ["child"]
+    let cycle = folderTrail("child", index: [parent.id: parent, child.id: child], roots: [:])
+    #expect(cycle.first?.label == "Cycle: child")
+    #expect(cycle.first?.folderID == nil)
+    #expect(cycle.count == 3)
+    child.parents = nil
+    #expect(folderTrail("child", index: [child.id: child], roots: [:]).first?.label == "Parent unavailable")
+    child.parents = ["shared", "another"]
+    let multiple = folderTrail("child", index: [child.id: child], roots: ["shared": "Team Drive"])
+    #expect(multiple.contains { $0.label == "Multiple parents; first shown" && $0.folderID == nil })
+}

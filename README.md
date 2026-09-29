@@ -60,7 +60,7 @@ The app runs directly on macOS with system frameworks. It has no Python service,
 | Google API integration | **Implemented / live validation not done yet** | Pagination, retries, changes, and Activity have synthetic service-response tests; no real account has been used for validation. |
 | Desktop OAuth | **Implemented / live validation not done yet** | PKCE/state and a real local loopback callback are tested; Google consent and Keychain token lifecycle still need a real account. |
 | Folder notifications | **Implemented / delivery not verified** | Native rules and cooldown behavior are present; actual macOS notification delivery needs testing. |
-| Historical evidence | **Partial** | Per-file snapshots and observation-cutoff paths exist; a full historical tree browser is not done yet. |
+| Historical evidence | **Implemented / locally tested** | Browse folders and inspect last-observed metadata at a chosen cutoff. Missing ancestors and uncertain historical access remain explicit. |
 | Distribution | **Not done yet** | Local ad-hoc signed build only; no Developer ID signing, notarization, or downloadable production release. |
 
 Detailed evidence and limits are in [Verification](docs/VERIFICATION.md) and the [native migration matrix](docs/PARITY.md). “Implemented” does not mean every real-account scenario has passed.
@@ -93,6 +93,12 @@ Combine filters and save useful searches. Local metadata filtering supports fiel
 
 Review source-labelled records and inspect raw evidence. Unknown actors and incomplete coverage remain visible.
 
+### Observed hierarchy at a cutoff
+
+![Native observed-history folder browser](docs/screenshots/observed-history.png)
+
+Browse retained snapshots with their observation times, original metadata, and explicit uncertainty about existence and access.
+
 ### Storage overview
 
 ![Storage charts in dark appearance](docs/screenshots/storage-dark.png)
@@ -103,11 +109,12 @@ Group known storage by type, direct parent, or Drive. Missing sizes stay **Unkno
 
 | Workspace | Current capabilities |
 | --- | --- |
-| Explorer | My Drive, shared-with-me and Shared Drive views; folder outline, table, path display, shortcut target details, and opening real items in Google Drive. |
+| Explorer | My Drive, shared-with-me and Shared Drive views; folder outline, table, clickable ancestor breadcrumbs, shortcut target details, and opening real items in Google Drive. |
 | Advanced search | Name, ID, MIME type, extension, owner, parent, Drive, byte ranges, date ranges, trash state, saved searches, and a separate paginated Google query. |
 | Newest items | Sort by creation, modification, local discovery, or recorded activity; inspect upload evidence when the API exposes it. |
 | Largest files | Sort the loaded index by size or quota usage, with explicit unknowns and deterministic tie-breaking. |
 | Activity | Filter actors, actions, targets and times; inspect raw source records, related file snapshots, and labelled possible correlations. |
+| Observed history | Browse the last observed hierarchy at an RFC3339 cutoff, search the current level, and inspect original snapshot metadata. |
 | Storage | Native charts and summaries by file type, direct parent, or Drive; indexed descendant totals. |
 | Sharing | Inspect returned permission roles, public/domain grants, ownership details, and sharing-related activity. This is not a complete effective-access audit. |
 | Watches | Folder/action rules, cooldown and batched notifications while the app is running; optional 60-second polling. |
@@ -146,11 +153,12 @@ Access/refresh tokens and imported client configuration are in macOS Keychain un
 
 ## Using the explorer
 
-- `⌘1` All files, `⌘2` Newest items, `⌘3` Largest files, `⌘4` Activity, `⌘5` Storage, `⌘6` Sharing, `⌘7` My Drive, `⌘8` Watches.
+- `⌘1` All files, `⌘2` Newest items, `⌘3` Largest files, `⌘4` Activity, `⌘5` Storage, `⌘6` Sharing, `⌘7` My Drive, `⌘8` Watches, `⌘9` Observed history.
 - `⌘⇧F` toggles the advanced filter builder. Filters combine with AND. Dates use complete RFC3339 timestamps, for example `2026-09-01T00:00:00Z`. Saved searches store filters; sort order is chosen independently.
 - Table headers or the sort picker choose ordering. Missing sizes stay last in either direction. Equal values use name and then file ID as stable secondary keys.
-- Double-click folders to browse them. The sidebar expands known folder children. File context menus open Google Drive, show activity, or watch a folder. Shortcuts expose their target ID in the inspector; inaccessible or unindexed targets are labelled.
+- Double-click folders to browse them; click any known ancestor in the breadcrumb trail to navigate back. Shared Drive roots keep their own identity, and missing parents or cycles remain labelled. The sidebar expands known folder children. File context menus open Google Drive, show activity, or watch a folder. Shortcuts expose their target ID in the inspector; inaccessible or unindexed targets are labelled.
 - The inspector separates owner, creation, modification, first discovery, quota usage and action evidence. Snapshot details reconstruct paths using only ancestor snapshots observed by that cutoff, with explicit coverage limits. An owner is never assumed to be an uploader. Activity actors can be a `people/...` resource, “Me,” or unavailable; the app does not request additional People scopes just to resolve names.
+- **Observed history** (`⌘9`) loads the newest recorded snapshot for each item at or before your RFC3339 cutoff. Browse a folder by double-clicking it or selecting **Browse observed folder**, return with the breadcrumbs or **All observed items**, and search names or exact IDs within the displayed level. The inspector shows the observation timestamp and original metadata. The toolbar export is disabled here; historical results are not substituted with current file exports. Old observations can remain after removal or access loss, so this view does not prove the item still existed or was accessible at the cutoff.
 - Activity searches the latest 10,000 cached source records; the visible label states that limit. Metadata search covers the loaded whole local index. A Google search follows all returned pages, checks `incompleteSearch`, and does not insert search-only results into the durable baseline.
 - Export the displayed file results or filtered Activity records using CSV, JSON, or JSONL. CSV protects formula-leading cells. Exports may contain file names, account identifiers, sharing details and raw evidence; review before sharing.
 - Watches match a folder's indexed descendants and recorded move parents. Notifications batch new source records, accumulate during cooldown, and require both macOS notification permission and the app to remain running. Polling is every 60 seconds when enabled; it is not a background daemon or a transfer queue.
@@ -194,9 +202,10 @@ This is the working roadmap. Unchecked items are **not done yet** and have no pr
 
 - [ ] **Real-account validation:** consent, refresh/revocation, reconnect, account isolation, My Drive and Shared Drive synchronization, restricted permissions, API quotas and failures.
 - [ ] **Notification validation:** permission grant, visible delivery, cooldown accumulation, restart behavior, and long-running polling under real API load.
-- [ ] **Full historical tree browser:** navigate observed hierarchy at a chosen cutoff while preserving unknown parents and coverage gaps.
+- [x] **Observed hierarchy browser:** navigate retained metadata at a chosen cutoff, with missing-ancestor labels, per-item observation times, search, and raw inspection. Historical existence/access remains unknown; dedicated historical exports are not implemented.
 - [ ] **Large-drive profiling:** measure memory, cancellation and UI latency beyond the current 10,000-file scenario; improve query/paging design where measurements justify it.
-- [ ] **Navigation and accessibility:** clickable ancestor breadcrumbs and a full keyboard/VoiceOver review.
+- [x] **Ancestor navigation:** clickable breadcrumbs with shared-root, unknown-parent, and cycle handling.
+- [ ] **Accessibility audit:** complete the full keyboard/VoiceOver review across all screens.
 - [ ] **Compatibility:** run on the declared older macOS versions and Intel hardware, then document the tested matrix.
 - [ ] **Distribution:** reproducible release automation, Developer ID signing, notarization and verified release artifacts.
 - [ ] **Optional Workspace Events integration:** assess Pub/Sub subscriptions and renewal as an alternative monitoring source; currently there is no adapter or always-on agent.
@@ -205,7 +214,7 @@ Additional ideas remain exploratory: explicit Python-cache import, an account sw
 
 ## Testing and verification
 
-Run `./script/test.sh` for the Swift Testing suite and `./script/build_and_run.sh` to build and inspect the actual packaged app. The current verified suite has **27 passing tests**, including real SQLite and loopback integrations plus synthetic Google responses. A passing test suite does not validate a live Google account.
+Run `./script/test.sh` for the Swift Testing suite and `./script/build_and_run.sh` to build and inspect the actual packaged app. The current verified suite has **29 passing tests**, including real SQLite and loopback integrations plus synthetic Google responses. A passing test suite does not validate a live Google account.
 
 [Verification](docs/VERIFICATION.md) is the detailed record of checks, screenshots, and remaining gaps. [Research](docs/RESEARCH.md) lists API documentation and projects that informed the design. [Parity](docs/PARITY.md) compares native behavior with the separate development reference.
 

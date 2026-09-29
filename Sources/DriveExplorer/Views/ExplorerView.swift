@@ -18,9 +18,9 @@ struct ExplorerView: View {
                 }
                 if let selection = model.selection, selection.hasPrefix("folder:"), let file = model.index[String(selection.dropFirst(7))] {
                     HStack {
-                        Button("My Drive") { model.navigate("my") }.buttonStyle(.link)
-                        Image(systemName: "chevron.right").font(.caption)
-                        Text(filePath(file.id, index: model.index, visited: [])).lineLimit(1).truncationMode(.middle)
+                        BreadcrumbView(components: folderTrail(file.id, index: model.index, roots: model.navigationRoots), current: file.id) { id in
+                            model.navigate(id == model.rootID ? "my" : "folder:" + id)
+                        }
                         Spacer()
                         Button("Watch folder") { model.watch(file) }.accessibilityIdentifier("watchCurrentFolder")
                     }.font(.caption)

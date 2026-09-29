@@ -63,11 +63,16 @@ import DriveCore
         if var rootMetadata { rootMetadata.parents = []; values[rootMetadata.id] = rootMetadata }
         return values
     }
+    var navigationRoots: [String: String] {
+        var roots = Dictionary(uniqueKeysWithValues: drives.map { ($0.id, $0.name) })
+        roots[rootID] = "My Drive"
+        return roots
+    }
     var title: String {
         guard let selection else { return "All files" }
         if selection.hasPrefix("folder:") { return index[String(selection.dropFirst(7))]?.name ?? "Folder" }
         if selection.hasPrefix("drive:") { return drives.first { $0.id == String(selection.dropFirst(6)) }?.name ?? "Shared Drive" }
-        return ["all":"All files", "my":"My Drive", "shared":"Shared with me", "newest":"Newest items", "largest":"Largest files", "activity":"Activity", "security":"Sharing audit", "storage":"Storage overview", "watches":"Folder watches", "trash":"Trash"][selection] ?? "Drive Explorer"
+        return ["all":"All files", "my":"My Drive", "shared":"Shared with me", "newest":"Newest items", "largest":"Largest files", "activity":"Activity", "history":"Observed history", "security":"Sharing audit", "storage":"Storage overview", "watches":"Folder watches", "trash":"Trash"][selection] ?? "Drive Explorer"
     }
     func start() async {
         guard !ready else { return }; ready = true

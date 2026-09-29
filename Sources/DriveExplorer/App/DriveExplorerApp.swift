@@ -26,6 +26,7 @@ import AppKit
                 Button("Sharing Audit") { model.navigate("security") }.keyboardShortcut("6")
                 Button("My Drive") { model.navigate("my") }.keyboardShortcut("7")
                 Button("Folder Watches") { model.navigate("watches") }.keyboardShortcut("8")
+                Button("Observed History") { model.navigate("history") }.keyboardShortcut("9")
                 Divider()
                 Button("Advanced Search") { model.showFilters.toggle() }.keyboardShortcut("f", modifiers: [.command, .shift])
                 Button("Show Inspector") { model.showInspector.toggle() }.keyboardShortcut("i", modifiers: [.command, .option])

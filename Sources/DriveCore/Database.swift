@@ -148,6 +148,22 @@ public actor Database {
     public func history(_ id: String) throws -> [(String, DriveFile)] {
         try execute("SELECT detected,payload FROM snapshots WHERE file_id=? ORDER BY detected DESC", [.text(id)]).map { ($0[0], try JSONDecoder().decode(DriveFile.self, from: Data($0[1].utf8))) }
     }
+    /// Returns each item's latest observation by the cutoff, including retained inaccessible items.
+    /// Observation time is not proof of continued existence, access, or state at Google's action time.
+    public func observedFiles(at cutoff: String) throws -> [ObservedFile] {
+        guard parseDate(cutoff) != nil else { throw MonitorError.invalid("History cutoff must be a complete RFC3339 timestamp, for example 2026-09-01T12:00:00Z.") }
+        let rows = try execute("""
+        SELECT detected,payload FROM (
+            SELECT file_id,detected,payload,ROW_NUMBER() OVER (
+                PARTITION BY file_id ORDER BY julianday(detected) DESC,detected DESC
+            ) AS position FROM snapshots WHERE julianday(detected)<=julianday(?)
+        ) WHERE position=1 ORDER BY detected,file_id
+        """, [.text(cutoff)])
+        return try rows.map { row in
+            try Task.checkCancellation()
+            return ObservedFile(observedAt: row[0], file: try JSONDecoder().decode(DriveFile.self, from: Data(row[1].utf8)))
+        }
+    }
     /// Reconstructs only from snapshots observed by the cutoff, never from newer current metadata.
     public func observedPath(_ id: String, at cutoff: String) throws -> String {
         guard parseDate(cutoff) != nil else { throw MonitorError.invalid("Historical path cutoff must be an RFC3339 timestamp.") }
@@ -156,7 +172,7 @@ public actor Database {
         while true {
             guard visited.insert(current).inserted else { components.append("[cycle: " + current + "]"); break }
             if current == root { components.append("My Drive"); break }
-            guard let row = try execute("SELECT payload FROM snapshots WHERE file_id=? AND detected<=? ORDER BY detected DESC LIMIT 1", [.text(current), .text(cutoff)]).first else {
+            guard let row = try execute("SELECT payload FROM snapshots WHERE file_id=? AND julianday(detected)<=julianday(?) ORDER BY julianday(detected) DESC,detected DESC LIMIT 1", [.text(current), .text(cutoff)]).first else {
                 components.append("[not observed by cutoff: " + current + "]"); break
             }
             let file = try JSONDecoder().decode(DriveFile.self, from: Data(row[0].utf8))

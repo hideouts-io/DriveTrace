@@ -24,6 +24,7 @@ struct ContentView: View {
                 else {
                     switch model.selection {
                     case "activity": ActivityView(model: model)
+                    case "history": HistoryView(model: model).id(model.database.map { ObjectIdentifier($0) })
                     case "storage": StorageView(model: model)
                     case "watches": WatchesView(model: model)
                     default: ExplorerView(model: model)
@@ -43,7 +44,7 @@ struct ContentView: View {
                 ToolbarItemGroup {
                     Button(action: model.sync) { Label("Refresh", systemImage: "arrow.clockwise") }.disabled(model.busy || (!model.connected && !model.isDemo)).accessibilityIdentifier("refreshDrive")
                     Button { model.showFilters.toggle() } label: { Label("Filters", systemImage: "line.3.horizontal.decrease.circle") }.accessibilityIdentifier("showFilters")
-                    Menu { ForEach(ExportFormat.allCases, id: \.self) { format in Button(format.rawValue.uppercased()) { model.export(format) } } } label: { Label("Export", systemImage: "square.and.arrow.up") }.disabled(model.selection == "activity" ? model.filteredEvents.isEmpty : model.results.isEmpty).accessibilityIdentifier("exportFiles")
+                    Menu { ForEach(ExportFormat.allCases, id: \.self) { format in Button(format.rawValue.uppercased()) { model.export(format) } } } label: { Label("Export", systemImage: "square.and.arrow.up") }.disabled(model.selection == "history" || (model.selection == "activity" ? model.filteredEvents.isEmpty : model.results.isEmpty)).accessibilityIdentifier("exportFiles")
                     Button { model.showInspector.toggle() } label: { Label("Inspector", systemImage: "sidebar.right") }.accessibilityIdentifier("showInspector")
                 }
             }

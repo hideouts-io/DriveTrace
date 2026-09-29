@@ -19,6 +19,7 @@ struct SidebarView: View {
                 item("Newest items", icon: "clock", id: "newest")
                 item("Largest files", icon: "externaldrive", id: "largest")
                 item("Activity", icon: "waveform.path", id: "activity")
+                item("Observed history", icon: "clock.arrow.circlepath", id: "history")
             } header: { Text("Explore") }
             Section("Drive") {
                 item("My Drive", icon: "folder", id: "my")

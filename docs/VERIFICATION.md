@@ -4,12 +4,13 @@ Verified 2026-09-29 on macOS 27.0 (26A428), Apple silicon, Swift 6.4. This is a 
 
 ## Implemented and automated
 
-`./script/test.sh` passes **27 Swift Testing tests**, zero failures. The XCTest wrapper prints “0 tests”; the following Swift Testing result is the actual 27-test run. Full output: `test-results.txt`.
+`./script/test.sh` passes **29 Swift Testing tests**, zero failures. The XCTest wrapper prints “0 tests”; the following Swift Testing result is the actual 29-test run. Full output: `test-results.txt`.
 
 Coverage includes:
 
 - Real SQLite schema creation, version-1 migration/reopen, staged baseline visibility, atomic promotion, rollback on malformed Changes records, durable cursors, retained snapshots, observation-cutoff historical paths that exclude future ancestor names, overlapping scope membership, scope retirement and newer-schema rejection.
 - Synthetic Google requests through URLSession/URLProtocol: multi-page file/Changes/Activity ingestion, restart from cursor, repeated tokens, incomplete scans, partial 403 failure, 401 refresh, 429 retry, repeated 503 exhaustion and cancellation.
+- Historical hierarchy cutoff queries across folder renames, child moves, removal, database reopen and history clearing; equivalent timezone offsets include the exact cutoff observation. Breadcrumb tests cover Shared Drive identity, duplicate names, cycles, unavailable parents and multiple-parent disclosure.
 - Exact actor/resource attribution, source deduplication, removal as inaccessibility, compound filters, query escaping, unknown-size ordering, cycles and unresolved paths.
 - CSV, JSON and JSONL file/event exports, formula-leading cells, absent sizes, source/actor preservation, RFC3339 round-trips and offset-aware time comparisons.
 - Desktop-client configuration rejection, S256 PKCE and state parameters; a real local TCP OAuth callback rejects the wrong state, accepts the right code, and terminates on cancellation. No Google token is used by these tests.
@@ -38,10 +39,12 @@ Computer-use checks used native accessibility identifiers, container IDs and app
 | Raw evidence | Selected action opened a native sheet containing the corresponding synthetic JSON payload. |
 | Storage | Known size/quota summaries and chart rendered; 15 all-unknown Workspace items display Unknown, not a zero-byte total. Both light and dark appearances inspected. |
 | Folder navigation/watch | My Drive → Design studio displayed 18 items and its breadcrumb; Watch folder created a rule shown in the native Watches editor with five-minute cooldown. |
+| Observed history | Cmd-9 loaded 91 synthetic observations; invalid RFC3339 showed a specific error, a pre-index cutoff showed zero items, and Now restored the set. Searched Archive, browsed its 17 recorded children (including a trashed item), inspected raw observation JSON, and navigated to Research using its breadcrumb. |
+| Current breadcrumbs | Double-clicked Archive from file search, then clicked Research in its trail; the current Research view showed 18 items. |
 | Native CSV save | Saved `/tmp/drive-explorer-demo-export.csv`; parsed 84 rows, largest size 6,828,300,000 bytes, blank missing-size fields. |
 | Settings | Desktop OAuth import/connect controls, monitoring, appearance and local data controls rendered. No credentials entered and no notification permission granted during verification. |
 
-Screenshots in `screenshots/` are direct captures from the Swift app: welcome, largest files, advanced search, activity, storage light and storage dark. They use synthetic names and `example.test` identities only. They were not composited or edited.
+Screenshots in `screenshots/` are direct captures from the Swift app: welcome, largest files, advanced search, activity, observed history, storage light and storage dark. They use synthetic names and `example.test` identities only. They were not composited or edited.
 
 ## Requires a live Google account
 
@@ -53,18 +56,32 @@ The following are implemented but cannot be called verified without a user-provi
 - Long-running polling, network loss/restart under real API load, and native notification delivery with macOS permission.
 - Opening accessible files/shortcuts in Google Drive. Demo deliberately does not navigate synthetic IDs to Google.
 
-Use the setup steps in `../README.md`; never paste secrets into chat. These checks are the next integration stage, not evidence that the implemented code is already production-ready.
+Use the [setup steps](../README.md#connect-your-google-account); never paste secrets into chat. These checks are the next integration stage, not evidence that the implemented code is already production-ready.
 
 ## Partial implementation / future work
 
-- A full historical tree browser is future work. Per-file snapshots now include paths reconstructed only from ancestor observations at or before their local detection cutoff. Unknown ancestors are labelled; reconstruction does not prove continuous coverage, accessibility, or location at Google action time. Previous/current parent IDs remain direct evidence.
+- The Observed history browser navigates the latest available per-file snapshots at a chosen cutoff. It includes retained observations of removed/inaccessible items and does not model their historical existence or accessibility. Per-file snapshot details reconstruct ancestor paths at their local detection cutoff. Unknown ancestors are labelled; reconstruction does not prove continuous coverage, accessibility, or location at Google action time. Previous/current parent IDs remain direct evidence.
 - Activity queries cover My Drive and accessible Shared Drive ancestors, seeded with seven days. Shared-with-me items outside those ancestors, events Google does not expose, and pre-seed history may be absent. Range events display their end time; the raw payload retains the original range.
 - The visible Activity window loads the latest 10,000 records. Metadata queries operate on the full in-memory index; server-side size search is unsupported. Huge-drive memory/CPU behavior still needs profiling.
 - Watches depend on indexed ancestry, visible Activity/Changes records, and the running app. Their actual notification delivery is unverified. There is no always-on agent, Workspace Events/Pub/Sub adapter, or Drive for desktop transfer queue.
 - No Python-cache importer, simultaneous multi-account switcher, People-name enrichment, file-content preview/download, or mutation actions. A new native account connection starts a fresh baseline.
-- Breadcrumbs show a path and root navigation, rather than a clickable button for every ancestor. Full VoiceOver coverage remains unverified.
+- Known breadcrumb ancestors are clickable in current folders and Observed history. Full VoiceOver coverage remains unverified. Historical browsing loads its snapshot set into memory; huge-history scalability and dedicated historical exports are not implemented.
 - Cache data is local but not encrypted by the app. Disconnect removes tokens, not the Google-side grant or cached metadata; explicit clear controls and Google account security settings have separate purposes.
 
 ## Reference preservation
 
 All **41 recorded baseline source files** match their pre-migration SHA-256 values. `baseline-verification.json` records zero changes. Runtime caches/dependencies and existing images were excluded from the original source manifest. The original Python/React application's own test results were read from its verification report; they were not rerun or misrepresented as Swift tests.
+
+## Guided live validation — not performed yet
+
+The app is ready for a user-controlled Desktop OAuth configuration. Keep the downloaded JSON on your Mac and import it through Settings; do not upload it to an issue or chat. Complete Google consent yourself in your browser. No live validation is recorded by these instructions alone.
+
+1. **Connect:** enable both APIs and configure a Desktop client as described in the README. Import it, choose Connect, and complete browser consent. Confirm the app returns from sign-in without an error.
+2. **Baseline:** choose Refresh. Record privately whether the status says complete or lists coverage gaps. Compare a small set of existing My Drive and Shared Drive items against the Google Drive website: IDs, names, parent folders, known sizes, and returned permissions. Do not equate missing API fields with an empty value.
+3. **Attribution:** inspect activity on those same existing items. Compare available actor/action/time evidence, keeping the owner and uploader separate. Record absent or unresolved actors as a coverage limit.
+4. **Persistence:** quit/reopen, verify the same account cache and saved searches, then refresh again. After normal access-token expiration, verify automatic refresh; never modify the system clock or print the token to test it.
+5. **Failure and reconnect:** test a temporary network interruption and cancellation. To test revocation, intentionally revoke this app's grant in your Google account, confirm the error is visible, and reconnect. This step requires your deliberate account action.
+6. **Watches:** add a rule to a controlled folder, enable notifications and grant macOS permission if wanted. With the app open, use a known activity in that folder to check delivery, cooldown batching and restart behavior. Keep filenames/private notification content out of shared reports.
+7. **Account separation:** if you have a second test account, connect it and confirm the index is separate. Return to the first account and confirm its history remains isolated.
+
+Record each check as verified, failed, permission-limited, or not tested. Keep detailed evidence locally; publish only sanitized outcomes. Never label a partial initial scan as complete or a synthetic fixture test as a real-account result.
