@@ -1,0 +1,17 @@
+.build/
+.swiftpm/
+dist/
+.DS_Store
+*.sqlite*
+*.db
+*.db-shm
+*.db-wal
+credentials*.json
+client_secret*.json
+.env
+.env.*
+*.pem
+*.p12
+*.mobileprovision
+private/
+exports/
