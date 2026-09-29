@@ -108,7 +108,13 @@ func fixtureClient(_ tokens: FixtureTokens) -> GoogleClient {
 @Test func desktopOAuthConfigurationAndPKCE() throws {
     let configuration = try OAuthConfiguration.load(Data(#"{"installed":{"client_id":"synthetic.apps.googleusercontent.com","client_secret":"test-only"}}"#.utf8))
     #expect(configuration.installed.client_id.hasSuffix(".apps.googleusercontent.com"))
-    #expect(throws: DecodingError.self) { try OAuthConfiguration.load(Data(#"{"web":{"client_id":"wrong.apps.googleusercontent.com"}}"#.utf8)) }
+    #expect(throws: MonitorError.self) { try OAuthConfiguration.load(Data(#"{"web":{"client_id":"wrong.apps.googleusercontent.com"}}"#.utf8)) }
+    for invalid in ["{", #"{"type":"service_account"}"#, #"{"installed":{"client_id":".apps.googleusercontent.com"}}"#, #"{"installed":{"client_id":"https://bad.apps.googleusercontent.com"}}"#, #"{"installed":{"client_id":42}}"#] {
+        #expect(throws: MonitorError.self) { try OAuthConfiguration.load(Data(invalid.utf8)) }
+    }
+    let withoutSecret = try OAuthConfiguration.load(Data(#"{"installed":{"client_id":"123-synthetic.apps.googleusercontent.com","extra":"ignored"}}"#.utf8))
+    #expect(withoutSecret.installed.client_secret == nil)
+    #expect(throws: MonitorError.self) { try OAuthConfiguration.load(Data(repeating: 32, count: 1_048_577)) }
     let verifier = try randomURLToken(); #expect(verifier.count == 43)
     let url = authorizationURL(clientID: "synthetic", redirect: "http://127.0.0.1:1234/oauth/callback", state: "state-value", verifier: verifier)
     let items = URLComponents(url: url, resolvingAgainstBaseURL: false)!.queryItems!

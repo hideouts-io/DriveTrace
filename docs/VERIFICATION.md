@@ -13,7 +13,7 @@ Coverage includes:
 - Historical hierarchy cutoff queries across folder renames, child moves, removal, database reopen and history clearing; equivalent timezone offsets include the exact cutoff observation. Breadcrumb tests cover Shared Drive identity, duplicate names, cycles, unavailable parents and multiple-parent disclosure.
 - Exact actor/resource attribution, source deduplication, removal as inaccessibility, compound filters, query escaping, unknown-size ordering, cycles and unresolved paths.
 - CSV, JSON and JSONL file/event exports, formula-leading cells, absent sizes, source/actor preservation, RFC3339 round-trips and offset-aware time comparisons.
-- Desktop-client configuration rejection, S256 PKCE and state parameters; a real local TCP OAuth callback rejects the wrong state, accepts the right code, and terminates on cancellation. No Google token is used by these tests.
+- Desktop-client configuration rejection (malformed, Web, service account, invalid ID, oversize), optional secret and extra-field acceptance, S256 PKCE and state parameters; a real local TCP OAuth callback rejects the wrong state, accepts the right code, and terminates on cancellation. No Google token is used by these tests.
 - A 10,000-file SQLite stage/promote/load/filter/sort scenario. The measured test duration is recorded in `test-results.txt`; it was approximately 0.4 seconds on this host. This is not a GUI benchmark or a million-file scalability claim.
 
 ## Packaged native app
@@ -42,9 +42,10 @@ Computer-use checks used native accessibility identifiers, container IDs and app
 | Observed history | Cmd-9 loaded 91 synthetic observations; invalid RFC3339 showed a specific error, a pre-index cutoff showed zero items, and Now restored the set. Searched Archive, browsed its 17 recorded children (including a trashed item), inspected raw observation JSON, and navigated to Research using its breadcrumb. |
 | Current breadcrumbs | Double-clicked Archive from file search, then clicked Research in its trail; the current Research view showed 18 items. |
 | Native CSV save | Saved `/tmp/drive-explorer-demo-export.csv`; parsed 84 rows, largest size 6,828,300,000 bytes, blank missing-size fields. |
-| Settings | Desktop OAuth import/connect controls, monitoring, appearance and local data controls rendered. No credentials entered and no notification permission granted during verification. |
+| Guided connection | Opened from Settings, inspected all five steps and scope URLs, verified missing-client sign-in and demo synchronization are disabled. Imported a synthetic invalid Web-client JSON through the native sheet: actionable error stayed in the guide and the client remained not imported. No credentials entered. |
+| Settings | Appearance, monitoring and local data controls rendered. No notification permission granted during verification. |
 
-Screenshots in `screenshots/` are direct captures from the Swift app: welcome, largest files, advanced search, activity, observed history, storage light and storage dark. They use synthetic names and `example.test` identities only. They were not composited or edited.
+Screenshots in `screenshots/` are direct captures from the Swift app: welcome, largest files, advanced search, activity, observed history, storage light, storage dark and Google setup. They use synthetic names and `example.test` identities only. They were not composited or edited.
 
 ## Requires a live Google account
 
@@ -74,10 +75,10 @@ All **41 recorded baseline source files** match their pre-migration SHA-256 valu
 
 ## Guided live validation — not performed yet
 
-The app is ready for a user-controlled Desktop OAuth configuration. Keep the downloaded JSON on your Mac and import it through Settings; do not upload it to an issue or chat. Complete Google consent yourself in your browser. No live validation is recorded by these instructions alone.
+The app is ready for a user-controlled Desktop OAuth configuration. Keep the downloaded JSON on your Mac and import it through Settings → Connect Google Drive → step 3; do not upload it to an issue or chat. Complete Google consent yourself in your browser. No live validation is recorded by these instructions alone.
 
-1. **Connect:** enable both APIs and configure a Desktop client as described in the README. Import it, choose Connect, and complete browser consent. Confirm the app returns from sign-in without an error.
-2. **Baseline:** choose Refresh. Record privately whether the status says complete or lists coverage gaps. Compare a small set of existing My Drive and Shared Drive items against the Google Drive website: IDs, names, parent folders, known sizes, and returned permissions. Do not equate missing API fields with an empty value.
+1. **Connect:** enable both APIs and configure a Desktop client as described in the README. Import it, choose Sign in with Google, and complete browser consent. Confirm the app returns from sign-in without an error.
+2. **Baseline:** choose Run synchronization in step 5 (or Refresh in the explorer). Record privately whether the status says complete or lists coverage gaps. Compare a small set of existing My Drive and Shared Drive items against the Google Drive website: IDs, names, parent folders, known sizes, and returned permissions. Do not equate missing API fields with an empty value.
 3. **Attribution:** inspect activity on those same existing items. Compare available actor/action/time evidence, keeping the owner and uploader separate. Record absent or unresolved actors as a coverage limit.
 4. **Persistence:** quit/reopen, verify the same account cache and saved searches, then refresh again. After normal access-token expiration, verify automatic refresh; never modify the system clock or print the token to test it.
 5. **Failure and reconnect:** test a temporary network interruption and cancellation. To test revocation, intentionally revoke this app's grant in your Google account, confirm the error is visible, and reconnect. This step requires your deliberate account action.

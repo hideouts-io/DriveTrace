@@ -8,8 +8,11 @@ struct OAuthConfiguration: Codable, Sendable {
     let installed: DesktopClient
     struct DesktopClient: Codable, Sendable { let client_id: String; let client_secret: String? }
     static func load(_ data: Data) throws -> OAuthConfiguration {
-        let result = try JSONDecoder().decode(Self.self, from: data)
-        guard result.installed.client_id.hasSuffix(".apps.googleusercontent.com") else { throw MonitorError.authentication("Select the Google Cloud JSON for a Desktop app OAuth client.") }
+        guard data.count <= 1_048_576 else { throw MonitorError.authentication("This JSON exceeds 1 MiB. Download the Desktop OAuth client JSON from Google Auth platform → Clients; do not import an export or database.") }
+        let result: OAuthConfiguration
+        do { result = try JSONDecoder().decode(Self.self, from: data) }
+        catch is DecodingError { throw MonitorError.authentication("This is not a valid Desktop OAuth client JSON. In Google Auth platform → Clients, create a client with application type Desktop app and download its JSON. Web clients, service-account keys and token files cannot be imported. The existing configuration was not changed.") }
+        guard result.installed.client_id.range(of: "^[A-Za-z0-9_-]+\\.apps\\.googleusercontent\\.com$", options: .regularExpression) != nil else { throw MonitorError.authentication("The Desktop client ID is invalid. Download a fresh JSON from Google Auth platform → Clients. Do not edit the file or paste its contents into chat.") }
         return result
     }
 }
@@ -48,6 +51,7 @@ actor Credentials: TokenProvider {
         if let data = try read("token") { token = try JSONDecoder().decode(OAuthToken.self, from: data) }
         return token != nil
     }
+    func hasConfiguration() -> Bool { configuration != nil }
     func configure(_ data: Data) throws {
         let value = try OAuthConfiguration.load(data)
         if let old = configuration, old.installed.client_id != value.installed.client_id { try disconnect() }
@@ -107,7 +111,7 @@ actor Credentials: TokenProvider {
             }
             struct OAuthFailure: Decodable { let error: String; let error_description: String? }
             let failure = try JSONDecoder().decode(OAuthFailure.self, from: data)
-            throw MonitorError.authentication("Google OAuth failed (HTTP \(http.statusCode), \(failure.error)): \(failure.error_description ?? "Reconnect and check the Desktop client configuration.")")
+            throw MonitorError.authentication("Google OAuth failed (HTTP \(http.statusCode), \(failure.error)): \(failure.error_description ?? "No description returned.") \(oauthRemedy(failure.error))")
         }
         throw MonitorError.authentication("OAuth request ended without a token response.")
     }
@@ -117,6 +121,15 @@ actor Credentials: TokenProvider {
         let status = SecItemDelete([kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service, kSecAttrAccount as String: "token"] as CFDictionary)
         guard status == errSecSuccess || status == errSecItemNotFound else { throw MonitorError.authentication("Token deletion failed (\(status)).") }
         token = nil
+    }
+}
+func oauthRemedy(_ code: String) -> String {
+    switch code {
+    case "invalid_grant": "Sign in again. The grant may have expired or been revoked; External projects in Testing normally expire Drive refresh tokens after seven days."
+    case "invalid_client", "deleted_client", "unauthorized_client": "Download and import a current Desktop app client JSON from the same Google Cloud project where both Drive APIs are enabled."
+    case "access_denied": "Check that this account is listed under Google Auth platform → Audience → Test users, then retry consent. Your Workspace administrator may also restrict access."
+    case "admin_policy_enforced", "org_internal": "Use an account allowed by this project's audience and ask your Workspace administrator about app access. This app cannot override organization policy."
+    default: "Open Connect Google Drive → Troubleshooting, check the project configuration, then retry sign-in."
     }
 }
 func randomURLToken() throws -> String {

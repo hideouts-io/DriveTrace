@@ -1,9 +1,9 @@
 {
-  "verified_at": "2026-09-29T22:46:18.499864+00:00",
-  "executable_sha256": "823a1cf26b48b7f2bb836567de16881cda835d44a663219089a05e2262dade4d",
-  "zip_sha256": "1dd8ae4e1c80f88dbc729afa8ee49f1a7d9f23510062181d5ddc66870654d925",
+  "verified_at": "2026-09-29T23:07:32.313255+00:00",
+  "executable_sha256": "7d113dfaedcd284ec5137b6542bf58f199f4aa6f685a785e8a06cf4bb51e8763",
+  "zip_sha256": "96b8c732c4e25dd5bcbcf3ab8f6e17bf9723d154e39e5041df198eaaada33687",
   "logo_sha256": "6312cce90437a33b45f9aea20003ff57328cd0a080c8210ee1691a3a2556b923",
-  "test_summary": "\u2714 Test run with 29 tests in 1 suite passed after 0.377 seconds.",
+  "test_summary": "\u2714 Test run with 29 tests in 1 suite passed after 0.399 seconds.",
   "signature": "Ad-hoc; strict signature verification passed on generated cache bundle",
   "architecture": "arm64",
   "google_account_validation": "not performed"

@@ -2,6 +2,7 @@ import SwiftUI
 import DriveCore
 
 struct SettingsView: View {
+    @Environment(\.openWindow) private var openWindow
     @Bindable var model: AppModel
     @AppStorage("appearance") private var appearance = "system"
     @State private var confirmCache = false
@@ -12,10 +13,13 @@ struct SettingsView: View {
                 Picker("Appearance", selection: $appearance) { Text("System").tag("system"); Text("Light").tag("light"); Text("Dark").tag("dark") }.pickerStyle(.segmented).accessibilityIdentifier("appearancePicker")
             }
             Section("Google account") {
-                LabeledContent("Connection", value: model.connected ? "Connected · read-only scopes" : "Not connected")
-                Text("Create a Desktop app OAuth client in Google Cloud. Enable Google Drive API and Google Drive Activity API, then import its JSON file. Your browser handles sign-in; tokens stay in macOS Keychain.").font(.callout).foregroundStyle(.secondary)
-                HStack { Button("Import Desktop client JSON…", action: model.importClient).accessibilityIdentifier("importOAuth"); Button("Connect Google account", action: model.connect).accessibilityIdentifier("connectGoogle"); if model.connected { Button("Disconnect", action: model.disconnect).accessibilityIdentifier("disconnectGoogle") } }.disabled(model.busy)
-                Link("Google native-app OAuth setup", destination: URL(string: "https://developers.google.com/identity/protocols/oauth2/native-app")!)
+                LabeledContent("Desktop client", value: model.hasClient ? "Saved in Keychain" : "Not imported")
+                LabeledContent("Sign-in", value: model.connected ? "Saved · verify access with a sync" : "Not signed in")
+                Text("Follow five steps to set up your Google project, import a Desktop client, sign in and verify synchronization.").font(.callout).foregroundStyle(.secondary)
+                HStack {
+                    Button("Connect Google Drive…") { openWindow(id: "setup") }.accessibilityIdentifier("openConnectionGuide")
+                    if model.connected { Button("Disconnect", action: model.disconnect).disabled(model.busy).accessibilityIdentifier("disconnectGoogle") }
+                }
             }
             Section("Monitoring") {
                 Toggle("Poll Drive every 60 seconds while the app is running", isOn: Binding(get: { model.autoRefresh }, set: model.setPolling)).disabled(!model.connected || model.isDemo).accessibilityIdentifier("automaticPolling")

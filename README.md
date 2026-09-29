@@ -140,16 +140,38 @@ Choose **Explore demo** to use synthetic data without credentials. Demo is a sep
 
 ## Connect your Google account
 
-1. In your own [Google Cloud project](https://console.cloud.google.com/), enable **Google Drive API** and **Google Drive Activity API**.
-2. Configure the OAuth consent screen/audience. For an external app in Testing, add your account as a test user. Organizational policy can require administrator approval. Google may require verification for broader distribution.
-3. Create an OAuth client of application type **Desktop app** and download its JSON. A Web application client, service-account key, or the old Python app's Web client configuration is not interchangeable.
-4. Open **Drive Explorer → Settings** (`⌘,`), choose **Import Desktop client JSON**, and select that file. Do not paste credentials into chat or commit them.
-5. Choose **Connect Google account**. Your default browser opens Google's consent page. The app uses an ephemeral `127.0.0.1` port, `/oauth/callback`, state validation, and S256 PKCE. No public callback service or custom URL scheme is required. Sign-in times out after three minutes.
-6. Return to the app and choose **Refresh** (`⌘R`). Wait for the initial full metadata baseline and Activity seed. The status bar shows progress; cancel at any time. Review any coverage gaps before interpreting results.
+Open **Drive Explorer → Settings** (`⌘,`) → **Connect Google Drive…**, or use the welcome-screen button. The native guide stays open beside your browser and separates configuration saved, sign-in saved, and a completed sync in the current session. Advancing a page does not claim the Cloud project was verified. Instructions were checked against official Google documentation on **2026-09-29**.
 
-Scopes are `drive.metadata.readonly` and `drive.activity.readonly`. The app reads metadata/activity, not file contents, and cannot rename, share, upload, or delete Drive files. Google server-side `name contains` semantics differ from local substring search. MIME and owner-email queries on Google are exact; size, extension and local discovery filters require the local index.
+1. **Project and APIs:** in [Google Cloud Console](https://console.cloud.google.com/), select or create a project. Under **APIs & Services → Library**, enable **Google Drive API** and **Google Drive Activity API** in that same project. See Google's [Drive quickstart](https://developers.google.com/workspace/drive/api/quickstart/python) and [Activity quickstart](https://developers.google.com/workspace/drive/activity/v2/quickstart/python).
+2. **Consent:** open **Google Auth platform → Branding → Get Started**. Supply an app name, support/contact email and audience; review Google's policy yourself. Personal Gmail uses **External**. In Testing, add your sign-in account under **Audience → Test users**. Eligible Workspace projects can use Internal, subject to organization policy. Under **Data Access → Add or Remove Scopes**, declare `https://www.googleapis.com/auth/drive.metadata.readonly` and `https://www.googleapis.com/auth/drive.activity.readonly`, then save. [Official consent guide](https://developers.google.com/workspace/guides/configure-oauth-consent).
+3. **Desktop JSON:** under **Google Auth platform → Clients → Create Client**, choose **Desktop app**, name it, create it and download its JSON. Import that file using step 3 in the native guide. Web clients, service-account keys, malformed files and token files are rejected before replacing the existing configuration. Keep the JSON local; never put it in chat or Git. [Desktop client instructions](https://developers.google.com/identity/protocols/oauth2/native-app).
+4. **Sign in:** choose **Sign in with Google** in step 4. Your default browser handles consent. Check the project identity and requested access, then return to the app. State and S256 PKCE protect the temporary `127.0.0.1` callback; no public server or manual web redirect is needed. Sign-in times out after three minutes. A saved sign-in alone does not verify both APIs.
+5. **First sync:** choose **Run synchronization** in step 5. Wait for the metadata baseline and Activity seed. Inspect any reported gaps, then compare a few known files and activity entries with Google Drive. The app only reports session verification after both collection stages finish without reported gaps. This is bounded collection coverage, not a full organizational audit. The [live validation checklist](docs/VERIFICATION.md#guided-live-validation--not-performed-yet) covers refresh, revocation, persistence, watches and account separation.
 
-Access/refresh tokens and imported client configuration are in macOS Keychain under service `local.driveexplorer.oauth`. An installed application's client configuration is not a confidential server secret. Disconnect deletes stored tokens; it does not revoke Google's grant or delete cached files. Google account permissions can be revoked separately through your Google account security settings. Reconnect if a token expires or is revoked. See Google's [native OAuth guide](https://developers.google.com/identity/protocols/oauth2/native-app) for current policy and setup details.
+The app reads metadata/activity, not file contents, and cannot rename, share, upload or delete Drive files. Google server-side `name contains` semantics differ from local substring search. MIME and owner-email queries on Google are exact; size, extension and local discovery filters require the local index.
+
+Access/refresh tokens and imported configuration are stored in macOS Keychain under service `local.driveexplorer.oauth`. An installed application's configuration is not a confidential server secret. Disconnect deletes stored tokens; it does not revoke Google's grant or delete cached metadata. Manage Google's grant separately in your account security settings.
+
+### Connection troubleshooting
+
+| Symptom | Action |
+| --- | --- |
+| API disabled / `SERVICE_DISABLED` | Enable both APIs in the project that created the imported client; allow propagation, then retry. |
+| `access_denied` or consent 403 | Check the exact account under Audience → Test users and review organization app-access policy with your administrator. A file-level 403 can mean that item is inaccessible. |
+| `invalid_client` / `redirect_uri_mismatch` | Download a current **Desktop app** JSON; do not reuse the Python/Web client or edit redirect URIs. |
+| `invalid_grant` / stopped working after seven days | Sign in again. External Testing projects normally expire refresh tokens after seven days for these Drive scopes; revocation also invalidates grants. [Google token-expiration rules](https://developers.google.com/identity/protocols/oauth2#expiration). |
+| Timeout / localhost failure | Keep the app open, cancel and retry within three minutes. Check narrowly whether local security software blocks this app's loopback callback. |
+| 429 / 5xx / partial results | Bounded retries occur automatically. Check connectivity/project quotas, retry later, and preserve coverage gaps. Missing activity is not proof of no activity. |
+
+The guide includes these remedies beside the actions; OAuth failures retain the HTTP status/error code and add next steps. See [Google's native-app error reference](https://developers.google.com/identity/protocols/oauth2/native-app#errors).
+
+### Reducing setup steps
+
+**Available now:** one native guide, local JSON validation, retained Keychain configuration, system-browser consent, automatic token refresh, and a direct first-sync check. An existing eligible organization project can reuse its Desktop client configuration; importing a client never grants access without user consent.
+
+**Requires a distribution project:** bundling a maintainer-owned Desktop OAuth client could remove each user's Cloud setup. It is not included. Both requested scopes are classified as **restricted**. Public distribution needs the applicable Google verification process, audience/policy preparation and operational quota ownership; restricted data stored or transmitted through servers can also require a security assessment. Local-only operation is not a blanket exemption. [Google's scope and verification guidance](https://developers.google.com/workspace/drive/api/guides/api-specific-auth).
+
+A Picker/`drive.file` design limits access to selected/app-used files and includes write capabilities; it cannot substitute for whole-drive read-only inventory and activity. API keys and service-account keys do not provide a shortcut to an individual's Drive consent. Changing to Production is not proof of verification or administrator approval.
 
 ## Using the explorer
 
@@ -200,6 +222,7 @@ The initial Activity seed is seven days under My Drive and each accessible Share
 
 This is the working roadmap. Unchecked items are **not done yet** and have no promised delivery date.
 
+- [x] **Guided connection:** native project/API, consent, Desktop import, browser sign-in and first-sync instructions with contextual troubleshooting. Cloud configuration and live access still require validation.
 - [ ] **Real-account validation:** consent, refresh/revocation, reconnect, account isolation, My Drive and Shared Drive synchronization, restricted permissions, API quotas and failures.
 - [ ] **Notification validation:** permission grant, visible delivery, cooldown accumulation, restart behavior, and long-running polling under real API load.
 - [x] **Observed hierarchy browser:** navigate retained metadata at a chosen cutoff, with missing-ancestor labels, per-item observation times, search, and raw inspection. Historical existence/access remains unknown; dedicated historical exports are not implemented.

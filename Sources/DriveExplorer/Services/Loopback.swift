@@ -57,7 +57,7 @@ actor Loopback {
         guard states.count == 1, states[0].value == state else { respond(connection, text: "State mismatch. Return to the app and retry.", status: "400 Bad Request"); return }
         if let error = url.queryItems?.first(where: { $0.name == "error" })?.value {
             respond(connection, text: "Sign-in was declined. You may close this page.", status: "200 OK")
-            finish(.failure(MonitorError.authentication("Google sign-in declined: \(error)"))); return
+            finish(.failure(MonitorError.authentication("Google sign-in declined: \(error). \(oauthRemedy(error))"))); return
         }
         let codes = url.queryItems?.filter { $0.name == "code" } ?? []
         guard codes.count == 1, let code = codes[0].value, !code.isEmpty else { respond(connection, text: "Missing authorization code.", status: "400 Bad Request"); return }

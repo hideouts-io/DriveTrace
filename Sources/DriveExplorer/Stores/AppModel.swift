@@ -25,6 +25,10 @@ import DriveCore
     var gaps: [String] = []
     var isDemo = false
     var connected = false
+    var setupVisible = false
+    var hasClient = false
+    var syncVerified = false
+    var operationNotice: String?
     var ready = false
     var lastSync: String?
     var rootID = "root"
@@ -79,6 +83,7 @@ import DriveCore
         do {
             try FileManager.default.createDirectory(at: baseURL, withIntermediateDirectories: true)
             connected = try await credentials.restore()
+            hasClient = await credentials.hasConfiguration()
             client = GoogleClient(tokens: credentials, session: .shared)
             try await openDatabase(demo: UserDefaults.standard.bool(forKey: "demoMode"))
             if autoRefresh && connected { setPolling(true) }
@@ -89,7 +94,7 @@ import DriveCore
         let directory = baseURL.appendingPathComponent(demo ? "Demo" : "Account-" + (UserDefaults.standard.string(forKey: "accountCache") ?? "unconnected"), isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
         let store = try Database(path: directory.appendingPathComponent("drive.sqlite").path)
-        database = store; isDemo = demo; serverResults = nil; selectedFile = nil
+        database = store; isDemo = demo; syncVerified = false; serverResults = nil; selectedFile = nil
         if demo, try await store.setting("demo.seeded") != "2" { try await store.clearCache(); try await seedDemo(store) }
         UserDefaults.standard.set(demo, forKey: "demoMode")
         try await reload()
@@ -150,12 +155,12 @@ import DriveCore
         }
     }
     func run(_ body: @escaping @MainActor () async throws -> Void) {
-        guard !busy else { return }; busy = true; error = nil
+        guard !busy else { return }; busy = true; error = nil; operationNotice = nil
         operation = Task {
             defer { busy = false; progress = ""; operation = nil }
             do { try await body() }
-            catch is CancellationError { progress = "Cancelled" }
-            catch let failure as URLError where failure.code == .cancelled { progress = "Cancelled" }
+            catch is CancellationError { operationNotice = "Operation cancelled. Any committed observations are retained; refresh to continue synchronization." }
+            catch let failure as URLError where failure.code == .cancelled { operationNotice = "Operation cancelled. Refresh to continue synchronization." }
             catch { self.error = error.localizedDescription }
         }
     }
@@ -163,6 +168,7 @@ import DriveCore
     func sync() {
         guard !isDemo else { updateResults(); return }
         run {
+            self.syncVerified = false
             guard let client = self.client else { throw MonitorError.invalid("App is not ready.") }
             let root = try await client.file(id: "root")
             let accountKey = digest(root.id)
@@ -182,6 +188,7 @@ import DriveCore
             try await database.setSetting("coverage.gaps", value: encoded(result.gaps))
             if result.gaps.isEmpty { try await database.setSetting("lastSync", value: timestamp(Date())) }
             try await self.reload()
+            self.syncVerified = result.gaps.isEmpty
             try await self.notify(events: self.events.filter { !before.contains($0.id) })
         }
     }
@@ -243,9 +250,18 @@ import DriveCore
     }
     func importClient() {
         let panel = NSOpenPanel(); panel.allowedContentTypes = [.json]; panel.allowsMultipleSelection = false
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        run { try await self.credentials.configure(Data(contentsOf: url)); self.connected = try await self.credentials.restore(); self.progress = "OAuth client saved in Keychain" }
+        guard let window = NSApp.keyWindow else { error = "Open the connection guide before importing a client."; return }
+        panel.beginSheetModal(for: window) { response in
+            guard response == .OK, let url = panel.url else { return }
+            self.run {
+                try await self.credentials.configure(Data(contentsOf: url))
+                self.hasClient = await self.credentials.hasConfiguration()
+                self.connected = try await self.credentials.restore(); self.syncVerified = false
+                self.operationNotice = "Desktop client saved in Keychain. Continue with browser sign-in."
+            }
+        }
     }
+
     func connect() {
         run {
             let state = try randomURLToken(), verifier = try randomURLToken()
@@ -264,9 +280,10 @@ import DriveCore
             try await self.openDatabase(demo: false)
             try await self.database?.setSetting("rootID", value: root.id)
             self.rootID = root.id
+            self.operationNotice = "Sign-in succeeded. Run the first synchronization to check metadata and activity access."
         }
     }
-    func disconnect() { setPolling(false); run { try await self.credentials.disconnect(); self.connected = false } }
+    func disconnect() { setPolling(false); run { try await self.credentials.disconnect(); self.connected = false; self.syncVerified = false } }
     func clearCache() { run { try await self.database?.clearCache(); if self.isDemo, let database = self.database { try await seedDemo(database) }; self.gaps = []; try await self.reload() } }
     func clearHistory() { run { try await self.database?.clearHistory(); try await self.reload() } }
     func export(_ format: ExportFormat) {

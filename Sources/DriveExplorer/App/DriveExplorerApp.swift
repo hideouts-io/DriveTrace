@@ -32,6 +32,10 @@ import AppKit
                 Button("Show Inspector") { model.showInspector.toggle() }.keyboardShortcut("i", modifiers: [.command, .option])
             }
         }
+        Window("Connect Google Drive", id: "setup") {
+            SetupView(model: model)
+                .preferredColorScheme(appearance == "dark" ? .dark : appearance == "light" ? .light : nil)
+        }.defaultSize(width: 880, height: 740)
         Settings { SettingsView(model: model).frame(width: 640, height: 580) }
     }
 }
