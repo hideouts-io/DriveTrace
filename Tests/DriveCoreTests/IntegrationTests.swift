@@ -230,6 +230,60 @@ func fixtureClient(_ tokens: FixtureTokens) -> GoogleClient {
         #expect(throws: MonitorError.self) { try fileDownload(large) }
         try FileManager.default.removeItem(at: destination)
     }
+    @Test func nestedBatchPreservesStructureAndReportsPartialFailures() async throws {
+        let folder = #"{"id":"folder","name":"Project","mimeType":"application/vnd.google-apps.folder"}"#
+        let first = #"{"id":"a","name":"Report.txt","mimeType":"text/plain","capabilities":{"canDownload":true}}"#
+        let second = #"{"id":"c","name":"report.txt","mimeType":"text/plain","capabilities":{"canDownload":true}}"#
+        let nested = #"{"id":"n","name":"Nested.txt","mimeType":"text/plain","capabilities":{"canDownload":true}}"#
+        let subfolder = #"{"id":"b","name":"Subfolder","mimeType":"application/vnd.google-apps.folder"}"#
+        let shortcut = #"{"id":"d","name":"Link","mimeType":"application/vnd.google-apps.shortcut","shortcutDetails":{"targetId":"a"}}"#
+        let tokens = FixtureTokens(); await tokens.grantManagement()
+        let client = fixtureClient(tokens)
+        await FixtureProtocol.fixture.prepare([(200, folder), (200, "{\"files\":[" + first + "," + subfolder + "],\"nextPageToken\":\"next\"}"), (200, "{\"files\":[" + second + "," + shortcut + "]}"), (200, "{\"files\":[" + nested + "]}")])
+        let plan = try await client.planDownloads(ids: ["folder"], progress: { _ in })
+        #expect(plan.items.map { $0.components.joined(separator: "/") } == ["Project", "Project/Report.txt", "Project/Subfolder", "Project/Subfolder/Nested.txt", "Project/report (2).txt"])
+        #expect(plan.issues.count == 1)
+        let parent = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: parent, withIntermediateDirectories: true)
+        await FixtureProtocol.fixture.prepare([(200, first), (200, "first"), (403, "restricted"), (200, second), (200, "second")])
+        let report = try await client.downloadBatch(plan: plan, parent: parent, progress: { _ in })
+        #expect(report.completed == 2); #expect(report.failures == 2); #expect(report.remaining == 0); #expect(!report.cancelled)
+        #expect(report.summary.hasPrefix("Finished with gaps"))
+        #expect(try String(contentsOf: report.directory.appendingPathComponent("Files/Project/Report.txt"), encoding: .utf8) == "first")
+        #expect(try String(contentsOf: report.directory.appendingPathComponent("Files/Project/report (2).txt"), encoding: .utf8) == "second")
+        #expect(FileManager.default.fileExists(atPath: report.directory.appendingPathComponent("Files/Project/Subfolder").path))
+        let saved = try JSONDecoder().decode(BatchDownloadReport.self, from: Data(contentsOf: report.directory.appendingPathComponent("download-report.json")))
+        #expect(saved.completed == report.completed); #expect(saved.failures == report.failures)
+        try FileManager.default.removeItem(at: parent)
+    }
+    @Test func folderDiscoveryRejectsIncompleteAndRepeatedPages() async throws {
+        let folder = #"{"id":"folder","name":"Folder","mimeType":"application/vnd.google-apps.folder"}"#
+        for pages in [[(200, folder), (200, #"{"incompleteSearch":true}"#)], [(200, folder), (200, #"{"nextPageToken":"again"}"#), (200, #"{"nextPageToken":"again"}"#)]] {
+            await FixtureProtocol.fixture.prepare(pages)
+            let plan = try await fixtureClient(FixtureTokens()).planDownloads(ids: ["folder"], progress: { _ in })
+            #expect(plan.items.count == 1); #expect(plan.issues.count == 1)
+        }
+    }
+    @Test func cancelledBatchRetainsCompletedFilesAndReportsUnattemptedItems() async throws {
+        let metadata = #"{"id":"first","name":"First.txt","mimeType":"text/plain","capabilities":{"canDownload":true}}"#
+        let first = try JSONDecoder().decode(DriveFile.self, from: Data(metadata.utf8))
+        let second = DriveFile(id: "second", name: "Second.txt", mimeType: "text/plain")
+        let plan = DownloadPlan(items: [DownloadItem(file: first, components: [first.name]), DownloadItem(file: second, components: [second.name])], issues: [])
+        let parent = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: parent, withIntermediateDirectories: true)
+        let tokens = FixtureTokens(); await tokens.grantManagement()
+        await FixtureProtocol.fixture.prepare([(200, metadata), (200, "complete")])
+        let task = Task {
+            try await fixtureClient(tokens).downloadBatch(plan: plan, parent: parent) { progress in
+                if progress.completed == 1 { withUnsafeCurrentTask { $0?.cancel() } }
+            }
+        }
+        let report = try await task.value
+        #expect(report.cancelled); #expect(report.completed == 1); #expect(report.remaining == 1)
+        #expect(try String(contentsOf: report.directory.appendingPathComponent("Files/First.txt"), encoding: .utf8) == "complete")
+        #expect(!FileManager.default.fileExists(atPath: report.directory.appendingPathComponent("Files/Second.txt").path))
+        try FileManager.default.removeItem(at: parent)
+    }
     @Test func cancelledSyncDoesNotRequestPages() async throws {
         let (db, _) = try temporaryDatabase()
         await FixtureProtocol.fixture.prepare([])
@@ -321,5 +375,19 @@ func fixtureClient(_ tokens: FixtureTokens) -> GoogleClient {
     }
     await #expect(throws: CancellationError.self) { try await task.value }
     #expect(try Data(contentsOf: destination) == Data("existing".utf8))
+    try FileManager.default.removeItem(at: directory)
+}
+
+@Test func batchFileCommitNeverOverwritesExistingPaths() throws {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    let source = directory.appendingPathComponent("source")
+    let destination = directory.appendingPathComponent("destination")
+    try Data("new".utf8).write(to: source)
+    try Data("existing".utf8).write(to: destination)
+    #expect(throws: (any Error).self) { try saveNewDownloadedFile(source, to: destination) }
+    #expect(try Data(contentsOf: destination) == Data("existing".utf8))
+    #expect(try availableDownloadName("Report.txt", occupied: ["report.txt"]) == "Report (2).txt")
+    #expect(throws: MonitorError.self) { try availableDownloadName("..", occupied: []) }
     try FileManager.default.removeItem(at: directory)
 }

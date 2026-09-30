@@ -92,7 +92,7 @@ struct FileTable: View {
     @State private var headerSort = [KeyPathComparator(\DriveFile.name)]
     var body: some View {
         VStack(spacing: 0) {
-        Table(model.results[range], selection: $model.selectedFile, sortOrder: $headerSort) {
+        Table(model.results[range], selection: $model.selectedFiles, sortOrder: $headerSort) {
             TableColumn("Name", value: \.name) { file in
                 HStack(spacing: 9) {
                     Image(systemName: fileIcon(file)).foregroundStyle(file.isFolder ? .blue : .secondary).frame(width: 18)
@@ -116,7 +116,10 @@ struct FileTable: View {
         .onChange(of: model.ascending) { _, _ in updateHeaderSort() }
         .onAppear { updateHeaderSort() }
         .contextMenu(forSelectionType: String.self) { ids in
-            if let id = ids.first, let file = model.index[id] ?? model.serverResults?.first(where: { $0.id == id }) {
+            if !ids.isEmpty {
+                Button("Download Selected…") { model.downloadSelection(ids) }.disabled(model.busy || model.isDemo || !model.managementGranted).accessibilityIdentifier("downloadContextSelection")
+            }
+            if ids.count == 1, let id = ids.first, let file = model.index[id] ?? model.serverResults?.first(where: { $0.id == id }) {
                 Button("Open in Google Drive") { model.open(file) }
                 if !file.isFolder && file.shortcutDetails == nil {
                     Button("Download…") { model.downloadFile(file) }.disabled(model.busy || model.isDemo || !model.managementGranted).accessibilityIdentifier("downloadContextFile")
@@ -127,18 +130,19 @@ struct FileTable: View {
                 if file.isFolder { Button("Browse folder") { model.navigate("folder:" + id) }; Button("Watch folder") { model.watch(file) } }
                 if let shortcut = file.shortcutDetails { Button("Inspect shortcut target") { model.selectedFile = shortcut.targetId; model.showInspector = true } }
             }
-        } primaryAction: { ids in if let id = ids.first, let file = model.index[id] { if file.isFolder { model.navigate("folder:" + id) } else { model.open(file) } } }
+        } primaryAction: { ids in if ids.count == 1, let id = ids.first, let file = model.index[id] { if file.isFolder { model.navigate("folder:" + id) } else { model.open(file) } } }
         .overlay { if model.results.isEmpty && !model.searching && model.filterValidationError == nil { ContentUnavailableView("No matching files", systemImage: "doc.text.magnifyingglass", description: Text("Adjust the filters or refresh your Drive index.")) } }
         Divider()
         HStack {
             Text(model.results.isEmpty ? "No results" : "\(range.lowerBound + 1)–\(range.upperBound) of \(model.results.count.formatted())").monospacedDigit()
-            Text("Search, sorting and exports use all matches.").foregroundStyle(.secondary)
+            Text("\(model.selectedFiles.count) selected · Shift-click a range; Command-click individual items.").accessibilityIdentifier("fileSelectionCount").foregroundStyle(.secondary)
             Spacer()
             Button("Previous") { page -= 1 }.disabled(page == 0 || model.searching).accessibilityIdentifier("previousFilePage")
             Button("Next") { page += 1 }.disabled(range.upperBound >= model.results.count || model.searching).accessibilityIdentifier("nextFilePage")
         }.font(.caption).padding(10).accessibilityElement(children: .contain).accessibilityIdentifier("filePagination")
         }
-        .onChange(of: model.resultGeneration) { _, _ in page = 0 }
+        .onChange(of: model.resultGeneration) { _, _ in page = 0; model.selectedFiles = [] }
+        .onChange(of: page) { _, _ in model.selectedFiles = [] }
     }
     private func updateHeaderSort() {
         let direction: SortOrder = model.ascending ? .forward : .reverse

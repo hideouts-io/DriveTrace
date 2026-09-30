@@ -19,6 +19,9 @@ struct InspectorView: View {
                     if model.isDemo {
                         Button("Try a synthetic preview sample", action: model.showPreviewSample).disabled(model.busy).accessibilityIdentifier("previewDemoSample")
                     }
+                    if file.isFolder {
+                        Button("Download Folder…") { model.downloadSelection([file.id]) }.disabled(model.busy || model.isDemo || !model.managementGranted).accessibilityIdentifier("downloadSelectedFolder")
+                    }
                     if !file.isFolder && file.shortcutDetails == nil {
                         Button("Download…") { model.downloadFile(file) }.disabled(model.busy || model.isDemo || !model.managementGranted).accessibilityIdentifier("downloadSelectedFile")
                         Button("Preview file") { model.showPreview(file) }.disabled(model.busy || model.isDemo || !model.managementGranted).accessibilityIdentifier("previewSelectedFile")
@@ -85,6 +88,12 @@ struct InspectorView: View {
                             Button("Inspect metadata JSON") { do { raw = try encoded(file) } catch { model.error = error.localizedDescription } }
                         }.padding(.top, 8)
                     }
+                }.padding(22)
+            } else if model.selectedFiles.count > 1 {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("\(model.selectedFiles.count) items selected").font(.title2)
+                    Text("Download this selection together. Single-item previews, activity and Trash are available when one item is selected.").font(.callout).foregroundStyle(.secondary)
+                    Button("Download Selected…") { model.downloadSelection(model.selectedFiles) }.disabled(model.busy || model.isDemo || !model.managementGranted).accessibilityIdentifier("downloadInspectorSelection")
                 }.padding(22)
             } else { ContentUnavailableView("Select a file", systemImage: "sidebar.right", description: Text("Metadata, sharing and evidence appear here.")).padding(.top, 70) }
         }.background(.background).accessibilityIdentifier("fileInspector")

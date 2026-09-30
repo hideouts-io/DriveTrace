@@ -20,16 +20,28 @@ public func fileDownload(_ file: DriveFile) throws -> FileDownload {
         guard !file.mimeType.hasPrefix("application/vnd.google-apps.") else { throw MonitorError.invalid("This Google file type does not support this app's download formats. Open it in Google Drive.") }
         format = nil
     }
-    let name = file.name.components(separatedBy: CharacterSet.controlCharacters.union(CharacterSet(charactersIn: "/:"))).joined(separator: "_")
-    guard !name.trimmingCharacters(in: .whitespaces).isEmpty, name != ".", name != ".." else { throw MonitorError.invalid("The file has no usable download name. Rename it in Google Drive first.") }
+    let name = try downloadName(file.name)
     let filename = format.map { name.lowercased().hasSuffix("." + $0.suffix) ? name : name + "." + $0.suffix } ?? name
     return FileDownload(name: filename, exportMIME: format?.mime)
+}
+
+public func downloadName(_ name: String) throws -> String {
+    let value = name.components(separatedBy: CharacterSet.controlCharacters.union(CharacterSet(charactersIn: "/:"))).joined(separator: "_")
+    guard !value.trimmingCharacters(in: .whitespaces).isEmpty, value != ".", value != "..", value.utf8.count <= 240 else { throw MonitorError.invalid("The file or folder has no usable local name, or its name exceeds 240 UTF-8 bytes. Rename it in Google Drive first.") }
+    return value
 }
 
 extension GoogleClient {
     /// URLSession streams to disk. The destination is replaced only after a complete successful response.
     public func download(file selected: DriveFile, to destination: URL) async throws {
         guard destination.isFileURL else { throw MonitorError.invalid("Choose a local file destination for the download.") }
+        try await transferDownload(file: selected) { try saveDownloadedFile($0, to: destination) }
+    }
+    public func downloadNewFile(file: DriveFile, to destination: URL) async throws {
+        guard destination.isFileURL else { throw MonitorError.invalid("Choose a local file destination for the download.") }
+        try await transferDownload(file: file) { try saveNewDownloadedFile($0, to: destination) }
+    }
+    private func transferDownload(file selected: DriveFile, save: @Sendable (URL) throws -> Void) async throws {
         let current = try await file(id: selected.id)
         guard current.name == selected.name, current.mimeType == selected.mimeType else { throw MonitorError.invalid("The file's name or type changed. Select Download again to review its new format and destination.") }
         let format = try fileDownload(current)
@@ -55,7 +67,7 @@ extension GoogleClient {
                         throw MonitorError.http(http.statusCode, "Download file=\(current.id); export=\(format.exportMIME ?? "original"); response=\(String(decoding: body, as: UTF8.self))")
                     }
                     try Task.checkCancellation()
-                    try saveDownloadedFile(temporary, to: destination)
+                    try save(temporary)
                 } catch {
                     try removeFailedDownload(temporary, cause: error)
                     throw error
@@ -77,6 +89,21 @@ extension GoogleClient {
 
 /// Stage on the destination volume so replacing an existing file cannot expose a partial download.
 func saveDownloadedFile(_ source: URL, to destination: URL) throws {
+    try stageDownloadedFile(source, destination: destination) { staged in
+        let manager = FileManager.default
+        if manager.fileExists(atPath: destination.path) { _ = try manager.replaceItemAt(destination, withItemAt: staged, backupItemName: nil, options: .usingNewMetadataOnly) }
+        else { try manager.moveItem(at: staged, to: destination) }
+    }
+}
+
+/// A hard link on the destination volume fails atomically if the destination already exists.
+func saveNewDownloadedFile(_ source: URL, to destination: URL) throws {
+    try stageDownloadedFile(source, destination: destination) { staged in
+        try FileManager.default.linkItem(at: staged, to: destination)
+    }
+}
+
+private func stageDownloadedFile(_ source: URL, destination: URL, commit: (URL) throws -> Void) throws {
     let manager = FileManager.default
     let staging = try manager.url(for: .itemReplacementDirectory, in: .userDomainMask, appropriateFor: destination, create: true)
     do {
@@ -84,8 +111,7 @@ func saveDownloadedFile(_ source: URL, to destination: URL) throws {
         try manager.copyItem(at: source, to: staged)
         try manager.setAttributes([.posixPermissions: 0o600], ofItemAtPath: staged.path)
         try Task.checkCancellation()
-        if manager.fileExists(atPath: destination.path) { _ = try manager.replaceItemAt(destination, withItemAt: staged, backupItemName: nil, options: .usingNewMetadataOnly) }
-        else { try manager.moveItem(at: staged, to: destination) }
+        try commit(staged)
     } catch {
         try removeFailedDownload(staging, cause: error)
         throw error

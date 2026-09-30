@@ -3,7 +3,7 @@ import AppKit
 import DriveCore
 
 extension AppModel {
-    private func fileActionClient() async throws -> GoogleClient {
+    func fileActionClient() async throws -> GoogleClient {
         guard !isDemo, connected, let client else { throw MonitorError.invalid("File actions require a connected Google account. Demo data cannot be changed remotely.") }
         guard await credentials.grantedScopes().contains("https://www.googleapis.com/auth/drive") else {
             throw MonitorError.authentication("Open Connect Google Drive → Sign in, select View files and Move to Trash, and approve the new Google consent request first.")

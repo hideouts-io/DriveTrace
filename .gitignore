@@ -19,3 +19,6 @@ token*.json
 *.key
 *.p8
 *.pfx
+
+# App-created batch content and private completion reports
+DriveTrace Download */
