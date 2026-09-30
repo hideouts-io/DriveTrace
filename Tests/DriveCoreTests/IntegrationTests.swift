@@ -147,14 +147,14 @@ func fixtureClient(_ tokens: FixtureTokens) -> GoogleClient {
         let files = try [firstJSON, deniedJSON, lastJSON].map { try JSONDecoder().decode(DriveFile.self, from: Data($0.utf8)) }
         let firstTrashed = firstJSON.replacingOccurrences(of: "\"capabilities\"", with: "\"trashed\":true,\"capabilities\"")
         let lastTrashed = lastJSON.replacingOccurrences(of: "\"capabilities\"", with: "\"trashed\":true,\"capabilities\"")
-        await FixtureProtocol.fixture.prepare([(200, firstJSON), (200, firstTrashed), (200, deniedJSON.replacingOccurrences(of: "true", with: "false")), (200, lastJSON), (200, lastTrashed)])
+        await FixtureProtocol.fixture.prepare([(200, firstJSON), (200, firstTrashed), (200, deniedJSON), (403, #"{"error":{"message":"Shared Drive policy denies trash"}}"#), (200, lastJSON), (200, lastTrashed)])
         let tokens = FixtureTokens(); await tokens.grantManagement()
         let report = await fixtureClient(tokens).trashBatch(confirmed: files) { _ in }
         #expect(report.completed == 2); #expect(report.failed == 1); #expect(report.remaining == 0); #expect(!report.cancelled)
-        #expect(report.results[1].failure?.contains("does not currently allow") == true)
+        #expect(report.results[1].failure?.contains("Shared Drive policy denies trash") == true)
         let requests = await FixtureProtocol.fixture.allRequests()
-        #expect(requests.count == 5)
-        #expect(requests.filter { $0.httpMethod == "PATCH" }.count == 2)
+        #expect(requests.count == 6)
+        #expect(requests.filter { $0.httpMethod == "PATCH" }.count == 3)
         #expect(!requests.contains { $0.httpMethod == "DELETE" })
     }
     @Test func cancelledBatchTrashRetainsConfirmedResultAndStopsFurtherRequests() async throws {
@@ -312,6 +312,53 @@ func fixtureClient(_ tokens: FixtureTokens) -> GoogleClient {
         #expect(report.cancelled); #expect(report.completed == 1); #expect(report.remaining == 1)
         #expect(try String(contentsOf: report.directory.appendingPathComponent("Files/First.txt"), encoding: .utf8) == "complete")
         #expect(!FileManager.default.fileExists(atPath: report.directory.appendingPathComponent("Files/Second.txt").path))
+        #expect(report.unattempted == ["Second.txt"])
+        let saved = try JSONDecoder().decode(BatchDownloadReport.self, from: Data(contentsOf: report.directory.appendingPathComponent("download-report.json")))
+        #expect(saved.unattempted == report.unattempted)
+        try FileManager.default.removeItem(at: parent)
+    }
+    @Test func cancellationBeforeFolderCreationReportsEveryUnattemptedPath() async throws {
+        let folder = DriveFile(id: "folder", name: "Empty", mimeType: "application/vnd.google-apps.folder")
+        let plan = DownloadPlan(items: [DownloadItem(file: folder, components: ["Empty"])], issues: [])
+        let parent = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: parent, withIntermediateDirectories: true)
+        await FixtureProtocol.fixture.prepare([])
+        let task = Task {
+            try await fixtureClient(FixtureTokens()).downloadBatch(plan: plan, parent: parent) { _ in withUnsafeCurrentTask { $0?.cancel() } }
+        }
+        let report = try await task.value
+        #expect(report.cancelled); #expect(report.results.isEmpty); #expect(report.unattempted == ["Empty"])
+        #expect(!FileManager.default.fileExists(atPath: report.directory.appendingPathComponent("Files/Empty").path))
+        #expect(await FixtureProtocol.fixture.allRequests().isEmpty)
+        try FileManager.default.removeItem(at: parent)
+    }
+    @Test func folderBatchExportsDocumentsAndPreservesEmptyFolders() async throws {
+        let folder = #"{"id":"folder","name":"Project","mimeType":"application/vnd.google-apps.folder"}"#
+        let empty = #"{"id":"empty","name":"Empty","mimeType":"application/vnd.google-apps.folder"}"#
+        let document = #"{"id":"a","name":"Report","mimeType":"application/vnd.google-apps.document","capabilities":{"canDownload":true}}"#
+        let binary = #"{"id":"b","name":"Report.docx","mimeType":"application/octet-stream","capabilities":{"canDownload":true}}"#
+        let sheet = #"{"id":"c","name":"Budget","mimeType":"application/vnd.google-apps.spreadsheet","capabilities":{"canDownload":true}}"#
+        let tokens = FixtureTokens(); await tokens.grantManagement()
+        let client = fixtureClient(tokens)
+        await FixtureProtocol.fixture.prepare([(200, folder), (200, "{\"files\":[" + [document, binary, sheet, empty].joined(separator: ",") + "]}"), (200, #"{"files":[]}"#)])
+        let plan = try await client.planDownloads(ids: ["folder"], progress: { _ in })
+        #expect(plan.issues.isEmpty)
+        #expect(plan.items.map { $0.components.joined(separator: "/") } == ["Project", "Project/Report.docx", "Project/Report (2).docx", "Project/Budget.xlsx", "Project/Empty"])
+        let parent = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: parent, withIntermediateDirectories: true)
+        await FixtureProtocol.fixture.prepare([(200, document), (200, "synthetic docx"), (200, binary), (200, "original binary"), (200, sheet), (403, #"{"error":{"message":"exportSizeLimitExceeded"}}"#)])
+        let report = try await client.downloadBatch(plan: plan, parent: parent, progress: { _ in })
+        #expect(report.completed == 2); #expect(report.failures == 1); #expect(report.unattempted.isEmpty)
+        #expect(try String(contentsOf: report.directory.appendingPathComponent("Files/Project/Report.docx"), encoding: .utf8) == "synthetic docx")
+        #expect(try String(contentsOf: report.directory.appendingPathComponent("Files/Project/Report (2).docx"), encoding: .utf8) == "original binary")
+        #expect(try FileManager.default.contentsOfDirectory(atPath: report.directory.appendingPathComponent("Files/Project/Empty").path).isEmpty)
+        #expect(report.results.first { $0.outcome == .failed }?.message?.contains("exportSizeLimitExceeded") == true)
+        let requests = await FixtureProtocol.fixture.allRequests()
+        #expect(requests[1].url?.path == "/drive/v3/files/a/export")
+        #expect(requests[3].url?.path == "/drive/v3/files/b")
+        #expect(requests[5].url?.path == "/drive/v3/files/c/export")
+        let exportQuery = URLComponents(url: requests[5].url!, resolvingAgainstBaseURL: false)?.queryItems
+        #expect(exportQuery?.first { $0.name == "mimeType" }?.value == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         try FileManager.default.removeItem(at: parent)
     }
     @Test func cancelledSyncDoesNotRequestPages() async throws {

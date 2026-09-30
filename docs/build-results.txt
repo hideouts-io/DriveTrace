@@ -1,16 +1,17 @@
 Building for production...
+[2 / 3] DriveMonitorSwift_DriveExplorer
 [2 / 16]
 [4 / 18] DriveCore
 [8 / 20] DriveCore
-[14 / 15] DriveExplorer-product
-[15 / 16] DriveExplorer-product
-[19 / 25] DriveExplorer-product
-[21 / 26] DriveExplorer-product
-[23 / 26] DriveExplorer-product
-[25 / 26] DriveExplorer-product
-Build complete! (22.74 sec)
-$HOME/Library/Caches/DriveExplorerBuild/package.lpqweU/DriveExplorer.app: replacing existing signature
+[19 / 20] DriveExplorer-product
+[20 / 21] DriveExplorer-product
+[24 / 30] DriveExplorer-product
+[26 / 31] DriveExplorer-product
+[28 / 31] DriveExplorer-product
+[30 / 31] DriveExplorer-product
+Build complete! (23.80 sec)
+$HOME/Library/Caches/DriveExplorerBuild/package.SUap5Q/DriveExplorer.app: replacing existing signature
 Verified both architectures, signature, bundle identity, minimum OS, icon, canonical logo and license.
 Verified both architectures, signature, bundle identity, minimum OS, icon, canonical logo and license.
-31f07b625a4e63ce90447f3bfa2f97aa495026a08ac260cd465e57ab09827fd4  DriveExplorer.zip
+9f890be2813df3ddc89824ca5bc2e5be97dec29416fbd9e504aa56454fd57d98  DriveExplorer.zip
 Packaged universal ad-hoc preview. Developer ID signing and notarization are not performed.

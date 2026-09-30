@@ -27,6 +27,9 @@ struct BatchDownloadView: View {
                         ForEach(report.results.filter { $0.outcome != .failed }.prefix(100)) { result in
                             Label(result.path, systemImage: result.outcome == .folderCreated ? "folder" : "checkmark.circle")
                         }
+                        ForEach(Array(report.unattempted.prefix(100).enumerated()), id: \.offset) { _, path in
+                            VStack(alignment: .leading) { Label(path, systemImage: "pause.circle"); Text("Not attempted — batch cancelled").font(.caption).foregroundStyle(.secondary) }
+                        }
                     }.frame(minHeight: 180).accessibilityIdentifier("batchDownloadResults")
                     Text("Shows up to 100 entries per category. The complete private report is saved as download-report.json beside Files. Completed files remain after cancellation. A folder with inaccessible or changing contents may be incomplete.").font(.caption).foregroundStyle(.secondary)
                     Button("Show download folder in Finder") { NSWorkspace.shared.activateFileViewerSelecting([report.directory]) }.accessibilityIdentifier("revealBatchDownload")

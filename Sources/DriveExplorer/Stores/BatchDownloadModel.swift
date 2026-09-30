@@ -30,11 +30,11 @@ extension AppModel {
             defer { self.batchDownload?.finished = true }
             do {
                 let plan = try await client.planDownloads(ids: ids.sorted()) { value in
-                    await MainActor.run { self.batchDownload?.progress = value }
+                    await MainActor.run { self.batchDownload?.progress = value; self.progress = "Discovering selected downloads · \(value.discovered) items" }
                 }
                 self.batchDownload?.status = "Downloading…"
                 let report = try await client.downloadBatch(plan: plan, parent: parent) { value in
-                    await MainActor.run { self.batchDownload?.progress = value }
+                    await MainActor.run { self.batchDownload?.progress = value; self.progress = "Downloading · \(value.completed) of \(value.discovered) processed · \(value.failed) failed/skipped" }
                 }
                 self.batchDownload?.report = report
                 self.batchDownload?.status = report.summary
