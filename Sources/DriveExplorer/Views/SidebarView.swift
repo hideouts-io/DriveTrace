@@ -47,7 +47,7 @@ struct SidebarView: View {
                 Divider()
                 HStack {
                     Image(systemName: model.isDemo ? "sparkles" : "person.crop.circle").font(.title2).foregroundStyle(.tint)
-                    VStack(alignment: .leading, spacing: 2) { Text(model.isDemo ? "Demo workspace" : model.connected ? "Google Drive" : "Local workspace").fontWeight(.medium); Text(model.isDemo ? "Explore every view" : model.connected ? "Read-only connection" : "Connect in Settings").font(.caption).foregroundStyle(.secondary) }
+                    VStack(alignment: .leading, spacing: 2) { Text(model.isDemo ? "Demo workspace" : model.connected ? "Google Drive" : "Local workspace").fontWeight(.medium); Text(model.isDemo ? "Explore every view" : model.connected ? (model.managementGranted ? "File management enabled" : "Metadata-only connection") : "Connect in Settings").font(.caption).foregroundStyle(.secondary) }
                     Spacer()
                     SettingsLink { Image(systemName: "gearshape") }.buttonStyle(.plain).accessibilityLabel("Settings").accessibilityIdentifier("sidebarSettings")
                 }

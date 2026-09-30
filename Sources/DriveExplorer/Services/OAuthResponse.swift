@@ -6,6 +6,15 @@ let requiredDriveScopes: [String] = [
     "https://www.googleapis.com/auth/drive.activity.readonly"
 ]
 
+enum DriveAccess: String, CaseIterable, Identifiable {
+    case metadata, management
+    var id: String { rawValue }
+    var title: String { self == .metadata ? "Metadata and activity only" : "View files and Move to Trash" }
+    var scopes: [String] {
+        self == .metadata ? requiredDriveScopes : ["https://www.googleapis.com/auth/drive", "https://www.googleapis.com/auth/drive.activity.readonly"]
+    }
+}
+
 struct TokenResponse: Decodable, Sendable {
     let access_token: String
     let expires_in: Int
@@ -34,22 +43,28 @@ struct TokenResponse: Decodable, Sendable {
             throw MonitorError.authentication("Google returned an empty refresh token. Sign in again; no replacement token was saved.")
         }
         let granted = Set(response.scope.split(separator: " ").map(String.init))
-        let missing = requiredDriveScopes.filter { !granted.contains($0) }
+        let metadataScopes: Set<String> = ["https://www.googleapis.com/auth/drive.metadata.readonly", "https://www.googleapis.com/auth/drive.readonly", "https://www.googleapis.com/auth/drive"]
+        let missing = requiredDriveScopes.filter { scope in
+            scope.hasSuffix("/drive.metadata.readonly") ? granted.isDisjoint(with: metadataScopes) : !granted.contains(scope)
+        }
         guard missing.isEmpty else {
-            throw MonitorError.authentication("Google did not grant the required read-only permissions: \(missing.joined(separator: ", ")). Sign in again and select both Drive metadata and Drive activity permissions on the consent screen. No replacement token was saved. Organization policy may require your Workspace administrator's help.")
+            throw MonitorError.authentication("Google did not grant the required permissions: \(missing.joined(separator: ", ")). Sign in again and select the requested Drive access and Drive activity permissions on the consent screen. No replacement token was saved. Organization policy may require your Workspace administrator's help.")
         }
         return response
     }
 
-    func offlineToken(now: Date) throws -> OAuthToken {
+    func offlineToken(now: Date, access: DriveAccess) throws -> OAuthToken {
+        if access == .management, !scope.split(separator: " ").contains("https://www.googleapis.com/auth/drive") {
+            throw MonitorError.authentication("Google did not grant file management access. Select the Drive file permission during sign-in to enable previews and Move to Trash. Your previous saved sign-in was retained.")
+        }
         guard let refresh_token else {
             throw MonitorError.authentication("Google did not return an offline refresh token. Sign in again and grant consent; no replacement token was saved.")
         }
-        return OAuthToken(access: access_token, refresh: refresh_token, expires: now.addingTimeInterval(Double(expires_in)))
+        return OAuthToken(access: access_token, refresh: refresh_token, expires: now.addingTimeInterval(Double(expires_in)), scopes: scope.split(separator: " ").map(String.init))
     }
 
     /// Google can omit refresh_token when renewing an existing offline grant.
     func renewedToken(previous: OAuthToken, now: Date) -> OAuthToken {
-        OAuthToken(access: access_token, refresh: refresh_token ?? previous.refresh, expires: now.addingTimeInterval(Double(expires_in)))
+        OAuthToken(access: access_token, refresh: refresh_token ?? previous.refresh, expires: now.addingTimeInterval(Double(expires_in)), scopes: scope.split(separator: " ").map(String.init))
     }
 }

@@ -18,6 +18,7 @@ struct OAuthConfiguration: Codable, Sendable {
 }
 struct OAuthToken: Codable, Sendable {
     let access: String; let refresh: String; let expires: Date
+    let scopes: [String]?
 }
 
 actor Credentials: TokenProvider {
@@ -48,6 +49,7 @@ actor Credentials: TokenProvider {
         if let data = try read("token") { token = try JSONDecoder().decode(OAuthToken.self, from: data) }
         return token != nil
     }
+    func grantedScopes() -> Set<String> { Set(token?.scopes ?? []) }
     func hasConfiguration() -> Bool { configuration != nil }
     func configure(_ data: Data) throws {
         let value = try OAuthConfiguration.load(data)
@@ -58,12 +60,12 @@ actor Credentials: TokenProvider {
         guard let configuration else { throw MonitorError.authentication("Import a Desktop OAuth client JSON in Settings before connecting.") }
         return configuration.installed.client_id
     }
-    func exchange(code: String, verifier: String, redirect: String) async throws {
+    func exchange(code: String, verifier: String, redirect: String, access: DriveAccess) async throws {
         guard let configuration else { throw MonitorError.authentication("OAuth configuration is missing.") }
         var fields = ["client_id": configuration.installed.client_id, "code": code, "code_verifier": verifier, "redirect_uri": redirect, "grant_type": "authorization_code"]
         if let secret = configuration.installed.client_secret { fields["client_secret"] = secret }
         let response = try await Self.fetch(fields)
-        let value = try response.offlineToken(now: Date())
+        let value = try response.offlineToken(now: Date(), access: access)
         try Task.checkCancellation()
         try write("token", data: JSONEncoder().encode(value)); token = value
     }
@@ -136,9 +138,9 @@ func randomURLToken() throws -> String {
     guard SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes) == errSecSuccess else { throw MonitorError.authentication("Secure random generation failed.") }
     return Data(bytes).base64EncodedString().replacingOccurrences(of: "+", with: "-").replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "=", with: "")
 }
-func authorizationURL(clientID: String, redirect: String, state: String, verifier: String) -> URL {
+func authorizationURL(clientID: String, redirect: String, state: String, verifier: String, access: DriveAccess) -> URL {
     let challenge = Data(SHA256.hash(data: Data(verifier.utf8))).base64EncodedString().replacingOccurrences(of: "+", with: "-").replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "=", with: "")
     var url = URLComponents(string: "https://accounts.google.com/o/oauth2/v2/auth")!
-    url.queryItems = ["client_id": clientID, "redirect_uri": redirect, "response_type": "code", "scope": requiredDriveScopes.joined(separator: " "), "access_type": "offline", "prompt": "consent", "state": state, "code_challenge": challenge, "code_challenge_method": "S256"].sorted { $0.key < $1.key }.map { URLQueryItem(name: $0.key, value: $0.value) }
+    url.queryItems = ["client_id": clientID, "redirect_uri": redirect, "response_type": "code", "scope": access.scopes.joined(separator: " "), "access_type": "offline", "prompt": "consent", "state": state, "code_challenge": challenge, "code_challenge_method": "S256"].sorted { $0.key < $1.key }.map { URLQueryItem(name: $0.key, value: $0.value) }
     return url.url!
 }

@@ -50,6 +50,10 @@ struct ContentView: View {
             }
         }
         .alert("Action couldn’t finish", isPresented: Binding(get: { model.error != nil && !model.setupVisible }, set: { if !$0 { model.error = nil } })) { Button("OK") { model.error = nil } } message: { Text(model.error ?? "") }
+        .sheet(item: $model.preview) { item in
+            FilePreviewView(preview: item).onDisappear { model.removePreview(item) }
+        }
+        .sheet(item: $model.pendingTrash) { file in TrashConfirmationView(file: file, model: model) }
         .onChange(of: model.selection) { _, _ in model.updateResults() }
         .onChange(of: model.filter) { _, _ in model.serverResults = nil; model.updateResults() }
         .onChange(of: model.order) { _, _ in model.updateResults() }
@@ -75,7 +79,7 @@ struct WelcomeView: View {
                 Button("Explore demo", action: model.toggleDemo).buttonStyle(.borderedProminent).controlSize(.large).accessibilityIdentifier("startDemo")
                 Button("Connect Google Drive…") { openWindow(id: "setup") }.controlSize(.large).accessibilityIdentifier("openSettings")
             }
-            HStack(spacing: 28) { Label("Read-only access", systemImage: "lock.shield"); Label("Stored on your Mac", systemImage: "internaldrive"); Label("No telemetry", systemImage: "hand.raised") }.font(.caption).foregroundStyle(.secondary)
+            HStack(spacing: 28) { Label("Optional file management", systemImage: "lock.shield"); Label("Stored on your Mac", systemImage: "internaldrive"); Label("No telemetry", systemImage: "hand.raised") }.font(.caption).foregroundStyle(.secondary)
         }.frame(maxWidth: .infinity, maxHeight: .infinity).padding(40)
     }
 }

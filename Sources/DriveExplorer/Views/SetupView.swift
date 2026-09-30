@@ -26,7 +26,7 @@ struct SetupView: View {
                 Image(systemName: "externaldrive.badge.person.crop").font(.largeTitle).foregroundStyle(.tint).accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 5) {
                     Text("Connect your Google Drive").font(.title.bold())
-                    Text("Your project. Your account. Read-only access.").foregroundStyle(.secondary)
+                    Text("Your project. Your account. Your choice of access.").foregroundStyle(.secondary)
                 }
             }.padding(24)
             Divider()
@@ -43,7 +43,7 @@ struct SetupView: View {
                             .accessibilityAddTraits(step == item ? [.isSelected] : [])
                     }
                     Spacer()
-                    Label("No file changes", systemImage: "lock.shield").font(.caption).foregroundStyle(.secondary)
+                    Label(model.managementGranted ? "File management enabled" : "Metadata-only connection", systemImage: "lock.shield").font(.caption).foregroundStyle(.secondary)
                     Text("No credentials or tokens belong in chat, screenshots or Git.").font(.caption).foregroundStyle(.secondary)
                 }.padding(16).frame(width: 220)
                 Divider()
@@ -89,8 +89,8 @@ struct SetupView: View {
         case .consent:
             instruction("Describe your app", "Open Google Auth platform → Branding → Get Started. Enter an app name (for example, Drive Explorer Personal), your support email, audience and contact email. Review Google’s policy yourself, then create the configuration.")
             instruction("Allow your account", "For a personal Gmail account, choose External. Keep the project in Testing and add the exact Google account you will sign in with under Audience → Test users → Add users → Save. Internal is for eligible Workspace organization projects; an administrator may restrict access.")
-            instruction("Declare read-only access", "Under Data Access → Add or Remove Scopes, add these two full scope URLs and save:")
-            Text("https://www.googleapis.com/auth/drive.metadata.readonly\nhttps://www.googleapis.com/auth/drive.activity.readonly").font(.caption.monospaced()).textSelection(.enabled)
+            instruction("Declare the access you want", "Under Data Access → Add or Remove Scopes, add the two scopes for your selected connection. Metadata-only access uses the URLs below. For file viewing and Move to Trash, replace drive.metadata.readonly with drive; keep drive.activity.readonly. Do not add every scope in the list.")
+            Text("Metadata only: https://www.googleapis.com/auth/drive.metadata.readonly\nFile management: https://www.googleapis.com/auth/drive\nBoth options: https://www.googleapis.com/auth/drive.activity.readonly").font(.caption.monospaced()).textSelection(.enabled)
             Text("External projects in Testing normally issue Drive refresh tokens that expire after seven days. Reconnect when needed; this is a Google testing limit.").font(.callout).foregroundStyle(.secondary)
             Link("Google consent and audience instructions", destination: URL(string: "https://developers.google.com/workspace/guides/configure-oauth-consent")!)
             Link("Google refresh-token expiration rules", destination: URL(string: "https://developers.google.com/identity/protocols/oauth2#expiration")!)
@@ -102,9 +102,14 @@ struct SetupView: View {
             Text("Replacing a different client removes the saved sign-in. Your local metadata is retained.").font(.caption).foregroundStyle(.secondary)
             Link("Google’s Desktop OAuth instructions", destination: URL(string: "https://developers.google.com/identity/protocols/oauth2/native-app")!)
         case .signIn:
-            instruction("Continue in your browser", "Sign in with the account allowed by your project’s audience. Check the app identity and requested read-only access before consenting. Return here after the browser callback. The app waits up to three minutes; cancel and retry if you run out of time.")
-            instruction("Select both read-only permissions", "Allow Drive metadata and Drive activity on the consent screen. This preview needs both to connect. If either is missing, the app explains which permission was declined and keeps the previous saved sign-in unchanged. No write permission is requested.")
+            Picker("Connection access", selection: $model.requestedAccess) {
+                ForEach(DriveAccess.allCases) { access in Text(access.title).tag(access) }
+            }.pickerStyle(.radioGroup).disabled(model.busy).accessibilityIdentifier("connectionAccess")
+            Text("File management requests broad Google Drive access, including permission to read, edit and delete files. This app exposes previews and confirmed Move to Trash only; it has no permanent-delete action. Selecting this option does not grant access until you sign in again and approve it in Google.").font(.callout).foregroundStyle(.secondary)
+            instruction("Continue in your browser", "Sign in with the account allowed by your project’s audience. Check the app identity and requested access before consenting. Return here after the browser callback. The app waits up to three minutes; cancel and retry if you run out of time.")
+            instruction("Select both requested permissions", "Allow the selected Drive access and read-only Drive activity. If a required permission is missing, the app retains the previous saved sign-in. Existing metadata-only connections keep working until you deliberately authorize management access.")
             Button(model.connected ? "Sign in again…" : "Sign in with Google…", action: model.connect).buttonStyle(.borderedProminent).disabled(model.busy || !model.hasClient).accessibilityIdentifier("connectGoogle")
+            Text(model.managementGranted ? "Current grant: file management and activity" : "Current grant: metadata-only or not connected").font(.caption).accessibilityIdentifier("currentConnectionAccess")
             if !model.hasClient { Text("Import your Desktop JSON in step 3 to enable sign-in.").foregroundStyle(.secondary) }
             Text(model.connected ? "A sign-in is saved in Keychain. Step 5 checks current access to both APIs." : "No sign-in is saved yet.")
             Text("Google may show a warning for your own unverified test project. Check that the client and project are yours. If access is blocked by organization policy, ask your administrator; changing the client type does not bypass it.").font(.callout).foregroundStyle(.secondary)
@@ -132,7 +137,7 @@ struct SetupView: View {
         VStack(alignment: .leading, spacing: 12) {
             instruction("API disabled / accessNotConfigured / SERVICE_DISABLED", "Enable both APIs in the project that created this Desktop client. Wait for Google’s change to propagate, then retry synchronization. A partial scan is not a verified connection.")
             instruction("access_denied / 403 during consent", "Check the selected account against Audience → Test users. Review the granted scopes. A Workspace administrator may need to allow this app. A file-level 403 can instead mean the account cannot access that item.")
-            instruction("Required read-only permission not granted", "Sign in again and select both Drive metadata and Drive activity permissions. The app checks the returned scopes before replacing tokens. A successful consent screen alone does not prove both APIs are accessible; complete step 5 afterward.")
+            instruction("Required permission not granted", "Sign in again and select your chosen Drive access plus read-only Drive activity. The app checks the returned scopes before replacing tokens. A successful consent screen alone does not prove both APIs are accessible; complete step 5 afterward.")
             instruction("invalid_client / redirect_uri_mismatch", "Create and import a Desktop app client from the intended project. Do not reuse a Web client or manually add a web redirect. The app uses a temporary localhost callback.")
             instruction("invalid_grant / sign-in stops after a week", "Sign in again. Grants can be revoked or expire; External Testing projects normally expire Drive refresh tokens after seven days. Do not change your system clock to work around this.")
             instruction("Browser timeout / couldn’t connect to localhost", "Keep the app open during sign-in. Cancel and start a fresh attempt, completing it within three minutes. Check whether local security software blocks the app’s 127.0.0.1 callback; do not disable protections broadly.")

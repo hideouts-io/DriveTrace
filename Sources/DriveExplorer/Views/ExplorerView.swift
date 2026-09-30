@@ -87,9 +87,12 @@ struct ExplorerView: View {
 }
 struct FileTable: View {
     @Bindable var model: AppModel
+    @State private var page = 0
+    private var range: Range<Int> { filePageRange(total: model.results.count, page: page) }
     @State private var headerSort = [KeyPathComparator(\DriveFile.name)]
     var body: some View {
-        Table(model.results, selection: $model.selectedFile, sortOrder: $headerSort) {
+        VStack(spacing: 0) {
+        Table(model.results[range], selection: $model.selectedFile, sortOrder: $headerSort) {
             TableColumn("Name", value: \.name) { file in
                 HStack(spacing: 9) {
                     Image(systemName: fileIcon(file)).foregroundStyle(file.isFolder ? .blue : .secondary).frame(width: 18)
@@ -115,12 +118,26 @@ struct FileTable: View {
         .contextMenu(forSelectionType: String.self) { ids in
             if let id = ids.first, let file = model.index[id] ?? model.serverResults?.first(where: { $0.id == id }) {
                 Button("Open in Google Drive") { model.open(file) }
+                if !file.isFolder && file.shortcutDetails == nil {
+                    Button("Preview file") { model.showPreview(file) }.disabled(model.busy || model.isDemo || !model.managementGranted)
+                }
+                Button("Move to Trash…", role: .destructive) { model.prepareTrash(file) }.disabled(model.busy || model.isDemo || !model.managementGranted || file.trashed == true)
                 Button("Show activity") { model.activityTarget = file.id; model.navigate("activity") }
                 if file.isFolder { Button("Browse folder") { model.navigate("folder:" + id) }; Button("Watch folder") { model.watch(file) } }
                 if let shortcut = file.shortcutDetails { Button("Inspect shortcut target") { model.selectedFile = shortcut.targetId; model.showInspector = true } }
             }
         } primaryAction: { ids in if let id = ids.first, let file = model.index[id] { if file.isFolder { model.navigate("folder:" + id) } else { model.open(file) } } }
         .overlay { if model.results.isEmpty && !model.searching && model.filterValidationError == nil { ContentUnavailableView("No matching files", systemImage: "doc.text.magnifyingglass", description: Text("Adjust the filters or refresh your Drive index.")) } }
+        Divider()
+        HStack {
+            Text(model.results.isEmpty ? "No results" : "\(range.lowerBound + 1)–\(range.upperBound) of \(model.results.count.formatted())").monospacedDigit()
+            Text("Search, sorting and exports use all matches.").foregroundStyle(.secondary)
+            Spacer()
+            Button("Previous") { page -= 1 }.disabled(page == 0 || model.searching).accessibilityIdentifier("previousFilePage")
+            Button("Next") { page += 1 }.disabled(range.upperBound >= model.results.count || model.searching).accessibilityIdentifier("nextFilePage")
+        }.font(.caption).padding(10).accessibilityElement(children: .contain).accessibilityIdentifier("filePagination")
+        }
+        .onChange(of: model.resultGeneration) { _, _ in page = 0 }
     }
     private func updateHeaderSort() {
         let direction: SortOrder = model.ascending ? .forward : .reverse

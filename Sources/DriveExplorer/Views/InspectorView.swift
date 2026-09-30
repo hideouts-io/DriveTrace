@@ -16,6 +16,16 @@ struct InspectorView: View {
                         Text(file.typeLabel).font(.caption).foregroundStyle(.secondary)
                     }
                     Button("Open in Google Drive") { model.open(file) }.accessibilityIdentifier("openSelectedFile")
+                    if model.isDemo {
+                        Button("Try a synthetic preview sample", action: model.showPreviewSample).disabled(model.busy).accessibilityIdentifier("previewDemoSample")
+                    }
+                    if !file.isFolder && file.shortcutDetails == nil {
+                        Button("Preview file") { model.showPreview(file) }.disabled(model.busy || model.isDemo || !model.managementGranted).accessibilityIdentifier("previewSelectedFile")
+                    }
+                    Button("Move to Trash…", role: .destructive) { model.prepareTrash(file) }.disabled(model.busy || model.isDemo || !model.managementGranted || file.trashed == true).accessibilityIdentifier("trashSelectedFile")
+                    if !model.managementGranted && !model.isDemo {
+                        Text("To enable previews and Trash, choose View files and Move to Trash in Connect Google Drive → Sign in.").font(.caption).foregroundStyle(.secondary)
+                    }
                     Divider()
                     Group {
                         detail("File size", byteLabel(file.bytes)); detail("Quota usage", byteLabel(file.quotaBytes))

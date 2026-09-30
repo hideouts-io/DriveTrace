@@ -29,6 +29,7 @@ import DriveCore
     var order: FileOrder = .name
     var ascending = true
     var results: [DriveFile] = []
+    var resultGeneration = 0
     var serverResults: [DriveFile]?
     var serverCoverage = ""
     var busy = false
@@ -40,6 +41,11 @@ import DriveCore
     var setupVisible = false
     var hasClient = false
     var syncVerified = false
+    var requestedAccess: DriveAccess = .metadata
+    var managementGranted = false
+    var pendingTrash: DriveFile?
+    var preview: FilePreview?
+    let previewStore = PreviewStore(root: FileManager.default.temporaryDirectory.appendingPathComponent("DriveExplorerPreviews", isDirectory: true))
     var operationNotice: String?
     var notificationStatusText = "Checking macOS permission…"
     var notificationTestNotice: String?
@@ -59,7 +65,7 @@ import DriveCore
     var activityBefore = ""
     var database: Database?
     let credentials = Credentials()
-    private var client: GoogleClient?
+    var client: GoogleClient?
     private var operation: Task<Void, Never>?
     private var searchTask: Task<Void, Never>?
     private var pollTask: Task<Void, Never>?
@@ -95,13 +101,19 @@ import DriveCore
         guard !ready && !starting else { return }; starting = true
         defer { ready = true; starting = false }
         do {
+            try await previewStore.clear()
             try FileManager.default.createDirectory(at: baseURL, withIntermediateDirectories: true)
-            connected = try await credentials.restore()
-            hasClient = await credentials.hasConfiguration()
-            client = GoogleClient(tokens: credentials, session: .shared)
-            try await openDatabase(demo: UserDefaults.standard.bool(forKey: "demoMode"))
+            let demo = UserDefaults.standard.bool(forKey: "demoMode")
+            if !demo { try await restoreConnection() }
+            client = GoogleClient(tokens: credentials, session: URLSession(configuration: .ephemeral))
+            try await openDatabase(demo: demo)
             if autoRefresh && connected { setPolling(true) }
         } catch { self.error = error.localizedDescription }
+    }
+    private func restoreConnection() async throws {
+        connected = try await credentials.restore()
+        managementGranted = await credentials.grantedScopes().contains("https://www.googleapis.com/auth/drive")
+        hasClient = await credentials.hasConfiguration()
     }
     private func openDatabase(demo: Bool) async throws {
         if let database { try await database.close() }
@@ -115,7 +127,10 @@ import DriveCore
     }
     func toggleDemo() {
         guard !busy else { return }
-        run { try await self.openDatabase(demo: !self.isDemo) }
+        run {
+            try await self.openDatabase(demo: !self.isDemo)
+            if !self.isDemo { try await self.restoreConnection() }
+        }
     }
     func reload() async throws {
         guard let database else { throw MonitorError.database("The local database has not opened.") }
@@ -160,7 +175,7 @@ import DriveCore
     }
     func updateResults() {
         searchTask?.cancel()
-        if filterValidationError != nil { results = []; searching = false; return }
+        if filterValidationError != nil { results = []; resultGeneration += 1; searching = false; return }
         searching = true
         let remote = serverResults != nil
         let all = serverResults ?? files, filter = filter, order = order, ascending = ascending, facts = facts, scope = selection, root = rootID
@@ -188,7 +203,7 @@ import DriveCore
             }
             do {
                 let output = try await withTaskCancellationHandler { try await task.value } onCancel: { task.cancel() }
-                guard !Task.isCancelled else { return }; results = output; searching = false
+                guard !Task.isCancelled else { return }; results = output; resultGeneration += 1; searching = false
             } catch is CancellationError {
                 // A newer search owns the spinner and result set.
             } catch {
@@ -329,34 +344,36 @@ import DriveCore
             self.run {
                 try await self.credentials.configure(Data(contentsOf: url))
                 self.hasClient = await self.credentials.hasConfiguration()
-                self.connected = try await self.credentials.restore(); self.syncVerified = false
+                self.connected = try await self.credentials.restore(); self.managementGranted = await self.credentials.grantedScopes().contains("https://www.googleapis.com/auth/drive"); self.syncVerified = false
                 self.operationNotice = "Desktop client saved in Keychain. Continue with browser sign-in."
             }
         }
     }
 
     func connect() {
+        let access = requestedAccess
         run {
             let state = try randomURLToken(), verifier = try randomURLToken()
             let receiver = Loopback(state: state); self.callback = receiver
             defer { self.callback = nil }
             let clientID = try await self.credentials.clientID()
             let redirect = try await receiver.start()
-            guard NSWorkspace.shared.open(authorizationURL(clientID: clientID, redirect: redirect, state: state, verifier: verifier)) else { await receiver.cancel(); throw MonitorError.authentication("Could not open your default browser.") }
+            guard NSWorkspace.shared.open(authorizationURL(clientID: clientID, redirect: redirect, state: state, verifier: verifier, access: access)) else { await receiver.cancel(); throw MonitorError.authentication("Could not open your default browser.") }
             self.progress = "Complete Google sign-in in your browser"
             let code = try await receiver.code()
-            try await self.credentials.exchange(code: code, verifier: verifier, redirect: redirect)
+            try await self.credentials.exchange(code: code, verifier: verifier, redirect: redirect, access: access)
             guard let client = self.client else { throw MonitorError.invalid("Google client is unavailable.") }
             let root = try await client.file(id: "root")
             UserDefaults.standard.set(digest(root.id), forKey: "accountCache")
             self.connected = true
+            self.managementGranted = await self.credentials.grantedScopes().contains("https://www.googleapis.com/auth/drive")
             try await self.openDatabase(demo: false)
             try await self.database?.setSetting("rootID", value: root.id)
             self.rootID = root.id
             self.operationNotice = "Sign-in succeeded. Run the first synchronization to check metadata and activity access."
         }
     }
-    func disconnect() { setPolling(false); run { try await self.credentials.disconnect(); self.connected = false; self.syncVerified = false } }
+    func disconnect() { setPolling(false); run { try await self.credentials.disconnect(); self.connected = false; self.managementGranted = false; self.syncVerified = false } }
     func clearCache() { run { try await self.database?.clearCache(); if self.isDemo, let database = self.database { try await seedDemo(database) }; self.gaps = []; try await self.reload() } }
     func clearHistory() { run { try await self.database?.clearHistory(); try await self.reload() } }
     func export(_ format: ExportFormat) {

@@ -1,11 +1,11 @@
 {
-  "verified_at": "2026-09-30T01:16:45.761776+00:00",
-  "executable_sha256": "616df5b4fc8a77d14a62e52b39641032660c6ef1d8b8e23b6b16617da8820035",
-  "zip_sha256": "7111864dd6fe77d84a768c474936c9995de17d8eaf1509be1e791a92c3853928",
+  "verified_at": "2026-09-30T01:56:58.917828+00:00",
+  "executable_sha256": "319105b6fa4656f285fa4b1029f99e2c4117c8ddac7049655593674c0a199f12",
+  "zip_sha256": "602618da070e1b1fc58ce377d0623eded569cd08938f2814f5497ffa248b8183",
   "logo_sha256": "6312cce90437a33b45f9aea20003ff57328cd0a080c8210ee1691a3a2556b923",
-  "test_summary": "\u2714 Test run with 37 tests in 1 suite passed after 0.389 seconds.",
+  "test_summary": "\u2714 Test run with 43 tests in 1 suite passed after 0.789 seconds.",
   "signature": "Ad-hoc; all-architecture strict verification passed on generated and extracted archive bundles",
   "architecture": "universal arm64/x86_64",
-  "google_account_validation": "partial: saved connection accepted; live metadata baseline in progress; full lifecycle not verified",
+  "google_account_validation": "partial: saved connection, user-corpus metadata baseline and Changes stage observed; Shared Drive baseline interrupted for rebuild; full Activity and management actions unverified",
   "dock_icon_sha256": "a9e363928aaa257b940e65eea297a168834da77e16b4de3aa654c567193d4342"
 }

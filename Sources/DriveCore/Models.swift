@@ -22,6 +22,7 @@ public struct DriveFile: Codable, Identifiable, Hashable, Sendable {
     public var shortcutDetails: Shortcut?
     public var permissions: [Permission]?
     public var ownedByMe: Bool?
+    public var capabilities: FileCapabilities?
     public init(id: String, name: String, mimeType: String) {
         self.id = id; self.name = name; self.mimeType = mimeType
     }
@@ -33,6 +34,10 @@ public struct DriveFile: Codable, Identifiable, Hashable, Sendable {
         if isFolder { return "Folder" }
         return mimeType.replacingOccurrences(of: "application/vnd.google-apps.", with: "Google ")
     }
+}
+public struct FileCapabilities: Codable, Hashable, Sendable {
+    public let canDownload: Bool?
+    public let canTrash: Bool?
 }
 public struct Person: Codable, Hashable, Sendable {
     public let displayName: String?

@@ -41,6 +41,9 @@ final class FixtureProtocol: URLProtocol, @unchecked Sendable {
 }
 actor FixtureTokens: TokenProvider {
     var refreshes = 0
+    var scopes: Set<String> = []
+    func grantedScopes() -> Set<String> { scopes }
+    func grantManagement() { scopes = ["https://www.googleapis.com/auth/drive"] }
     func accessToken(forceRefresh: Bool) async throws -> String { if forceRefresh { refreshes += 1 }; return "synthetic-test-token" }
     func refreshCount() -> Int { refreshes }
 }
@@ -137,6 +140,55 @@ func fixtureClient(_ tokens: FixtureTokens) -> GoogleClient {
         await #expect(throws: MonitorError.self) { try await fixtureClient(FixtureTokens()).files(query: "", drive: nil, page: nil) }
         #expect(await FixtureProtocol.fixture.allRequests().count == 4)
     }
+    @Test func confirmedTrashRecordsObservationWithoutInventingActivity() async throws {
+        let original = #"{"id":"trash-test","name":"Test.txt","mimeType":"text/plain","parents":["folder"],"capabilities":{"canTrash":true}}"#
+        let trashed = #"{"id":"trash-test","name":"Test.txt","mimeType":"text/plain","parents":["folder"],"trashed":true,"capabilities":{"canTrash":false}}"#
+        let file = try JSONDecoder().decode(DriveFile.self, from: Data(original.utf8))
+        let tokens = FixtureTokens(); await tokens.grantManagement()
+        await FixtureProtocol.fixture.prepare([(200, original), (200, trashed)])
+        let result = try await fixtureClient(tokens).moveToTrash(confirmed: file)
+        let requests = await FixtureProtocol.fixture.allRequests()
+        #expect(requests.count == 2); #expect(requests[1].httpMethod == "PATCH")
+        #expect(requests[1].url?.query?.contains("supportsAllDrives=true") == true)
+        #expect(result.trashed == true)
+        let (db, _) = try temporaryDatabase()
+        try await db.stage([file], stream: "user")
+        try await db.promote(stream: "user", cursor: "unchanged-cursor", detected: "2026-09-29T00:00:00Z")
+        try await db.recordFileActionResult(result, detected: "2026-09-29T01:00:00Z")
+        #expect(try await db.file(file.id)?.trashed == true)
+        #expect(try await db.cursor("user") == "unchanged-cursor")
+        #expect(try await db.events(fileID: file.id, limit: 10).isEmpty)
+        #expect(try await db.snapshotRecords(file.id).count == 2)
+        try await db.close()
+    }
+    @Test func trashRequiresGrantCapabilityAndUnchangedTarget() async throws {
+        let original = #"{"id":"trash-test","name":"Test.txt","mimeType":"text/plain","parents":["folder"],"capabilities":{"canTrash":true}}"#
+        let file = try JSONDecoder().decode(DriveFile.self, from: Data(original.utf8))
+        await FixtureProtocol.fixture.prepare([(200, original)])
+        await #expect(throws: MonitorError.self) { try await fixtureClient(FixtureTokens()).moveToTrash(confirmed: file) }
+        #expect(await FixtureProtocol.fixture.allRequests().count == 1)
+        let tokens = FixtureTokens(); await tokens.grantManagement()
+        for denied in [original.replacingOccurrences(of: "true", with: "false"), original.replacingOccurrences(of: "Test.txt", with: "Renamed.txt")] {
+            await FixtureProtocol.fixture.prepare([(200, denied)])
+            await #expect(throws: MonitorError.self) { try await fixtureClient(tokens).moveToTrash(confirmed: file) }
+            #expect(await FixtureProtocol.fixture.allRequests().count == 1)
+        }
+    }
+    @Test func previewDownloadsOnlyWithExplicitGrantAndCapability() async throws {
+        let file = try JSONDecoder().decode(DriveFile.self, from: Data(#"{"id":"preview-test","name":"Test.txt","mimeType":"text/plain","size":"5","capabilities":{"canDownload":true}}"#.utf8))
+        await FixtureProtocol.fixture.prepare([])
+        await #expect(throws: MonitorError.self) { try await fixtureClient(FixtureTokens()).previewContent(file: file) }
+        #expect(await FixtureProtocol.fixture.allRequests().isEmpty)
+        let tokens = FixtureTokens(); await tokens.grantManagement()
+        await FixtureProtocol.fixture.prepare([(200, "hello")])
+        let content = try await fixtureClient(tokens).previewContent(file: file)
+        #expect(content.data == Data("hello".utf8)); #expect(content.fileExtension == "txt")
+        #expect(await FixtureProtocol.fixture.allRequests().first?.url?.query?.contains("alt=media") == true)
+        var large = file; large.size = "20971521"
+        await FixtureProtocol.fixture.prepare([])
+        await #expect(throws: MonitorError.self) { try await fixtureClient(tokens).previewContent(file: large) }
+        #expect(await FixtureProtocol.fixture.allRequests().isEmpty)
+    }
     @Test func cancelledSyncDoesNotRequestPages() async throws {
         let (db, _) = try temporaryDatabase()
         await FixtureProtocol.fixture.prepare([])
@@ -158,7 +210,7 @@ func fixtureClient(_ tokens: FixtureTokens) -> GoogleClient {
     #expect(withoutSecret.installed.client_secret == nil)
     #expect(throws: MonitorError.self) { try OAuthConfiguration.load(Data(repeating: 32, count: 1_048_577)) }
     let verifier = try randomURLToken(); #expect(verifier.count == 43)
-    let url = authorizationURL(clientID: "synthetic", redirect: "http://127.0.0.1:1234/oauth/callback", state: "state-value", verifier: verifier)
+    let url = authorizationURL(clientID: "synthetic", redirect: "http://127.0.0.1:1234/oauth/callback", state: "state-value", verifier: verifier, access: .metadata)
     let items = URLComponents(url: url, resolvingAgainstBaseURL: false)!.queryItems!
     #expect(items.first { $0.name == "code_challenge_method" }?.value == "S256")
     #expect(items.first { $0.name == "state" }?.value == "state-value")
@@ -189,4 +241,14 @@ func fixtureClient(_ tokens: FixtureTokens) -> GoogleClient {
     #expect(groups.first?.unknown == 1)
     #expect(sumKnown([]) == nil)
     #expect(sumKnown([0]) == 0)
+}
+
+@Test func fileTablePagesCoverEveryMatchWithoutChangingOrdering() {
+    let source = Array(0..<230004)
+    let pages = (0..<461).flatMap { page in Array(source[filePageRange(total: source.count, page: page)]) }
+    #expect(pages == source)
+    #expect(filePageRange(total: 0, page: 12).isEmpty)
+    #expect(filePageRange(total: 4, page: 99) == 0..<4)
+    #expect(filePageRange(total: 1000, page: 1) == 500..<1000)
+    #expect(filePageRange(total: Int.max, page: Int.max).upperBound == Int.max)
 }

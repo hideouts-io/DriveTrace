@@ -134,6 +134,15 @@ public actor Database {
         _ = try execute("INSERT INTO files VALUES(?,?,?,?) ON CONFLICT(id) DO UPDATE SET payload=excluded.payload,stream=excluded.stream", [.text(file.id), .text(payload), .text(detected), .text(stream)])
         _ = try execute("INSERT OR REPLACE INTO snapshots VALUES(?,?,?)", [.text(file.id), .text(detected), .text(payload)])
     }
+    /// A direct API result is a metadata observation, not an Activity actor or Changes event.
+    public func recordFileActionResult(_ file: DriveFile, detected: String) throws {
+        try validateFile(file)
+        let payload = try encoded(file)
+        try transaction {
+            _ = try execute("UPDATE files SET payload=? WHERE id=?", [.text(payload), .text(file.id)])
+            _ = try execute("INSERT OR REPLACE INTO snapshots VALUES(?,?,?)", [.text(file.id), .text(detected), .text(payload)])
+        }
+    }
     private func insertEvent(_ event: DriveEvent) throws { _ = try execute("INSERT OR IGNORE INTO events VALUES(?,?,?,?,?)", [.text(event.id), .text(event.fileID), .text(event.time), .text(event.detected), .text(try encoded(event))]) }
     public func apply(_ page: ChangePage, stream: String, detected: String) throws {
         guard let next = page.nextPageToken ?? page.newStartPageToken else { throw MonitorError.invalid("Changes response omitted its continuation cursor; no data committed.") }
