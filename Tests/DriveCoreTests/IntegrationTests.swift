@@ -252,3 +252,17 @@ func fixtureClient(_ tokens: FixtureTokens) -> GoogleClient {
     #expect(filePageRange(total: 1000, page: 1) == 500..<1000)
     #expect(filePageRange(total: Int.max, page: Int.max).upperBound == Int.max)
 }
+
+/// A failed confirmation must keep the item reviewable and surface the reason without touching Google.
+@Test @MainActor func failedTrashConfirmationKeepsReviewOpen() async throws {
+    let model = AppModel()
+    let file = try JSONDecoder().decode(DriveFile.self, from: Data(#"{"id":"trash-review","name":"Review.txt","mimeType":"text/plain"}"#.utf8))
+    model.pendingTrash = file
+    model.confirmTrash(file)
+    let deadline = ContinuousClock.now.advanced(by: .seconds(2))
+    while model.busy && ContinuousClock.now < deadline { try await Task.sleep(for: .milliseconds(10)) }
+    #expect(!model.busy)
+    #expect(model.pendingTrash?.id == file.id)
+    #expect(model.error?.contains("connected Google account") == true)
+    #expect(model.operationNotice == nil)
+}

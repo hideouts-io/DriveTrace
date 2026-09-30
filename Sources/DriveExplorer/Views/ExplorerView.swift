@@ -121,7 +121,7 @@ struct FileTable: View {
                 if !file.isFolder && file.shortcutDetails == nil {
                     Button("Preview file") { model.showPreview(file) }.disabled(model.busy || model.isDemo || !model.managementGranted)
                 }
-                Button("Move to Trash…", role: .destructive) { model.prepareTrash(file) }.disabled(model.busy || model.isDemo || !model.managementGranted || file.trashed == true)
+                Button("Move to Trash…", role: .destructive) { model.prepareTrash(file) }.disabled(model.busy || model.isDemo || !model.managementGranted || file.trashed == true).accessibilityIdentifier("trashContextFile")
                 Button("Show activity") { model.activityTarget = file.id; model.navigate("activity") }
                 if file.isFolder { Button("Browse folder") { model.navigate("folder:" + id) }; Button("Watch folder") { model.watch(file) } }
                 if let shortcut = file.shortcutDetails { Button("Inspect shortcut target") { model.selectedFile = shortcut.targetId; model.showInspector = true } }

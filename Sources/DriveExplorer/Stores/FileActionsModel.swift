@@ -36,6 +36,7 @@ extension AppModel {
     }
     func prepareTrash(_ file: DriveFile) {
         run {
+            self.progress = "Checking whether this item can move to Trash…"
             let client = try await self.fileActionClient()
             let current = try await client.file(id: file.id)
             guard current.capabilities?.canTrash == true, current.trashed != true else {
@@ -45,13 +46,13 @@ extension AppModel {
         }
     }
     func confirmTrash(_ file: DriveFile) {
-        pendingTrash = nil
         run {
             let client = try await self.fileActionClient()
             self.progress = "Moving item to Google Drive Trash…"
             let result: DriveFile
             do { result = try await client.moveToTrash(confirmed: file) }
             catch { throw MonitorError.invalid("Move to Trash was not confirmed: \(error.localizedDescription). If interrupted during the request, Google may have applied it. Refresh and check the item before trying again.") }
+            self.pendingTrash = nil
             self.operationNotice = "Google confirmed Move to Trash. You can restore the item in Google Drive; trashed items are normally deleted automatically after 30 days."
             guard let database = self.database else { throw MonitorError.database("The item was trashed, but the local database is unavailable. Refresh before acting again.") }
             do {

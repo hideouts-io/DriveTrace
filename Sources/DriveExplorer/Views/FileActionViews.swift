@@ -39,12 +39,17 @@ struct TrashConfirmationView: View {
             if file.isFolder { Text("This is a folder. Its contents are affected too. Review the folder in Google Drive before continuing.").foregroundStyle(.orange) }
             Text("This changes your Google Drive, not just this local index. You can restore the item in Google Drive before it is permanently removed. Google normally deletes trashed items after 30 days.")
             Text("No permanent-delete or empty-trash action is provided by this app.").font(.caption).foregroundStyle(.secondary)
+            if let error = model.error {
+                ScrollView { Text(error).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading) }
+                    .frame(maxHeight: 140).foregroundStyle(.red).accessibilityIdentifier("trashActionError")
+            }
+            if model.busy { ProgressView(model.progress).accessibilityIdentifier("trashActionProgress") }
             HStack {
                 Button("View in Google Drive") { model.open(file) }.accessibilityIdentifier("reviewTrashItem")
                 Spacer()
-                Button("Cancel") { model.pendingTrash = nil }.keyboardShortcut(.cancelAction).accessibilityIdentifier("cancelMoveToTrash")
+                Button("Cancel") { model.pendingTrash = nil; model.error = nil }.disabled(model.busy).keyboardShortcut(.cancelAction).accessibilityIdentifier("cancelMoveToTrash")
                 Button("Move to Trash", role: .destructive) { model.confirmTrash(file) }.disabled(model.busy).accessibilityIdentifier("confirmMoveToTrash")
             }
-        }.padding(24).frame(width: 540).accessibilityElement(children: .contain).accessibilityIdentifier("trashConfirmation")
+        }.padding(24).frame(width: 540).accessibilityElement(children: .contain).accessibilityIdentifier("trashConfirmation").interactiveDismissDisabled(model.busy)
     }
 }

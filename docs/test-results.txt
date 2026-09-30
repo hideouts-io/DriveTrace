@@ -1,109 +1,118 @@
 Building for debugging...
-[Computing dependencies]
-[2 / 18] DriveCore
-[3 / 25] DriveCore
-[5 / 26] DriveCore
-[10 / 20] DriveExplorer
-[16 / 26] DriveExplorer
-[16 / 26] DriveExplorer-product
-[16 / 26] DriveExplorer
-[24 / 32] DriveExplorer
-[24 / 32] DriveExplorer-product
-[27 / 28] DriveCoreTests-product
-Build complete! (7.24 sec)
-Test Suite 'All tests' started at 2026-09-29 18:53:18.224.
-Test Suite 'All tests' passed at 2026-09-29 18:53:18.226.
-	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.003) seconds
+[3 / 26] DriveCore
+[5 / 27] DriveCore
+[10 / 21] DriveExplorer
+[24 / 35] DriveExplorer
+[29 / 53] DriveExplorer-product
+[31 / 53] DriveExplorer-product
+[34 / 53] DriveExplorer
+[36 / 53] DriveExplorer
+[38 / 53] DriveExplorer-product
+[47 / 58] DriveExplorer-product
+[47 / 58] DriveExplorer
+[47 / 58] DriveExplorer-product
+[49 / 60] DriveExplorer
+[53 / 60] DriveExplorer-product
+[54 / 59] DriveCoreTests-product
+[56 / 61] DriveCoreTests-product
+[61 / 64] DriveCoreTests-product
+[63 / 67] DriveCoreTests-product
+Build complete! (6.40 sec)
+Test Suite 'All tests' started at 2026-09-29 20:07:12.726.
+Test Suite 'All tests' passed at 2026-09-29 20:07:12.744.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.018) seconds
 ◇ Test run started.
 ↳ Testing Library Version: 2084
 ↳ Target Platform: arm64e-apple-macos14.0
-◇ Suite GoogleIntegrationTests started.
 ◇ Test multiScopeMembershipAndRemoval() started.
-◇ Test timestampsRoundTrip() started.
-◇ Test compoundFiltersAndSortUnknowns() started.
-◇ Test exportsRoundTripAndProtectSpreadsheetCells() started.
-◇ Test malformedPageRollsBackChangesAndCursor() started.
-◇ Test breadcrumbsKeepRootIdentityAndCoverageBoundaries() started.
-◇ Test folderCyclesTerminate() started.
-◇ Test schemaOneMigratesWithoutLosingFiles() started.
-◇ Test tokenRenewalRetainsOrRotatesOfflineGrant() started.
-◇ Test newerSchemaIsRejectedWithoutDowngrade() started.
-◇ Test previewStorageUsesPrivateTemporaryPathsAndCleansUp() started.
-◇ Test desktopOAuthConfigurationAndPKCE() started.
-◇ Test fileTablePagesCoverEveryMatchWithoutChangingOrdering() started.
-◇ Test notificationPermissionMustAllowDelivery() started.
-◇ Test historicalPathsNeverUseFutureAncestorNames() started.
-◇ Test invalidAndReversedSearchRangesAreRejected() started.
-◇ Test allUnknownStorageRemainsUnknown() started.
-◇ Test preparedNavigationPreservesRootsAndTerminatesCycles() started.
-◇ Test membershipDoesNotResurrectAfterRestart() started.
-◇ Test managementGrantIsExplicitAndLegacyTokensStayRestricted() started.
-◇ Test activityAttributionAndDeduplication() started.
-◇ Test cancelledSortStopsAndDateOrderingUsesInstants() started.
-◇ Test tokenResponseRequiresBothReadOnlyGrants() started.
-◇ Test timestampFiltersCompareInstantsNotLexicalOffsets() started.
-◇ Test eventExportsKeepAttributionAndSource() started.
-◇ Test invalidMetadataFailsExplicitly() started.
 ◇ Test retiringDriveScopePreservesHistoryAndOtherMembership() started.
 ◇ Test observedHierarchyUsesCutoffAndRetainsUncertainItems() started.
-◇ Test baselineIsAtomicAndSurvivesReopen() started.
+◇ Suite GoogleIntegrationTests started.
+◇ Test preparedNavigationPreservesRootsAndTerminatesCycles() started.
+◇ Test notificationPermissionMustAllowDelivery() started.
 ◇ Test largeIndexSearchAndPersistence() started.
-◇ Test watchCooldownAndAcknowledgementSurviveReopen() started.
-◇ Test loopbackRejectsWrongStateThenAcceptsValidCallback() started.
+◇ Test invalidAndReversedSearchRangesAreRejected() started.
+◇ Test folderCyclesTerminate() started.
+◇ Test eventExportsKeepAttributionAndSource() started.
+◇ Test cancelledSortStopsAndDateOrderingUsesInstants() started.
+◇ Test tokenResponseRequiresBothReadOnlyGrants() started.
+◇ Test activityAttributionAndDeduplication() started.
+◇ Test desktopOAuthConfigurationAndPKCE() started.
+◇ Test timestampsRoundTrip() started.
+◇ Test tokenRenewalRetainsOrRotatesOfflineGrant() started.
+◇ Test membershipDoesNotResurrectAfterRestart() started.
+◇ Test invalidMetadataFailsExplicitly() started.
+◇ Test exportsRoundTripAndProtectSpreadsheetCells() started.
+◇ Test breadcrumbsKeepRootIdentityAndCoverageBoundaries() started.
+◇ Test failedTrashConfirmationKeepsReviewOpen() started.
+◇ Test previewStorageUsesPrivateTemporaryPathsAndCleansUp() started.
+◇ Test schemaOneMigratesWithoutLosingFiles() started.
 ◇ Test loopbackCancellationFinishes() started.
+◇ Test baselineIsAtomicAndSurvivesReopen() started.
+◇ Test newerSchemaIsRejectedWithoutDowngrade() started.
+◇ Test fileTablePagesCoverEveryMatchWithoutChangingOrdering() started.
+◇ Test timestampFiltersCompareInstantsNotLexicalOffsets() started.
+◇ Test allUnknownStorageRemainsUnknown() started.
+◇ Test malformedPageRollsBackChangesAndCursor() started.
+◇ Test managementGrantIsExplicitAndLegacyTokensStayRestricted() started.
+◇ Test watchCooldownAndAcknowledgementSurviveReopen() started.
+◇ Test historicalPathsNeverUseFutureAncestorNames() started.
+◇ Test loopbackRejectsWrongStateThenAcceptsValidCallback() started.
+◇ Test compoundFiltersAndSortUnknowns() started.
 ◇ Test fullSyncPaginatesAndResumes() started.
-✔ Test breadcrumbsKeepRootIdentityAndCoverageBoundaries() passed after 0.024 seconds.
-✔ Test folderCyclesTerminate() passed after 0.024 seconds.
-✔ Test exportsRoundTripAndProtectSpreadsheetCells() passed after 0.024 seconds.
-✔ Test allUnknownStorageRemainsUnknown() passed after 0.024 seconds.
-✔ Test notificationPermissionMustAllowDelivery() passed after 0.024 seconds.
-✔ Test preparedNavigationPreservesRootsAndTerminatesCycles() passed after 0.024 seconds.
-✔ Test managementGrantIsExplicitAndLegacyTokensStayRestricted() passed after 0.024 seconds.
-✔ Test tokenRenewalRetainsOrRotatesOfflineGrant() passed after 0.024 seconds.
-✔ Test invalidAndReversedSearchRangesAreRejected() passed after 0.024 seconds.
+✔ Test preparedNavigationPreservesRootsAndTerminatesCycles() passed after 0.005 seconds.
+✔ Test folderCyclesTerminate() passed after 0.005 seconds.
+✔ Test notificationPermissionMustAllowDelivery() passed after 0.005 seconds.
+✔ Test invalidMetadataFailsExplicitly() passed after 0.005 seconds.
+✔ Test tokenRenewalRetainsOrRotatesOfflineGrant() passed after 0.005 seconds.
+✔ Test breadcrumbsKeepRootIdentityAndCoverageBoundaries() passed after 0.005 seconds.
+✔ Test exportsRoundTripAndProtectSpreadsheetCells() passed after 0.005 seconds.
+✔ Test invalidAndReversedSearchRangesAreRejected() passed after 0.005 seconds.
+✔ Test eventExportsKeepAttributionAndSource() passed after 0.005 seconds.
+✔ Test desktopOAuthConfigurationAndPKCE() passed after 0.024 seconds.
+✔ Test tokenResponseRequiresBothReadOnlyGrants() passed after 0.024 seconds.
 ✔ Test timestampFiltersCompareInstantsNotLexicalOffsets() passed after 0.024 seconds.
-✔ Test tokenResponseRequiresBothReadOnlyGrants() passed after 0.028 seconds.
-✔ Test invalidMetadataFailsExplicitly() passed after 0.028 seconds.
-✔ Test eventExportsKeepAttributionAndSource() passed after 0.028 seconds.
-✔ Test desktopOAuthConfigurationAndPKCE() passed after 0.028 seconds.
-✔ Test timestampsRoundTrip() passed after 0.029 seconds.
-✔ Test previewStorageUsesPrivateTemporaryPathsAndCleansUp() passed after 0.029 seconds.
-✔ Test multiScopeMembershipAndRemoval() passed after 0.029 seconds.
-✔ Test historicalPathsNeverUseFutureAncestorNames() passed after 0.028 seconds.
-✔ Test compoundFiltersAndSortUnknowns() passed after 0.029 seconds.
-✔ Test cancelledSortStopsAndDateOrderingUsesInstants() passed after 0.029 seconds.
-✔ Test loopbackCancellationFinishes() passed after 0.029 seconds.
-✔ Test malformedPageRollsBackChangesAndCursor() passed after 0.033 seconds.
-✔ Test activityAttributionAndDeduplication() passed after 0.035 seconds.
-✔ Test newerSchemaIsRejectedWithoutDowngrade() passed after 0.040 seconds.
-✔ Test observedHierarchyUsesCutoffAndRetainsUncertainItems() passed after 0.045 seconds.
-✔ Test retiringDriveScopePreservesHistoryAndOtherMembership() passed after 0.045 seconds.
-✔ Test schemaOneMigratesWithoutLosingFiles() passed after 0.048 seconds.
-✔ Test membershipDoesNotResurrectAfterRestart() passed after 0.049 seconds.
-✔ Test baselineIsAtomicAndSurvivesReopen() passed after 0.052 seconds.
-✔ Test watchCooldownAndAcknowledgementSurviveReopen() passed after 0.058 seconds.
-✔ Test fileTablePagesCoverEveryMatchWithoutChangingOrdering() passed after 0.062 seconds.
-✔ Test loopbackRejectsWrongStateThenAcceptsValidCallback() passed after 0.085 seconds.
-✔ Test fullSyncPaginatesAndResumes() passed after 0.088 seconds.
+✔ Test timestampsRoundTrip() passed after 0.024 seconds.
+✔ Test managementGrantIsExplicitAndLegacyTokensStayRestricted() passed after 0.024 seconds.
+✔ Test allUnknownStorageRemainsUnknown() passed after 0.024 seconds.
+✔ Test previewStorageUsesPrivateTemporaryPathsAndCleansUp() passed after 0.024 seconds.
+✔ Test compoundFiltersAndSortUnknowns() passed after 0.025 seconds.
+✔ Test activityAttributionAndDeduplication() passed after 0.025 seconds.
+✔ Test cancelledSortStopsAndDateOrderingUsesInstants() passed after 0.025 seconds.
+✔ Test loopbackCancellationFinishes() passed after 0.025 seconds.
+✔ Test multiScopeMembershipAndRemoval() passed after 0.026 seconds.
+✔ Test newerSchemaIsRejectedWithoutDowngrade() passed after 0.030 seconds.
+✔ Test retiringDriveScopePreservesHistoryAndOtherMembership() passed after 0.032 seconds.
+✔ Test malformedPageRollsBackChangesAndCursor() passed after 0.032 seconds.
+✔ Test fileTablePagesCoverEveryMatchWithoutChangingOrdering() passed after 0.033 seconds.
+✔ Test failedTrashConfirmationKeepsReviewOpen() passed after 0.035 seconds.
+✔ Test historicalPathsNeverUseFutureAncestorNames() passed after 0.037 seconds.
+✔ Test membershipDoesNotResurrectAfterRestart() passed after 0.037 seconds.
+✔ Test baselineIsAtomicAndSurvivesReopen() passed after 0.039 seconds.
+✔ Test schemaOneMigratesWithoutLosingFiles() passed after 0.040 seconds.
+✔ Test observedHierarchyUsesCutoffAndRetainsUncertainItems() passed after 0.040 seconds.
+✔ Test fullSyncPaginatesAndResumes() passed after 0.039 seconds.
 ◇ Test metadataDiscoveryRetainsKnownDrivesWhenRootBecomesUnavailable() started.
-✔ Test metadataDiscoveryRetainsKnownDrivesWhenRootBecomesUnavailable() passed after 0.050 seconds.
+✔ Test watchCooldownAndAcknowledgementSurviveReopen() passed after 0.043 seconds.
+✔ Test loopbackRejectsWrongStateThenAcceptsValidCallback() passed after 0.055 seconds.
+✔ Test metadataDiscoveryRetainsKnownDrivesWhenRootBecomesUnavailable() passed after 0.020 seconds.
 ◇ Test repeatedPageDoesNotPromotePartialIndex() started.
-✔ Test repeatedPageDoesNotPromotePartialIndex() passed after 0.010 seconds.
+✔ Test repeatedPageDoesNotPromotePartialIndex() passed after 0.005 seconds.
 ◇ Test incompleteSearchPreservesPreviousEvidence() started.
-✔ Test incompleteSearchPreservesPreviousEvidence() passed after 0.009 seconds.
+✔ Test incompleteSearchPreservesPreviousEvidence() passed after 0.006 seconds.
 ◇ Test authAndRateLimitRetriesThenSucceeds() started.
-✔ Test authAndRateLimitRetriesThenSucceeds() passed after 0.004 seconds.
+✔ Test authAndRateLimitRetriesThenSucceeds() passed after 0.001 seconds.
 ◇ Test exhaustedRetriesSurfaceLastError() started.
-✔ Test exhaustedRetriesSurfaceLastError() passed after 0.002 seconds.
+✔ Test exhaustedRetriesSurfaceLastError() passed after 0.001 seconds.
 ◇ Test confirmedTrashRecordsObservationWithoutInventingActivity() started.
-✔ Test confirmedTrashRecordsObservationWithoutInventingActivity() passed after 0.012 seconds.
+✔ Test confirmedTrashRecordsObservationWithoutInventingActivity() passed after 0.004 seconds.
 ◇ Test trashRequiresGrantCapabilityAndUnchangedTarget() started.
-✔ Test trashRequiresGrantCapabilityAndUnchangedTarget() passed after 0.003 seconds.
+✔ Test trashRequiresGrantCapabilityAndUnchangedTarget() passed after 0.001 seconds.
 ◇ Test previewDownloadsOnlyWithExplicitGrantAndCapability() started.
 ✔ Test previewDownloadsOnlyWithExplicitGrantAndCapability() passed after 0.001 seconds.
 ◇ Test cancelledSyncDoesNotRequestPages() started.
-✔ Test cancelledSyncDoesNotRequestPages() passed after 0.004 seconds.
-✔ Suite GoogleIntegrationTests passed after 0.193 seconds.
-10,000-file SQLite stage/promote/load/filter/sort: 0.7432719469070435 seconds
-✔ Test largeIndexSearchAndPersistence() passed after 0.788 seconds.
-✔ Test run with 43 tests in 1 suite passed after 0.789 seconds.
+✔ Test cancelledSyncDoesNotRequestPages() passed after 0.003 seconds.
+✔ Suite GoogleIntegrationTests passed after 0.086 seconds.
+10,000-file SQLite stage/promote/load/filter/sort: 0.377331018447876 seconds
+✔ Test largeIndexSearchAndPersistence() passed after 0.407 seconds.
+✔ Test run with 44 tests in 1 suite passed after 0.407 seconds.

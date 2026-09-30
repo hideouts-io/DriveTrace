@@ -19,6 +19,15 @@ struct ContentView: View {
                     }.font(.caption).padding(.horizontal, 22).padding(.vertical, 9).background(.orange.opacity(0.08))
                     Divider()
                 }
+                if let error = model.error {
+                    HStack(alignment: .top, spacing: 12) {
+                        Image(systemName: "exclamationmark.triangle").foregroundStyle(.red)
+                        ScrollView { Text(error).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading) }
+                            .frame(maxHeight: 120).accessibilityIdentifier("explorerActionError")
+                        Button("Dismiss") { model.error = nil }.accessibilityIdentifier("dismissExplorerError")
+                    }.font(.callout).padding(16)
+                    Divider()
+                }
                 if !model.ready { ProgressView("Opening your workspace…").frame(maxWidth: .infinity, maxHeight: .infinity) }
                 else if model.files.isEmpty && !model.isDemo && !model.connected { WelcomeView(model: model) }
                 else {
@@ -49,7 +58,6 @@ struct ContentView: View {
                 }
             }
         }
-        .alert("Action couldn’t finish", isPresented: Binding(get: { model.error != nil && !model.setupVisible }, set: { if !$0 { model.error = nil } })) { Button("OK") { model.error = nil } } message: { Text(model.error ?? "") }
         .sheet(item: $model.preview) { item in
             FilePreviewView(preview: item).onDisappear { model.removePreview(item) }
         }

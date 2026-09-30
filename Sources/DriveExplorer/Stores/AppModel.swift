@@ -38,7 +38,6 @@ import DriveCore
     var gaps: [String] = []
     var isDemo = false
     var connected = false
-    var setupVisible = false
     var hasClient = false
     var syncVerified = false
     var requestedAccess: DriveAccess = .metadata
@@ -284,7 +283,7 @@ import DriveCore
     func saveWatches(_ rules: [WatchRule]) { run { try await self.database?.setSetting("watches", value: encoded(rules)); self.watches = rules } }
     func setPolling(_ enabled: Bool) {
         autoRefresh = enabled; pollTask?.cancel(); pollTask = nil
-        if enabled { pollTask = Task { while !Task.isCancelled { do { try await Task.sleep(for: .seconds(60)); if !self.busy && !self.isDemo && self.connected { self.sync() } } catch is CancellationError { break } catch { self.error = error.localizedDescription; break } } } }
+        if enabled { pollTask = Task { while !Task.isCancelled { do { try await Task.sleep(for: .seconds(60)); if !self.busy && self.pendingTrash == nil && !self.isDemo && self.connected { self.sync() } } catch is CancellationError { break } catch { self.error = error.localizedDescription; break } } } }
     }
     func requestNotifications() {
         run {

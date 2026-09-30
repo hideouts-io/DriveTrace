@@ -73,8 +73,6 @@ struct SetupView: View {
                 }
             }.font(.callout).padding(18)
         }.frame(minWidth: 820, minHeight: 700)
-        .onAppear { model.setupVisible = true }
-        .onDisappear { model.setupVisible = false }
     }
     @ViewBuilder private var stepContent: some View {
         switch step {
