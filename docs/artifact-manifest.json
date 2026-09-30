@@ -1,11 +1,12 @@
 {
-  "verified_at": "2026-09-30T03:11:43.375323+00:00",
-  "executable_sha256": "8b1c7c3bb9a013835770c86defdaebbd01ab6fdfc9f4b4356a01aa0cb0250333",
-  "zip_sha256": "61a35096305d5324aac63f789c1568defbf744a8060f1df5a49c3061c0361c34",
+  "verified_at": "2026-09-30T03:36:35.500110+00:00",
+  "executable_sha256": "fa744d8a0f313e8b60e84d01a131e86cee940f7b63076a525d2a4d4ed69daedd",
+  "zip_sha256": "80c09ef537237f33c17c245bcc54bf320c0d8d29203728393a528e9f64c1a5f4",
   "logo_sha256": "6312cce90437a33b45f9aea20003ff57328cd0a080c8210ee1691a3a2556b923",
-  "test_summary": "\u2714 Test run with 44 tests in 1 suite passed after 0.407 seconds.",
+  "test_summary": "\u2714 Test run with 47 tests in 1 suite passed after 0.777 seconds.",
   "signature": "Ad-hoc; all-architecture strict verification passed on generated and extracted archive bundles",
   "architecture": "universal arm64/x86_64",
   "google_account_validation": "partial: saved connection and user-corpus collection observed; inspector live-item Trash confirmation opened and cancelled with a saved management grant; real trash/restore and complete tenant coverage unverified",
-  "dock_icon_sha256": "a9e363928aaa257b940e65eea297a168834da77e16b4de3aa654c567193d4342"
+  "dock_icon_sha256": "a9e363928aaa257b940e65eea297a168834da77e16b4de3aa654c567193d4342",
+  "download_validation": "synthetic API plus real-filesystem save/replace/failure/cancellation passed; native inspector save dialog and cancel verified; live content transfer and large downloads unverified"
 }

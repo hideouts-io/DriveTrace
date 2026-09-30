@@ -189,6 +189,47 @@ func fixtureClient(_ tokens: FixtureTokens) -> GoogleClient {
         await #expect(throws: MonitorError.self) { try await fixtureClient(tokens).previewContent(file: large) }
         #expect(await FixtureProtocol.fixture.allRequests().isEmpty)
     }
+    @Test func fileDownloadSavesOriginalAndPreservesDestinationOnFailure() async throws {
+        let metadata = #"{"id":"download-test","name":"Test.txt","mimeType":"text/plain","size":"5","capabilities":{"canDownload":true}}"#
+        let file = try JSONDecoder().decode(DriveFile.self, from: Data(metadata.utf8))
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let destination = directory.appendingPathComponent("saved.txt")
+        let tokens = FixtureTokens(); await tokens.grantManagement()
+        await FixtureProtocol.fixture.prepare([(200, metadata), (200, "hello")])
+        try await fixtureClient(tokens).download(file: file, to: destination)
+        #expect(try Data(contentsOf: destination) == Data("hello".utf8))
+        #expect(await FixtureProtocol.fixture.allRequests().last?.url?.query?.contains("alt=media") == true)
+        await FixtureProtocol.fixture.prepare([(200, metadata), (200, "again")])
+        try await fixtureClient(tokens).download(file: file, to: destination)
+        #expect(try Data(contentsOf: destination) == Data("again".utf8))
+        #expect(try FileManager.default.attributesOfItem(atPath: destination.path)[.posixPermissions] as? Int == 0o600)
+        await FixtureProtocol.fixture.prepare([(200, metadata), (403, #"{"error":{"message":"Download restricted"}}"#)])
+        await #expect(throws: MonitorError.self) { try await fixtureClient(tokens).download(file: file, to: destination) }
+        #expect(try Data(contentsOf: destination) == Data("again".utf8))
+        await FixtureProtocol.fixture.prepare([(200, metadata)])
+        await #expect(throws: MonitorError.self) { try await fixtureClient(FixtureTokens()).download(file: file, to: destination) }
+        #expect(await FixtureProtocol.fixture.allRequests().count == 1)
+        try FileManager.default.removeItem(at: directory)
+    }
+    @Test func documentDownloadUsesExportAndRejectsRestrictedContent() async throws {
+        let metadata = #"{"id":"export-test","name":"Report","mimeType":"application/vnd.google-apps.document","capabilities":{"canDownload":true}}"#
+        let file = try JSONDecoder().decode(DriveFile.self, from: Data(metadata.utf8))
+        let destination = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".docx")
+        #expect(try fileDownload(file).name == "Report.docx")
+        let tokens = FixtureTokens(); await tokens.grantManagement()
+        await FixtureProtocol.fixture.prepare([(200, metadata), (200, "synthetic export")])
+        try await fixtureClient(tokens).download(file: file, to: destination)
+        #expect(try Data(contentsOf: destination) == Data("synthetic export".utf8))
+        let request = try #require(await FixtureProtocol.fixture.allRequests().last)
+        #expect(request.url?.path.hasSuffix("/export") == true)
+        #expect(URLComponents(url: request.url!, resolvingAgainstBaseURL: false)?.queryItems?.first?.value == "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+        var large = try JSONDecoder().decode(DriveFile.self, from: Data(#"{"id":"large","name":"../unsafe:name","mimeType":"text/plain","size":"20971521","capabilities":{"canDownload":true}}"#.utf8))
+        #expect(try fileDownload(large).name == ".._unsafe_name")
+        large.capabilities = nil
+        #expect(throws: MonitorError.self) { try fileDownload(large) }
+        try FileManager.default.removeItem(at: destination)
+    }
     @Test func cancelledSyncDoesNotRequestPages() async throws {
         let (db, _) = try temporaryDatabase()
         await FixtureProtocol.fixture.prepare([])
@@ -265,4 +306,20 @@ func fixtureClient(_ tokens: FixtureTokens) -> GoogleClient {
     #expect(model.pendingTrash?.id == file.id)
     #expect(model.error?.contains("connected Google account") == true)
     #expect(model.operationNotice == nil)
+}
+
+@Test func cancelledDownloadSavePreservesExistingFile() async throws {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    let source = directory.appendingPathComponent("source")
+    let destination = directory.appendingPathComponent("destination")
+    try Data("new".utf8).write(to: source)
+    try Data("existing".utf8).write(to: destination)
+    let task = Task {
+        withUnsafeCurrentTask { $0?.cancel() }
+        try saveDownloadedFile(source, to: destination)
+    }
+    await #expect(throws: CancellationError.self) { try await task.value }
+    #expect(try Data(contentsOf: destination) == Data("existing".utf8))
+    try FileManager.default.removeItem(at: directory)
 }

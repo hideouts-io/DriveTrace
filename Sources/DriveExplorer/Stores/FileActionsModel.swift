@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 import DriveCore
 
 extension AppModel {
@@ -10,6 +11,29 @@ extension AppModel {
         let root = try await client.file(id: "root")
         guard root.id == rootID else { throw MonitorError.authentication("The connected Google account differs from this index. Synchronize the current account before acting on files.") }
         return client
+    }
+    func downloadFile(_ file: DriveFile) {
+        run {
+            self.progress = "Preparing download…"
+            let client = try await self.fileActionClient()
+            let current = try await client.file(id: file.id)
+            let download = try fileDownload(current)
+            guard let window = NSApp.keyWindow else { throw MonitorError.invalid("Open the explorer window before downloading a file.") }
+            let panel = NSSavePanel()
+            panel.title = "Download from Google Drive"
+            panel.prompt = "Download"
+            panel.nameFieldStringValue = download.name
+            panel.canCreateDirectories = true
+            panel.message = download.exportMIME == nil ? "Save the original file to your Mac." : "Google document export: \(URL(fileURLWithPath: download.name).pathExtension.uppercased()). Google limits these exports to 10 MB."
+            let response = await withCheckedContinuation { continuation in
+                panel.beginSheetModal(for: window) { continuation.resume(returning: $0) }
+            }
+            guard response == .OK, let destination = panel.url else { return }
+            try Task.checkCancellation()
+            self.progress = "Downloading to your selected location…"
+            try await client.download(file: current, to: destination)
+            self.operationNotice = "Download saved to \(destination.path)."
+        }
     }
     func showPreviewSample() {
         run {

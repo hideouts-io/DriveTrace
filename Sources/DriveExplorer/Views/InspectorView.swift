@@ -20,11 +20,12 @@ struct InspectorView: View {
                         Button("Try a synthetic preview sample", action: model.showPreviewSample).disabled(model.busy).accessibilityIdentifier("previewDemoSample")
                     }
                     if !file.isFolder && file.shortcutDetails == nil {
+                        Button("Download…") { model.downloadFile(file) }.disabled(model.busy || model.isDemo || !model.managementGranted).accessibilityIdentifier("downloadSelectedFile")
                         Button("Preview file") { model.showPreview(file) }.disabled(model.busy || model.isDemo || !model.managementGranted).accessibilityIdentifier("previewSelectedFile")
                     }
                     Button("Move to Trash…", role: .destructive) { model.prepareTrash(file) }.disabled(model.busy || model.isDemo || !model.managementGranted || file.trashed == true).accessibilityIdentifier("trashSelectedFile")
                     if !model.managementGranted && !model.isDemo {
-                        Text("To enable previews and Trash, choose View files and Move to Trash in Connect Google Drive → Sign in.").font(.caption).foregroundStyle(.secondary)
+                        Text("To enable downloads, previews and Trash, choose View files and Move to Trash in Connect Google Drive → Sign in.").font(.caption).foregroundStyle(.secondary)
                     }
                     Divider()
                     Group {

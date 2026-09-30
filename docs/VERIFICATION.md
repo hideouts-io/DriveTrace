@@ -4,7 +4,7 @@ Verified 2026-09-29 on macOS 27.0 (26A428), Apple silicon, Swift 6.4. This is a 
 
 ## Implemented and automated
 
-`./script/test.sh` passes **44 Swift Testing tests**, zero failures. The XCTest wrapper prints “0 tests”; the following Swift Testing result is the actual 44-test run. Full output: `test-results.txt`.
+`./script/test.sh` passes **47 Swift Testing tests**, zero failures. The XCTest wrapper prints “0 tests”; the following Swift Testing result is the actual 47-test run. Full output: `test-results.txt`.
 
 Coverage includes:
 
@@ -21,6 +21,8 @@ Coverage includes:
 ## Optional file actions — live validation pending
 
 Automated checks cover explicit management scope selection, saved legacy tokens retaining no management capability, denied/missing capability and changed-target rejection before PATCH, authenticated content retrieval and metadata-size limits, private temporary-file storage/removal, and a confirmed synthetic Trash response recorded in real SQLite without changing the durable cursor or inventing an Activity event. The actual packaged app exposes the opt-in permission choice and correctly keeps real preview/Trash actions disabled in demo. A clearly labelled synthetic local text sample opened in native Quick Look; its text was observed through the accessibility tree, and closing the sheet left zero app-owned temporary preview files. The rebuilt app opened the inspector Trash confirmation against a live item using the saved management grant; it was cancelled without mutation. The confirmation remains open during the request and displays failures inline; an automated disconnected-account check verifies failure retains the reviewed item and the error. Main-window errors are visible even with the setup window open, and polling defers while a confirmation is pending. The context-menu handler shares this flow, but its native opening could not be reverified because UI automation could not resolve the selected row reliably. The user-reported failure after confirmation has not been reproduced against Google; no real mutation was attempted. The consent lifecycle, Google content download/export and trash/restore remain unverified. Preview body streaming is bounded to 20 MiB; Google's PDF export limit is separately 10 MB. See [usage and privacy boundaries](../README.md#optional-file-viewing-and-move-to-trash).
+
+Download integration checks use synthetic Google responses and real filesystem operations: original-byte saves, existing-file replacement with private permissions, preserving the destination on HTTP 403 and cancellation, missing-scope rejection, and the document export endpoint/format. The transfer uses URLSession’s disk-backed download API; the preview size limit is not applied. In the rebuilt universal app, the enabled inspector Download button opened the native save sheet for a live selected item with its suggested filename and original-file message. Cancel closed the sheet and re-enabled Download without retrieving content. The context-menu action is implemented but not separately UI-verified. Large transfers, live download/export, interrupted-network retries and external-volume destinations remain unverified.
 
 ## Local performance measurements
 

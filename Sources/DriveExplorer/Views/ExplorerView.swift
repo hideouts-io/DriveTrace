@@ -119,6 +119,7 @@ struct FileTable: View {
             if let id = ids.first, let file = model.index[id] ?? model.serverResults?.first(where: { $0.id == id }) {
                 Button("Open in Google Drive") { model.open(file) }
                 if !file.isFolder && file.shortcutDetails == nil {
+                    Button("Download…") { model.downloadFile(file) }.disabled(model.busy || model.isDemo || !model.managementGranted).accessibilityIdentifier("downloadContextFile")
                     Button("Preview file") { model.showPreview(file) }.disabled(model.busy || model.isDemo || !model.managementGranted)
                 }
                 Button("Move to Trash…", role: .destructive) { model.prepareTrash(file) }.disabled(model.busy || model.isDemo || !model.managementGranted || file.trashed == true).accessibilityIdentifier("trashContextFile")
