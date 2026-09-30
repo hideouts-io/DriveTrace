@@ -21,3 +21,16 @@ These are design/API references. No third-party application source was copied, v
 - [Activity data model](https://developers.google.com/workspace/drive/activity/v2/datamodel): actions, targets, actors and time ranges; raw responses remain inspectable.
 
 Workspace Events subscription/Pub/Sub integration is intentionally future work in the native app. The current product is explicit desktop polling and does not expose Google Drive for desktop's upload/download queue or transfer progress.
+
+## User-requested gdrive-cli review — proposals only
+
+Source reviewed at [02b3571](https://github.com/keithamckenzie/gdrive-cli/tree/02b35715be429f246305344426a304318e72344d), separately from the deferred broad comparison. Its [Drive implementation](https://github.com/keithamckenzie/gdrive-cli/blob/02b35715be429f246305344426a304318e72344d/src/drive.ts) offers individual streamed downloads, multiple document export formats, comments, permissions and revisions. It does not implement recursive folder copying or Drive Activity queries. Several list functions return a single API page. Its [CLI](https://github.com/keithamckenzie/gdrive-cli/blob/02b35715be429f246305344426a304318e72344d/src/cli.ts) invokes permanent deletion/empty-trash directly, which does not satisfy this app's required review safeguards. Its README still requires a user-created Desktop OAuth client; it does not remove Google setup or verification requirements.
+
+Recommended for user review, not implemented:
+
+| Priority / idea | Benefit and effort | API access and evidence boundary |
+| --- | --- | --- |
+| 1. Choose a Google document export format | Choose PDF, editable Office or another supported format before saving. Small-to-medium effort: type-specific choices, remembered preferences, filename collisions and batch reporting. Fits content reading without remote mutation. | Use [files.export](https://developers.google.com/workspace/drive/api/reference/rest/v3/files/export), subject to supported types and Google's export-size limit. Existing optional full Drive grant already covers it; an independent read-only content profile would be a separate permission-design change. |
+| 2. Read-only revisions inspector | Review returned revision timestamps and modifiers alongside Activity evidence. Medium effort: pagination, loading/cancellation, restricted access and clear source labels. | [revisions.list](https://developers.google.com/workspace/drive/api/reference/rest/v3/revisions/list) accepts the existing metadata-readonly scope. Google can omit older revisions even after all pages; never describe this as complete edit history or proof of who uploaded the original. |
+
+The reference uses [ISC](https://github.com/keithamckenzie/gdrive-cli/blob/02b35715be429f246305344426a304318e72344d/LICENSE), requiring its copyright and permission notice in copied code. No source has been copied. Prefer native Swift API implementations of approved ideas; avoid adding a Node CLI dependency, single-page completeness assumptions, automatic plaintext-token fallback, or its unreviewed permanent-delete workflow. These proposals do not mark the current implementation plan complete.
