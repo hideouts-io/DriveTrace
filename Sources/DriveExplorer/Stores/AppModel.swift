@@ -48,6 +48,7 @@ import DriveCore
     var requestedAccess: DriveAccess = .metadata
     var managementGranted = false
     var pendingTrash: DriveFile?
+    var pendingBatchTrash: BatchTrashPresentation?
     var preview: FilePreview?
     let previewStore = PreviewStore(root: FileManager.default.temporaryDirectory.appendingPathComponent("DriveExplorerPreviews", isDirectory: true))
     var operationNotice: String?
@@ -288,7 +289,7 @@ import DriveCore
     func saveWatches(_ rules: [WatchRule]) { run { try await self.database?.setSetting("watches", value: encoded(rules)); self.watches = rules } }
     func setPolling(_ enabled: Bool) {
         autoRefresh = enabled; pollTask?.cancel(); pollTask = nil
-        if enabled { pollTask = Task { while !Task.isCancelled { do { try await Task.sleep(for: .seconds(60)); if !self.busy && self.pendingTrash == nil && self.batchDownload == nil && !self.isDemo && self.connected { self.sync() } } catch is CancellationError { break } catch { self.error = error.localizedDescription; break } } } }
+        if enabled { pollTask = Task { while !Task.isCancelled { do { try await Task.sleep(for: .seconds(60)); if !self.busy && self.pendingTrash == nil && self.pendingBatchTrash == nil && self.selectedFiles.isEmpty && self.batchDownload == nil && !self.isDemo && self.connected { self.sync() } } catch is CancellationError { break } catch { self.error = error.localizedDescription; break } } } }
     }
     func requestNotifications() {
         run {

@@ -1,15 +1,16 @@
 Building for production...
-[Planning deferred tasks]
-[21 / 44] DriveCore
-[27 / 48] DriveCore
-[38 / 49] DriveExplorer-product
-[41 / 50] DriveExplorer-product
-[45 / 52] DriveExplorer-product
-[49 / 52] DriveExplorer-product
-[51 / 52] DriveExplorer-product
-Build complete! (19.01 sec)
-$HOME/Library/Caches/DriveExplorerBuild/package.WzPrEO/DriveExplorer.app: replacing existing signature
+[2 / 16]
+[4 / 18] DriveCore
+[8 / 20] DriveCore
+[14 / 15] DriveExplorer-product
+[15 / 16] DriveExplorer-product
+[19 / 25] DriveExplorer-product
+[21 / 26] DriveExplorer-product
+[23 / 26] DriveExplorer-product
+[25 / 26] DriveExplorer-product
+Build complete! (22.74 sec)
+$HOME/Library/Caches/DriveExplorerBuild/package.lpqweU/DriveExplorer.app: replacing existing signature
 Verified both architectures, signature, bundle identity, minimum OS, icon, canonical logo and license.
 Verified both architectures, signature, bundle identity, minimum OS, icon, canonical logo and license.
-3f473e4d685198fd5a1582a30a1683fa2744b4b392a200a1041532861a8ddf0e  DriveExplorer.zip
+31f07b625a4e63ce90447f3bfa2f97aa495026a08ac260cd465e57ab09827fd4  DriveExplorer.zip
 Packaged universal ad-hoc preview. Developer ID signing and notarization are not performed.

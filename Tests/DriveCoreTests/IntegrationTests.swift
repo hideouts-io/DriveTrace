@@ -140,6 +140,36 @@ func fixtureClient(_ tokens: FixtureTokens) -> GoogleClient {
         await #expect(throws: MonitorError.self) { try await fixtureClient(FixtureTokens()).files(query: "", drive: nil, page: nil) }
         #expect(await FixtureProtocol.fixture.allRequests().count == 4)
     }
+    @Test func batchTrashReportsPartialFailureAndContinuesReviewedItems() async throws {
+        let firstJSON = #"{"id":"first","name":"First.txt","mimeType":"text/plain","capabilities":{"canTrash":true}}"#
+        let deniedJSON = firstJSON.replacingOccurrences(of: "first", with: "denied")
+        let lastJSON = firstJSON.replacingOccurrences(of: "first", with: "last")
+        let files = try [firstJSON, deniedJSON, lastJSON].map { try JSONDecoder().decode(DriveFile.self, from: Data($0.utf8)) }
+        let firstTrashed = firstJSON.replacingOccurrences(of: "\"capabilities\"", with: "\"trashed\":true,\"capabilities\"")
+        let lastTrashed = lastJSON.replacingOccurrences(of: "\"capabilities\"", with: "\"trashed\":true,\"capabilities\"")
+        await FixtureProtocol.fixture.prepare([(200, firstJSON), (200, firstTrashed), (200, deniedJSON.replacingOccurrences(of: "true", with: "false")), (200, lastJSON), (200, lastTrashed)])
+        let tokens = FixtureTokens(); await tokens.grantManagement()
+        let report = await fixtureClient(tokens).trashBatch(confirmed: files) { _ in }
+        #expect(report.completed == 2); #expect(report.failed == 1); #expect(report.remaining == 0); #expect(!report.cancelled)
+        #expect(report.results[1].failure?.contains("does not currently allow") == true)
+        let requests = await FixtureProtocol.fixture.allRequests()
+        #expect(requests.count == 5)
+        #expect(requests.filter { $0.httpMethod == "PATCH" }.count == 2)
+        #expect(!requests.contains { $0.httpMethod == "DELETE" })
+    }
+    @Test func cancelledBatchTrashRetainsConfirmedResultAndStopsFurtherRequests() async throws {
+        let original = #"{"id":"first","name":"First.txt","mimeType":"text/plain","capabilities":{"canTrash":true}}"#
+        let file = try JSONDecoder().decode(DriveFile.self, from: Data(original.utf8))
+        let second = DriveFile(id: "second", name: "Second.txt", mimeType: "text/plain")
+        await FixtureProtocol.fixture.prepare([(200, original), (200, original.replacingOccurrences(of: "\"capabilities\"", with: "\"trashed\":true,\"capabilities\""))])
+        let tokens = FixtureTokens(); await tokens.grantManagement()
+        let task = Task {
+            await fixtureClient(tokens).trashBatch(confirmed: [file, second]) { _ in withUnsafeCurrentTask { $0?.cancel() } }
+        }
+        let report = await task.value
+        #expect(report.cancelled); #expect(report.completed == 1); #expect(report.remaining == 1); #expect(report.failed == 0)
+        #expect(await FixtureProtocol.fixture.allRequests().count == 2)
+    }
     @Test func confirmedTrashRecordsObservationWithoutInventingActivity() async throws {
         let original = #"{"id":"trash-test","name":"Test.txt","mimeType":"text/plain","parents":["folder"],"capabilities":{"canTrash":true}}"#
         let trashed = #"{"id":"trash-test","name":"Test.txt","mimeType":"text/plain","parents":["folder"],"trashed":true,"capabilities":{"canTrash":false}}"#
@@ -387,7 +417,7 @@ func fixtureClient(_ tokens: FixtureTokens) -> GoogleClient {
     try Data("existing".utf8).write(to: destination)
     #expect(throws: (any Error).self) { try saveNewDownloadedFile(source, to: destination) }
     #expect(try Data(contentsOf: destination) == Data("existing".utf8))
-    #expect(try availableDownloadName("Report.txt", occupied: ["report.txt"]) == "Report (2).txt")
-    #expect(throws: MonitorError.self) { try availableDownloadName("..", occupied: []) }
+    #expect(try availableDownloadName("Report.txt", occupiedKeys: ["report.txt"]) == "Report (2).txt")
+    #expect(throws: MonitorError.self) { try availableDownloadName("..", occupiedKeys: []) }
     try FileManager.default.removeItem(at: directory)
 }

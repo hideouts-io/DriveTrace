@@ -119,6 +119,9 @@ struct FileTable: View {
             if !ids.isEmpty {
                 Button("Download Selected…") { model.downloadSelection(ids) }.disabled(model.busy || model.isDemo || !model.managementGranted).accessibilityIdentifier("downloadContextSelection")
             }
+            if ids.count > 1 {
+                Button("Move Selected to Trash…", role: .destructive) { model.prepareTrashSelection(ids) }.disabled(model.busy || model.isDemo || !model.managementGranted).accessibilityIdentifier("trashContextSelection")
+            }
             if ids.count == 1, let id = ids.first, let file = model.index[id] ?? model.serverResults?.first(where: { $0.id == id }) {
                 Button("Open in Google Drive") { model.open(file) }
                 if !file.isFolder && file.shortcutDetails == nil {

@@ -22,17 +22,18 @@ public struct BatchProgress: Sendable {
     public init(current: String, discovered: Int, completed: Int, failed: Int) { self.current = current; self.discovered = discovered; self.completed = completed; self.failed = failed }
 }
 
-/// Allocate names conservatively for case-insensitive, normalization-insensitive destination volumes.
-public func availableDownloadName(_ name: String, occupied: Set<String>) throws -> String {
+public func downloadNameKey(_ name: String) -> String { name.precomposedStringWithCanonicalMapping.lowercased() }
+
+/// Supply canonical occupied keys so large folders do not repeatedly normalize every sibling name.
+public func availableDownloadName(_ name: String, occupiedKeys: Set<String>) throws -> String {
     let base = try downloadName(name)
-    let key: (String) -> String = { $0.precomposedStringWithCanonicalMapping.lowercased() }
-    let names = Set(occupied.map(key))
-    if !names.contains(key(base)) { return base }
+    let names = occupiedKeys
+    if !names.contains(downloadNameKey(base)) { return base }
     let suffix = (base as NSString).pathExtension
     let stem = suffix.isEmpty ? base : (base as NSString).deletingPathExtension
-    for number in 2...occupied.count + 2 {
+    for number in 2...occupiedKeys.count + 2 {
         let candidate = "\(stem) (\(number))" + (suffix.isEmpty ? "" : "." + suffix)
-        if !names.contains(key(candidate)) { return try downloadName(candidate) }
+        if !names.contains(downloadNameKey(candidate)) { return try downloadName(candidate) }
     }
     throw MonitorError.invalid("Cannot allocate a unique local name for \(name).")
 }
@@ -67,8 +68,8 @@ extension GoogleClient {
                 guard file.shortcutDetails == nil else { throw MonitorError.invalid("Shortcut skipped. Select its actual target to download it; shortcuts are not followed automatically.") }
                 let proposed = try file.isFolder ? downloadName(file.name) : fileDownload(file).name
                 let parentKey = next.parent.joined(separator: "/")
-                let name = try availableDownloadName(proposed, occupied: names[parentKey] ?? [])
-                names[parentKey, default: []].insert(name)
+                let name = try availableDownloadName(proposed, occupiedKeys: names[parentKey] ?? [])
+                names[parentKey, default: []].insert(downloadNameKey(name))
                 let components = next.parent + [name]
                 items.append(DownloadItem(file: file, components: components))
                 await progress(BatchProgress(current: display, discovered: items.count, completed: 0, failed: issues.count))

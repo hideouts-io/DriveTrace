@@ -92,7 +92,8 @@ struct InspectorView: View {
             } else if model.selectedFiles.count > 1 {
                 VStack(alignment: .leading, spacing: 16) {
                     Text("\(model.selectedFiles.count) items selected").font(.title2)
-                    Text("Download this selection together. Single-item previews, activity and Trash are available when one item is selected.").font(.callout).foregroundStyle(.secondary)
+                    Text("Download or move this selection to Trash. Preview and activity details are available when one item is selected.").font(.callout).foregroundStyle(.secondary)
+                    Button("Move Selected to Trash…", role: .destructive) { model.prepareTrashSelection(model.selectedFiles) }.disabled(model.busy || model.isDemo || !model.managementGranted).accessibilityIdentifier("trashInspectorSelection")
                     Button("Download Selected…") { model.downloadSelection(model.selectedFiles) }.disabled(model.busy || model.isDemo || !model.managementGranted).accessibilityIdentifier("downloadInspectorSelection")
                 }.padding(22)
             } else { ContentUnavailableView("Select a file", systemImage: "sidebar.right", description: Text("Metadata, sharing and evidence appear here.")).padding(.top, 70) }

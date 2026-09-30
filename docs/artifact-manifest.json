@@ -1,12 +1,13 @@
 {
-  "verified_at": "2026-09-30T06:42:35.866165+00:00",
-  "executable_sha256": "3c4751c79026d3de02795c29d2896f36e356960c55c4f58865e5c6753760cb8a",
-  "zip_sha256": "3f473e4d685198fd5a1582a30a1683fa2744b4b392a200a1041532861a8ddf0e",
+  "verified_at": "2026-09-30T06:57:51.665054+00:00",
+  "executable_sha256": "1a45b433c65fe9c4ce470b2e1f5564b6c698c7577224bd0424ca6f961bdd1ffe",
+  "zip_sha256": "31f07b625a4e63ce90447f3bfa2f97aa495026a08ac260cd465e57ab09827fd4",
   "logo_sha256": "6312cce90437a33b45f9aea20003ff57328cd0a080c8210ee1691a3a2556b923",
-  "test_summary": "\u2714 Test run with 51 tests in 1 suite passed after 0.423 seconds.",
+  "test_summary": "\u2714 Test run with 53 tests in 1 suite passed after 0.409 seconds.",
   "signature": "Ad-hoc; all-architecture strict verification passed on generated and extracted archive bundles",
   "architecture": "universal arm64/x86_64",
   "google_account_validation": "partial: saved connection and user-corpus collection observed; inspector live-item Trash confirmation opened and cancelled with a saved management grant; real trash/restore and complete tenant coverage unverified",
   "dock_icon_sha256": "a9e363928aaa257b940e65eea297a168834da77e16b4de3aa654c567193d4342",
-  "download_validation": "synthetic API and real-filesystem batch tests passed; native toolbar and active three-item batch progress observed; live completion, whole-folder UI and external volumes unverified"
+  "download_validation": "synthetic API and real-filesystem batch tests passed; native toolbar and active three-item batch progress observed; live completion, whole-folder UI and external volumes unverified",
+  "bulk_trash_validation": "53-test suite passed, including synthetic partial failure and cancellation; native Shift+Down selected two rows and live two-item review opened/cancelled without mutation; real bulk trash/restore unverified"
 }

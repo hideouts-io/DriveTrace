@@ -54,6 +54,9 @@ struct ContentView: View {
                     Button { model.downloadSelection(model.selectedFiles) } label: { Label("Download Selected…", systemImage: "arrow.down.to.line") }
                         .disabled(model.selectedFiles.isEmpty || model.busy || model.searching || model.isDemo || !model.managementGranted)
                         .accessibilityIdentifier("downloadSelectedItems")
+                    Button { model.prepareTrashSelection(model.selectedFiles) } label: { Label("Move Selected to Trash…", systemImage: "trash") }
+                        .disabled(model.selectedFiles.isEmpty || model.busy || model.searching || model.isDemo || !model.managementGranted)
+                        .accessibilityIdentifier("trashSelectedItems")
                     Button(action: model.sync) { Label("Refresh", systemImage: "arrow.clockwise") }.disabled(model.busy || (!model.connected && !model.isDemo)).accessibilityIdentifier("refreshDrive")
                     Button { model.showFilters.toggle() } label: { Label("Filters", systemImage: "line.3.horizontal.decrease.circle") }.accessibilityIdentifier("showFilters")
                     Menu { ForEach(ExportFormat.allCases, id: \.self) { format in Button(format.rawValue.uppercased()) { model.export(format) } } } label: { Label("Export", systemImage: "square.and.arrow.up") }.disabled(model.searching || model.selection == "history" || (model.selection == "activity" ? model.filteredEvents.isEmpty : model.results.isEmpty)).accessibilityIdentifier("exportFiles")
@@ -65,6 +68,7 @@ struct ContentView: View {
             FilePreviewView(preview: item).onDisappear { model.removePreview(item) }
         }
         .sheet(item: $model.batchDownload) { _ in BatchDownloadView(model: model) }
+        .sheet(item: $model.pendingBatchTrash) { _ in BatchTrashView(model: model) }
         .sheet(item: $model.pendingTrash) { file in TrashConfirmationView(file: file, model: model) }
         .onChange(of: model.selection) { _, _ in model.updateResults() }
         .onChange(of: model.filter) { _, _ in model.serverResults = nil; model.updateResults() }
