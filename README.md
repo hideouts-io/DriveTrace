@@ -138,6 +138,18 @@ The `.app` is for local use. It is not notarized or signed with a Developer ID; 
 
 Choose **Explore demo** to use synthetic data without credentials. Demo is a separate SQLite workspace; its files do not open in Google Drive. The app remembers demo mode, saved searches, watch rules, notification preference and appearance.
 
+### Preparing a signed distribution — not verified yet
+
+The preview still runs locally without a Developer ID. A prepared `script/notarize.sh` workflow signs a separate copy, uploads that copy to Apple, waits for acceptance, staples the ticket, and verifies the final extracted ZIP. It never publishes a GitHub release or changes the running preview. Its preflight and local ad-hoc signing checks pass; **Developer ID signing, Apple submission and end-user Gatekeeper launch remain unverified**.
+
+1. Install your **Developer ID Application** certificate and its private key locally using Xcode or Keychain Access. Find its certificate SHA-1 with `security find-identity -v -p codesigning`. This host currently has no such identity.
+2. In your own Terminal, run `xcrun notarytool store-credentials "DriveExplorer-notary"` and complete Apple's secure prompts. Keep the credentials in Keychain; never paste them into chat, command arguments or Git.
+3. Quit the app, run `./script/test.sh` and `./script/build.sh`, and review the generated app before uploading it.
+4. Explicitly run `./script/notarize.sh "YOUR_40_CHARACTER_CERTIFICATE_SHA1" "DriveExplorer-notary"`. This is the step that uploads the signed app to Apple. Output and private diagnostics stay under `~/Library/Caches/DriveExplorerBuild/notarization.*`.
+5. Only a successful run reports the final `DriveExplorer.zip` and `SHA256SUMS`. A timeout may leave a submission processing at Apple; inspect its local `submission.json` and use `notarytool info`/`log` before resubmitting. Test the final archive on a separate Gatekeeper-enabled Mac, including supported older macOS/Intel machines, before distribution.
+
+Follow [Apple's notarization workflow](https://developer.apple.com/documentation/security/customizing-the-notarization-workflow) and [Developer ID requirements](https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution). Notarization does not validate Google consent, API coverage or accessibility.
+
 ## Connect your Google account
 
 Open **Drive Explorer → Settings** (`⌘,`) → **Connect Google Drive…**, or use the welcome-screen button. The native guide stays open beside your browser and separates configuration saved, sign-in saved, and a completed sync in the current session. Advancing a page does not claim the Cloud project was verified. Instructions were checked against official Google documentation on **2026-09-29**.
@@ -230,7 +242,7 @@ This is the working roadmap. Unchecked items are **not done yet** and have no pr
 - [x] **Ancestor navigation:** clickable breadcrumbs with shared-root, unknown-parent, and cycle handling.
 - [ ] **Accessibility audit — partial:** keyboard navigation, Cmd-F focus, invalid-input recovery, named search fields and directional sort/watch labels checked in the native app. Full VoiceOver spoken-output review remains unverified.
 - [ ] **Compatibility — partial:** universal arm64/x86_64 release compilation and archive verification pass. Native runtime is checked on this Apple silicon host only; older macOS and Intel hardware runs remain unverified.
-- [ ] **Distribution — partial:** build-only packaging, fresh bundle staging, universal architecture/resource/signature checks and extracted-ZIP verification are automated. Developer ID signing/notarization and a distributed release remain blocked; this host has no Developer ID Application identity.
+- [ ] **Distribution — partial:** build-only packaging, fresh bundle staging, universal architecture/resource/signature checks and extracted-ZIP verification are automated. A separate signing/notarization script is prepared with tested fail-closed preflight and ad-hoc signing smoke checks. Developer ID signing, Apple submission and a distributed release remain unverified/blocked; this host has no Developer ID Application identity.
 - [x] **Optional Workspace Events assessment:** reviewed current Google requirements; retain foreground polling for this preview. The optional adapter is deferred pending a project/infrastructure decision and live access; see below. No adapter or always-on agent exists.
 
 ### Optional Workspace Events assessment

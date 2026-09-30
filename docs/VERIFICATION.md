@@ -34,6 +34,12 @@ The measured bounds do not cover deep folder hierarchies, huge historical snapsh
 
 The generated executable is universal arm64/x86_64; both slices compile and pass signature/architecture checks. Native launch is verified on Apple silicon. Developer ID signing, notarization, sandbox distribution and Intel/older-macOS runtime are **unverified / not supplied**. A read-only identity check found zero Developer ID Application identities on this host. No signing credentials were requested or exported. Source publication is separate from binary distribution; no signed/notarized release is supplied and the build does not install the app.
 
+### Distribution workflow preparation — partial
+
+`script/notarize.sh` requires an explicit Developer ID Application certificate SHA-1 and an existing notarytool Keychain profile. It checks the identity before signing/uploading, operates on a separate copy, requires Apple's `Accepted` result, staples/validates the ticket, and assesses both the app and the extracted final archive with Gatekeeper. It preserves private failure diagnostics locally and never publishes a release. Setup and invocation are in the [README distribution instructions](../README.md#preparing-a-signed-distribution--not-verified-yet).
+
+Verified locally: zsh syntax; missing arguments, malformed certificate input and absent signing identity fail before upload; the Developer ID code requirement rejects the current ad-hoc preview; a temporary copy accepts ad-hoc hardened-runtime signing and passes both-architecture/resource/signature checks. The original preview's executable hash is unchanged afterward. No certificate, password or token was requested/exported, no notarytool authentication was attempted, and nothing was uploaded to Apple. The real Developer ID, timestamping, Apple processing, stapling and Gatekeeper success paths remain **unverified**. Script preparation does not complete the distribution roadmap.
+
 ## Verified in the rendered native app
 
 Computer-use checks used native accessibility identifiers, container IDs and app keyboard commands. The actual app, not a browser mockup, was inspected.
