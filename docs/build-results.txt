@@ -1,10 +1,15 @@
 Building for production...
-[2 / 16]
-[4 / 18] DriveCore
-[8 / 20] DriveCore
-Build complete! (5.90 sec)
-~/Library/Caches/DriveExplorerBuild/package.xQmet9/DriveExplorer.app: replacing existing signature
+[Planning deferred tasks]
+[9 / 32]
+[11 / 34] DriveCore
+[15 / 36] DriveCore
+[22 / 31] DriveExplorer-product
+[26 / 33] DriveExplorer-product
+[30 / 33] DriveExplorer-product
+[32 / 33] DriveExplorer-product
+Build complete! (14.58 sec)
+~/Library/Caches/DriveExplorerBuild/package.B0kHNs/DriveExplorer.app: replacing existing signature
 Verified both architectures, signature, bundle identity, minimum OS, icon, canonical logo and license.
 Verified both architectures, signature, bundle identity, minimum OS, icon, canonical logo and license.
-ec14d52f08683899aeab38c9061266dfa0f0e262eecdef8cb399c664d169798d  DriveExplorer.zip
+6474ae80c1087b8657e6455544d7939440f496fbdaccbf66b28a52fd6c8e22e7  DriveExplorer.zip
 Packaged universal ad-hoc preview. Developer ID signing and notarization are not performed.

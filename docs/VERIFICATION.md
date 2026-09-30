@@ -4,7 +4,7 @@ Verified 2026-09-29 on macOS 27.0 (26A428), Apple silicon, Swift 6.4. This is a 
 
 ## Implemented and automated
 
-`./script/test.sh` passes **34 Swift Testing tests**, zero failures. The XCTest wrapper prints “0 tests”; the following Swift Testing result is the actual 34-test run. Full output: `test-results.txt`.
+`./script/test.sh` passes **36 Swift Testing tests**, zero failures. The XCTest wrapper prints “0 tests”; the following Swift Testing result is the actual 36-test run. Full output: `test-results.txt`.
 
 Coverage includes:
 
@@ -14,7 +14,7 @@ Coverage includes:
 - Rejected malformed/reversed date and size ranges before local/remote queries, offset-aware numeric date sorting, cancelled sorting, prepared folder trees with cycle termination and unresolved paths.
 - Exact actor/resource attribution, source deduplication, removal as inaccessibility, compound filters, query escaping, unknown-size ordering, cycles and unresolved paths.
 - CSV, JSON and JSONL file/event exports, formula-leading cells, absent sizes, source/actor preservation, RFC3339 round-trips and offset-aware time comparisons.
-- Desktop-client configuration rejection (malformed, Web, service account, invalid ID, oversize), optional secret and extra-field acceptance, S256 PKCE and state parameters; a real local TCP OAuth callback rejects the wrong state, accepts the right code, and terminates on cancellation. No Google token is used by these tests.
+- Desktop-client configuration rejection (malformed, Web, service account, invalid ID, oversize), optional secret and extra-field acceptance, S256 PKCE and state parameters; a real local TCP OAuth callback rejects the wrong state, accepts the right code, and terminates on cancellation. Token-envelope tests reject missing/wrong-type fields, invalid lifetime/type, empty tokens and either missing read-only scope without exposing credential values in errors. Offline sign-in requires a refresh token; renewal retains the previous refresh token when omitted or uses the returned replacement. This follows [Google’s native-app token and granted-scope contract](https://developers.google.com/identity/protocols/oauth2/native-app). No Google token or real Keychain token lifecycle is used by these tests.
 - Watch batching against real SQLite: duplicate record IDs, moved-out parent evidence, cooldown boundary, pending records surviving reopen without acknowledgement, and atomic acknowledgement that preserves later queued records. Disabled rules do not become due; invalid stored delivery times fail explicitly. Authorization gating accepts authorized/provisional states and rejects denied/not-requested states before submission. This does not test macOS delivery.
 - A 10,000-file SQLite stage/promote/load/filter/sort scenario. The measured test duration is recorded in `test-results.txt`; it was approximately 0.4 seconds on this host. This is not a GUI benchmark or a million-file scalability claim.
 
@@ -55,7 +55,7 @@ Computer-use checks used native accessibility identifiers, container IDs and app
 | Observed history | Cmd-9 loaded 91 synthetic observations; invalid RFC3339 showed a specific error, a pre-index cutoff showed zero items, and Now restored the set. Searched Archive, browsed its 17 recorded children (including a trashed item), inspected raw observation JSON, and navigated to Research using its breadcrumb. |
 | Current breadcrumbs | Double-clicked Archive from file search, then clicked Research in its trail; the current Research view showed 18 items. |
 | Native CSV save | Saved `/tmp/drive-explorer-demo-export.csv`; parsed 84 rows, largest size 6,828,300,000 bytes, blank missing-size fields. |
-| Guided connection | Opened from Settings, inspected all five steps and scope URLs, verified missing-client sign-in and demo synchronization are disabled. Imported a synthetic invalid Web-client JSON through the native sheet: actionable error stayed in the guide and the client remained not imported. No credentials entered. |
+| Guided connection | Opened from Settings, inspected all five steps and scope URLs, verified missing-client sign-in and demo synchronization are disabled. Imported a synthetic invalid Web-client JSON through the native sheet: actionable error stayed in the guide and the client remained not imported. Updated step 4 explains selecting both read-only permissions and preserving a prior saved sign-in on incomplete consent; checked in the rendered app. No credentials entered. |
 | Settings | Permission status read from macOS; Test notification without authorization displayed a specific corrective message in the pinned, visible error panel. Check permission refreshed the state. No permission prompt accepted or Google account used. Banner delivery and the foreground delegate remain unverified at runtime. |
 
 Screenshots in `screenshots/` are direct captures from the Swift app: welcome, largest files, advanced search, activity, observed history, storage light, storage dark and Google setup. They use synthetic names and `example.test` identities only. They were not composited or edited.

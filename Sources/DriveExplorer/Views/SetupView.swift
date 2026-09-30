@@ -103,6 +103,7 @@ struct SetupView: View {
             Link("Google’s Desktop OAuth instructions", destination: URL(string: "https://developers.google.com/identity/protocols/oauth2/native-app")!)
         case .signIn:
             instruction("Continue in your browser", "Sign in with the account allowed by your project’s audience. Check the app identity and requested read-only access before consenting. Return here after the browser callback. The app waits up to three minutes; cancel and retry if you run out of time.")
+            instruction("Select both read-only permissions", "Allow Drive metadata and Drive activity on the consent screen. This preview needs both to connect. If either is missing, the app explains which permission was declined and keeps the previous saved sign-in unchanged. No write permission is requested.")
             Button(model.connected ? "Sign in again…" : "Sign in with Google…", action: model.connect).buttonStyle(.borderedProminent).disabled(model.busy || !model.hasClient).accessibilityIdentifier("connectGoogle")
             if !model.hasClient { Text("Import your Desktop JSON in step 3 to enable sign-in.").foregroundStyle(.secondary) }
             Text(model.connected ? "A sign-in is saved in Keychain. Step 5 checks current access to both APIs." : "No sign-in is saved yet.")
@@ -130,6 +131,7 @@ struct SetupView: View {
         VStack(alignment: .leading, spacing: 12) {
             instruction("API disabled / accessNotConfigured / SERVICE_DISABLED", "Enable both APIs in the project that created this Desktop client. Wait for Google’s change to propagate, then retry synchronization. A partial scan is not a verified connection.")
             instruction("access_denied / 403 during consent", "Check the selected account against Audience → Test users. Review the granted scopes. A Workspace administrator may need to allow this app. A file-level 403 can instead mean the account cannot access that item.")
+            instruction("Required read-only permission not granted", "Sign in again and select both Drive metadata and Drive activity permissions. The app checks the returned scopes before replacing tokens. A successful consent screen alone does not prove both APIs are accessible; complete step 5 afterward.")
             instruction("invalid_client / redirect_uri_mismatch", "Create and import a Desktop app client from the intended project. Do not reuse a Web client or manually add a web redirect. The app uses a temporary localhost callback.")
             instruction("invalid_grant / sign-in stops after a week", "Sign in again. Grants can be revoked or expire; External Testing projects normally expire Drive refresh tokens after seven days. Do not change your system clock to work around this.")
             instruction("Browser timeout / couldn’t connect to localhost", "Keep the app open during sign-in. Cancel and start a fresh attempt, completing it within three minutes. Check whether local security software blocks the app’s 127.0.0.1 callback; do not disable protections broadly.")

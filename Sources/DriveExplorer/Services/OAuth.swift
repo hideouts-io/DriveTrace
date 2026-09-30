@@ -19,9 +19,6 @@ struct OAuthConfiguration: Codable, Sendable {
 struct OAuthToken: Codable, Sendable {
     let access: String; let refresh: String; let expires: Date
 }
-struct TokenResponse: Decodable, Sendable {
-    let access_token: String; let expires_in: Int; let refresh_token: String?
-}
 
 actor Credentials: TokenProvider {
     private let service = "local.driveexplorer.oauth"
@@ -66,8 +63,8 @@ actor Credentials: TokenProvider {
         var fields = ["client_id": configuration.installed.client_id, "code": code, "code_verifier": verifier, "redirect_uri": redirect, "grant_type": "authorization_code"]
         if let secret = configuration.installed.client_secret { fields["client_secret"] = secret }
         let response = try await Self.fetch(fields)
-        guard let refresh = response.refresh_token else { throw MonitorError.authentication("Google did not return an offline refresh token. Reconnect and grant consent.") }
-        let value = OAuthToken(access: response.access_token, refresh: refresh, expires: Date().addingTimeInterval(Double(response.expires_in)))
+        let value = try response.offlineToken(now: Date())
+        try Task.checkCancellation()
         try write("token", data: JSONEncoder().encode(value)); token = value
     }
     func accessToken(forceRefresh: Bool) async throws -> String {
@@ -78,11 +75,13 @@ actor Credentials: TokenProvider {
             var fields = ["client_id": configuration.installed.client_id, "refresh_token": token.refresh, "grant_type": "refresh_token"]
             if let secret = configuration.installed.client_secret { fields["client_secret"] = secret }
             let response = try await Self.fetch(fields)
-            return OAuthToken(access: response.access_token, refresh: response.refresh_token ?? token.refresh, expires: Date().addingTimeInterval(Double(response.expires_in)))
+            try Task.checkCancellation()
+            return response.renewedToken(previous: token, now: Date())
         }
         refreshTask = task
         defer { refreshTask = nil }
         let refreshed = try await task.value
+        try Task.checkCancellation()
         try write("token", data: JSONEncoder().encode(refreshed)); self.token = refreshed
         return refreshed.access
     }
@@ -104,7 +103,7 @@ actor Credentials: TokenProvider {
                 try await Task.sleep(for: .seconds(pow(2, Double(attempt)))); continue
             }
             guard let http = response as? HTTPURLResponse else { throw MonitorError.authentication("Token endpoint returned a non-HTTP response.") }
-            if http.statusCode == 200 { return try JSONDecoder().decode(TokenResponse.self, from: data) }
+            if http.statusCode == 200 { return try TokenResponse.load(data) }
             if attempt < 3, [429, 500, 502, 503, 504].contains(http.statusCode) {
                 logger.warning("OAuth service retry attempt=\(attempt + 1) status=\(http.statusCode)")
                 try await Task.sleep(for: .seconds(pow(2, Double(attempt)))); continue
@@ -140,6 +139,6 @@ func randomURLToken() throws -> String {
 func authorizationURL(clientID: String, redirect: String, state: String, verifier: String) -> URL {
     let challenge = Data(SHA256.hash(data: Data(verifier.utf8))).base64EncodedString().replacingOccurrences(of: "+", with: "-").replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "=", with: "")
     var url = URLComponents(string: "https://accounts.google.com/o/oauth2/v2/auth")!
-    url.queryItems = ["client_id": clientID, "redirect_uri": redirect, "response_type": "code", "scope": "https://www.googleapis.com/auth/drive.metadata.readonly https://www.googleapis.com/auth/drive.activity.readonly", "access_type": "offline", "prompt": "consent", "state": state, "code_challenge": challenge, "code_challenge_method": "S256"].sorted { $0.key < $1.key }.map { URLQueryItem(name: $0.key, value: $0.value) }
+    url.queryItems = ["client_id": clientID, "redirect_uri": redirect, "response_type": "code", "scope": requiredDriveScopes.joined(separator: " "), "access_type": "offline", "prompt": "consent", "state": state, "code_challenge": challenge, "code_challenge_method": "S256"].sorted { $0.key < $1.key }.map { URLQueryItem(name: $0.key, value: $0.value) }
     return url.url!
 }
