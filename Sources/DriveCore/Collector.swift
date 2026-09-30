@@ -6,23 +6,18 @@ public struct SyncProgress: Sendable {
 }
 public struct SyncResult: Sendable { public let drives: [SharedDrive]; public let gaps: [String] }
 public func synchronize(client: GoogleClient, database: Database, progress: @Sendable (SyncProgress) async -> Void) async throws -> SyncResult {
-    var drives: [SharedDrive] = []; var page: String?; var visited: Set<String> = []
-    repeat {
-        let response = try await client.drives(page: page); drives += response.drives ?? []; page = response.nextPageToken
-        if let page, !visited.insert(page).inserted { throw MonitorError.invalid("Shared Drives pagination repeated a cursor.") }
-    } while page != nil
-    var gaps: [String] = []
+    // The Shared Drive directory endpoint requires content-readable OAuth scopes.
+    // Discover only drive IDs observed in metadata and retain earlier observations.
+    var drives: [SharedDrive] = []
     if let stored = try await database.setting("drives") {
-        let previous = try JSONDecoder().decode([SharedDrive].self, from: Data(stored.utf8))
-        let currentIDs = Set(drives.map(\.id))
-        for missing in previous where !currentIDs.contains(missing.id) {
-            try await database.retireScope(missing.id)
-            gaps.append("Shared Drive \(missing.name) is no longer listed. Its scope cache/cursor were retired; local history was retained.")
-        }
+        drives = try JSONDecoder().decode([SharedDrive].self, from: Data(stored.utf8))
     }
-    try await database.setSetting("drives", value: encoded(drives))
-    let scopes: [(String, String?)] = [("user", nil)] + drives.map { ($0.id, Optional($0.id)) }
-    for (stream, drive) in scopes {
+    var gaps: [String] = []; var page: String?; var visited: Set<String> = []
+    var scopes: [(String, String?)] = [("user", nil)]
+    var scopeIndex = 0
+    while scopeIndex < scopes.count {
+        let (stream, drive) = scopes[scopeIndex]
+        scopeIndex += 1
         try Task.checkCancellation()
         do {
             if try await database.cursor(stream) == nil {
@@ -53,6 +48,26 @@ public func synchronize(client: GoogleClient, database: Database, progress: @Sen
             }
         } catch is CancellationError { throw CancellationError() }
         catch { gaps.append("Scope \(stream): \(error.localizedDescription)") }
+        if drive == nil {
+            let observedIDs = Set(try await database.files().compactMap(\.driveId))
+            let knownIDs = Set(drives.map(\.id))
+            drives += observedIDs.subtracting(knownIDs).sorted().map { SharedDrive(id: $0, name: "Shared Drive · " + $0) }
+            // Persist discoveries before root lookups so failures never erase known scopes.
+            try await database.setSetting("drives", value: encoded(drives))
+            for index in drives.indices {
+                try Task.checkCancellation()
+                do {
+                    let root = try await client.file(id: drives[index].id)
+                    guard root.id == drives[index].id, root.mimeType == "application/vnd.google-apps.folder" else {
+                        throw MonitorError.invalid("Shared Drive root metadata did not identify the requested folder.")
+                    }
+                    drives[index] = SharedDrive(id: root.id, name: root.name)
+                } catch is CancellationError { throw CancellationError() }
+                catch { gaps.append("Shared Drive root \(drives[index].id): \(error.localizedDescription)") }
+            }
+            try await database.setSetting("drives", value: encoded(drives))
+            scopes += drives.map { ($0.id, Optional($0.id)) }
+        }
     }
     for (stream, ancestor) in [("user", "root")] + drives.map({ ($0.id, $0.id) }) {
         do {

@@ -51,11 +51,6 @@ public actor GoogleClient {
         let file = try await request("files/\(id)", query: ["supportsAllDrives": "true", "fields": Self.fileFields], body: nil, type: DriveFile.self)
         try validateFile(file); return file
     }
-    public func drives(page: String?) async throws -> DrivePage {
-        var query = ["pageSize": "100", "fields": "nextPageToken,drives(id,name)"]
-        if let page { query["pageToken"] = page }
-        return try await request("drives", query: query, body: nil, type: DrivePage.self)
-    }
     public func startToken(drive: String?) async throws -> String {
         var query = ["supportsAllDrives": "true"]
         if let drive { query["driveId"] = drive }

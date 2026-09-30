@@ -49,7 +49,6 @@ public struct Permission: Codable, Hashable, Sendable {
 }
 public struct SharedDrive: Codable, Identifiable, Hashable, Sendable { public let id: String; public let name: String }
 public struct FilePage: Decodable, Sendable { public let files: [DriveFile]?; public let nextPageToken: String?; public let incompleteSearch: Bool? }
-public struct DrivePage: Decodable, Sendable { public let drives: [SharedDrive]?; public let nextPageToken: String? }
 public struct StartPage: Decodable, Sendable { public let startPageToken: String }
 public struct Change: Codable, Sendable {
     public let changeType: String; public let time: String; public let fileId: String?

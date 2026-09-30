@@ -51,7 +51,6 @@ func fixtureClient(_ tokens: FixtureTokens) -> GoogleClient {
 @Suite(.serialized) struct GoogleIntegrationTests {
     @Test func fullSyncPaginatesAndResumes() async throws {
         await FixtureProtocol.fixture.prepare([
-            (200, #"{"drives":[]}"#),
             (200, #"{"startPageToken":"initial"}"#),
             (200, #"{"files":[{"id":"a","name":"Alpha","mimeType":"text/plain"}],"nextPageToken":"files2"}"#),
             (200, #"{"files":[{"id":"b","name":"Beta","mimeType":"text/plain"}]}"#),
@@ -64,18 +63,52 @@ func fixtureClient(_ tokens: FixtureTokens) -> GoogleClient {
         let result = try await synchronize(client: client, database: db) { _ in }
         #expect(result.gaps.isEmpty); #expect(try await db.files().count == 2); #expect(try await db.cursor("user") == "durable")
         let requests = await FixtureProtocol.fixture.allRequests()
-        #expect(requests.count == 8)
-        #expect(requests[4].url?.query?.contains("pageToken=initial") == true)
+        #expect(requests.count == 7)
+        #expect(requests.allSatisfy { $0.url?.path != "/drive/v3/drives" })
+        #expect(requests[3].url?.query?.contains("pageToken=initial") == true)
         #expect(try await db.setting("activity.watermark.user") != nil)
-        await FixtureProtocol.fixture.prepare([(200, #"{"drives":[]}"#), (200, #"{"changes":[],"newStartPageToken":"resumed"}"#), (200, #"{"activities":[]}"#)])
+        await FixtureProtocol.fixture.prepare([(200, #"{"changes":[],"newStartPageToken":"resumed"}"#), (200, #"{"activities":[]}"#)])
         _ = try await synchronize(client: client, database: db) { _ in }
         #expect(try await db.cursor("user") == "resumed")
-        #expect(await FixtureProtocol.fixture.allRequests().count == 3)
+        #expect(await FixtureProtocol.fixture.allRequests().count == 2)
+        try await db.close()
+    }
+    @Test func metadataDiscoveryRetainsKnownDrivesWhenRootBecomesUnavailable() async throws {
+        await FixtureProtocol.fixture.prepare([
+            (200, #"{"startPageToken":"user-start"}"#),
+            (200, #"{"files":[{"id":"shared-file","name":"Shared file","mimeType":"text/plain","driveId":"team"}]}"#),
+            (200, #"{"changes":[],"newStartPageToken":"user-next"}"#),
+            (200, #"{"id":"team","name":"Team","mimeType":"application/vnd.google-apps.folder"}"#),
+            (200, #"{"startPageToken":"team-start"}"#),
+            (200, #"{"files":[]}"#),
+            (200, #"{"changes":[],"newStartPageToken":"team-next"}"#),
+            (200, #"{"activities":[]}"#), (200, #"{"activities":[]}"#)
+        ])
+        let (db, _) = try temporaryDatabase(); let client = fixtureClient(FixtureTokens())
+        let first = try await synchronize(client: client, database: db) { _ in }
+        #expect(first.gaps.isEmpty); #expect(first.drives.map(\.name) == ["Team"])
+        let requests = await FixtureProtocol.fixture.allRequests()
+        #expect(requests.count == 9)
+        #expect(requests.allSatisfy { $0.url?.path != "/drive/v3/drives" })
+        #expect(requests[5].url?.query?.contains("corpora=drive") == true)
+        #expect(requests[5].url?.query?.contains("driveId=team") == true)
+        await FixtureProtocol.fixture.prepare([
+            (200, #"{"changes":[{"changeType":"file","time":"2026-09-29T12:00:00Z","fileId":"shared-file","removed":true}],"newStartPageToken":"user-resumed"}"#),
+            (403, #"{"error":{"message":"Root unavailable"}}"#),
+            (200, #"{"changes":[],"newStartPageToken":"team-resumed"}"#),
+            (200, #"{"activities":[]}"#), (200, #"{"activities":[]}"#)
+        ])
+        let second = try await synchronize(client: client, database: db) { _ in }
+        #expect(second.gaps.count == 1); #expect(second.gaps[0].contains("Root unavailable"))
+        #expect(second.drives.map(\.id) == ["team"]); #expect(try await db.files().isEmpty)
+        #expect(try await db.cursor("user") == "user-resumed")
+        #expect(try await db.cursor("team") == "team-resumed")
+        #expect(await FixtureProtocol.fixture.allRequests().count == 5)
         try await db.close()
     }
     @Test func repeatedPageDoesNotPromotePartialIndex() async throws {
         await FixtureProtocol.fixture.prepare([
-            (200, #"{"drives":[]}"#), (200, #"{"startPageToken":"initial"}"#),
+            (200, #"{"startPageToken":"initial"}"#),
             (200, #"{"files":[],"nextPageToken":"repeat"}"#), (200, #"{"files":[],"nextPageToken":"repeat"}"#),
             (200, #"{"activities":[]}"#)
         ])
@@ -85,7 +118,7 @@ func fixtureClient(_ tokens: FixtureTokens) -> GoogleClient {
         try await db.close()
     }
     @Test func incompleteSearchPreservesPreviousEvidence() async throws {
-        await FixtureProtocol.fixture.prepare([(200, #"{"drives":[]}"#), (200, #"{"startPageToken":"initial"}"#), (200, #"{"files":[],"incompleteSearch":true}"#), (403, #"{"error":{"message":"Activity disabled"}}"#)])
+        await FixtureProtocol.fixture.prepare([(200, #"{"startPageToken":"initial"}"#), (200, #"{"files":[],"incompleteSearch":true}"#), (403, #"{"error":{"message":"Activity disabled"}}"#)])
         let (db, _) = try temporaryDatabase()
         let result = try await synchronize(client: fixtureClient(FixtureTokens()), database: db) { _ in }
         #expect(result.gaps.count == 2); #expect(try await db.cursor("user") == nil)
@@ -93,15 +126,15 @@ func fixtureClient(_ tokens: FixtureTokens) -> GoogleClient {
         try await db.close()
     }
     @Test func authAndRateLimitRetriesThenSucceeds() async throws {
-        await FixtureProtocol.fixture.prepare([(401, #"{"error":"expired"}"#), (429, #"{"error":"limited"}"#), (200, #"{"drives":[]}"#)])
+        await FixtureProtocol.fixture.prepare([(401, #"{"error":"expired"}"#), (429, #"{"error":"limited"}"#), (200, #"{"files":[]}"#)])
         let tokens = FixtureTokens()
-        _ = try await fixtureClient(tokens).drives(page: nil)
+        _ = try await fixtureClient(tokens).files(query: "", drive: nil, page: nil)
         #expect(await tokens.refreshCount() == 1)
         #expect(await FixtureProtocol.fixture.allRequests().count == 3)
     }
     @Test func exhaustedRetriesSurfaceLastError() async throws {
         await FixtureProtocol.fixture.prepare(Array(repeating: (503, #"{"error":"fixture-unavailable"}"#), count: 4))
-        await #expect(throws: MonitorError.self) { try await fixtureClient(FixtureTokens()).drives(page: nil) }
+        await #expect(throws: MonitorError.self) { try await fixtureClient(FixtureTokens()).files(query: "", drive: nil, page: nil) }
         #expect(await FixtureProtocol.fixture.allRequests().count == 4)
     }
     @Test func cancelledSyncDoesNotRequestPages() async throws {

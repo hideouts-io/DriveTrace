@@ -113,7 +113,7 @@ struct SetupView: View {
             Button("Run synchronization", action: model.sync).buttonStyle(.borderedProminent).disabled(model.busy || !model.connected || model.isDemo).accessibilityIdentifier("setupSync")
             if model.isDemo { Text("You are viewing synthetic demo data. Sign in in step 4 to switch to your account workspace.").foregroundStyle(.secondary) }
             else if model.syncVerified {
-                Label("Both API collection stages completed without reported gaps in this session.", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+                Label("Collection completed for My Drive and observed Shared Drives without reported gaps in this session.", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
                 Text("\(model.files.count.formatted()) indexed items · \(model.events.count.formatted()) loaded source records. Last complete poll: \(displayDate(model.lastSync)).")
             } else {
                 Text("Current access is not verified by a completed synchronization in this session.").foregroundStyle(.secondary)
@@ -121,7 +121,8 @@ struct SetupView: View {
             }
             if !model.isDemo && !model.gaps.isEmpty { ForEach(model.gaps, id: \.self) { Label($0, systemImage: "exclamationmark.triangle").foregroundStyle(.orange) } }
             instruction("Check the evidence", "Compare a few known files with drive.google.com: folder, name, size and available activity. Newest items can mean created, modified or first discovered; the owner is not proof of who uploaded an item. Missing actors and sizes stay unknown.")
-            Text("A complete poll is not a complete audit history. Activity starts with seven days under My Drive and accessible Shared Drives; shared-with-me items outside those ancestors can lack activity. The Activity screen loads at most 10,000 cached records.").font(.caption).foregroundStyle(.secondary)
+            Text("Shared Drives are discovered from indexed file metadata. Empty or never-observed drives may be absent; previously observed drives remain listed. Directory-wide discovery requires broader Google permissions than this app requests.").font(.caption).foregroundStyle(.secondary)
+            Text("A complete poll is not a complete audit history. Activity starts with seven days under My Drive and observed Shared Drives; shared-with-me items outside those ancestors can lack activity. The Activity screen loads at most 10,000 cached records.").font(.caption).foregroundStyle(.secondary)
         }
     }
     private func instruction(_ title: String, _ body: String) -> some View {
