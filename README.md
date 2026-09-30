@@ -132,7 +132,7 @@ cd drive-explorer-swift
 ./script/build_and_run.sh
 ```
 
-The second command builds Release, derives all macOS icon sizes from the canonical Drive Explorer logo, creates and ad-hoc signs the native bundle, then launches it. `dist/DriveExplorer.app` is a local symbolic link to the verified bundle in the build cache; `dist/DriveExplorer.zip` is the portable archive. The Codex Run action uses the same script. The generated app and build intermediates go to `~/Library/Caches/DriveExplorerBuild` because this machine's Documents file provider attaches metadata that can invalidate strict signature checks on application and test bundles. Only generated application-bundle extended attributes are cleared before signing.
+The second command builds Release, packages the original blue Dock icon, creates and ad-hoc signs the native bundle, then launches it. `dist/DriveExplorer.app` is a local symbolic link to the verified bundle in the build cache; `dist/DriveExplorer.zip` is the portable archive. The Codex Run action uses the same script. The generated app and build intermediates go to `~/Library/Caches/DriveExplorerBuild` because this machine's Documents file provider attaches metadata that can invalidate strict signature checks on application and test bundles. Only generated application-bundle extended attributes are cleared before signing.
 
 The `.app` is for local use. It is not notarized or signed with a Developer ID; do not present it as a distributable release. The build does not install the app or modify Google Drive.
 
@@ -282,7 +282,7 @@ assets/                              Logo generation provenance
 docs/                               Verification, research, parity and demo screenshots
 ```
 
-The canonical logo is used by the README, welcome screen, and generated macOS app icon. Change that source PNG to update future builds; generated icon sizes and bundles are ignored by Git.
+The red Drive Explorer logo is used by the README and welcome screen. The Dock and Finder use the original blue drive icon in `assets/drive-explorer-dock.icns`, recovered from the preserved early app bundle. Packaging copies this icon unchanged and verifies it in both the app and ZIP; generated bundles are ignored by Git.
 
 ## Contributing
 

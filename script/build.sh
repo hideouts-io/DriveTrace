@@ -16,8 +16,7 @@ mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
 cp "$BINARY_DIR/DriveExplorer" "$APP_DIR/Contents/MacOS/DriveExplorer"
 ditto "$BINARY_DIR/DriveMonitorSwift_DriveExplorer.bundle" "$APP_DIR/Contents/Resources/DriveMonitorSwift_DriveExplorer.bundle"
 cp "$PROJECT_DIR/LICENSE" "$APP_DIR/Contents/Resources/LICENSE"
-swift script/make_icon.swift "$PROJECT_DIR/Sources/DriveExplorer/Resources/drive-explorer-logo.png" "$BUILD_DIR/DriveExplorer.iconset"
-iconutil -c icns "$BUILD_DIR/DriveExplorer.iconset" -o "$APP_DIR/Contents/Resources/DriveExplorer.icns"
+cp "$PROJECT_DIR/assets/drive-explorer-dock.icns" "$APP_DIR/Contents/Resources/DriveExplorer.icns"
 cat > "$APP_DIR/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

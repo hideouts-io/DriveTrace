@@ -18,6 +18,7 @@ fi
 if [[ ! -s "$APP_DIR/Contents/Resources/DriveExplorer.icns" ]]; then
   print -u2 "Packaged icon is missing or empty. Rebuild with script/build.sh."; exit 1
 fi
+cmp "$PROJECT_DIR/assets/drive-explorer-dock.icns" "$APP_DIR/Contents/Resources/DriveExplorer.icns"
 cmp "$PROJECT_DIR/LICENSE" "$APP_DIR/Contents/Resources/LICENSE"
 cmp "$PROJECT_DIR/Sources/DriveExplorer/Resources/drive-explorer-logo.png" "$APP_DIR/Contents/Resources/DriveMonitorSwift_DriveExplorer.bundle/Contents/Resources/drive-explorer-logo.png"
 print "Verified both architectures, signature, bundle identity, minimum OS, icon, canonical logo and license."

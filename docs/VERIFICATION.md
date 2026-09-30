@@ -30,7 +30,7 @@ The measured bounds do not cover deep folder hierarchies, huge historical snapsh
 
 ## Packaged native app
 
-`./script/build.sh` builds arm64 and x86_64 Release slices, stages a fresh bundle, generates the icon, ad-hoc signs and checks every architecture. It verifies the bundle identity, minimum OS, icon, canonical PNG and license; then extracts the ZIP into a temporary directory and repeats verification. `./script/build_and_run.sh` closes the existing app, runs packaging and opens the actual app. Build-only packaging refuses to overwrite a running app. `dist/SHA256SUMS` contains the archive checksum. Output: `build-results.txt`. `dist/DriveExplorer.app` links to the generated bundle under `~/Library/Caches/DriveExplorerBuild`; `dist/DriveExplorer.zip` contains the portable `.app`. Build-cache placement avoids this host's Documents file-provider metadata breaking code-signature verification.
+`./script/build.sh` builds arm64 and x86_64 Release slices, stages a fresh bundle, copies the original blue Dock icon, ad-hoc signs and checks every architecture. It verifies the bundle identity, minimum OS, icon, canonical PNG and license; then extracts the ZIP into a temporary directory and repeats verification. `./script/build_and_run.sh` closes the existing app, runs packaging and opens the actual app. Build-only packaging refuses to overwrite a running app. `dist/SHA256SUMS` contains the archive checksum. Output: `build-results.txt`. `dist/DriveExplorer.app` links to the generated bundle under `~/Library/Caches/DriveExplorerBuild`; `dist/DriveExplorer.zip` contains the portable `.app`. Build-cache placement avoids this host's Documents file-provider metadata breaking code-signature verification.
 
 The generated executable is universal arm64/x86_64; both slices compile and pass signature/architecture checks. Native launch is verified on Apple silicon. Developer ID signing, notarization, sandbox distribution and Intel/older-macOS runtime are **unverified / not supplied**. A read-only identity check found zero Developer ID Application identities on this host. No signing credentials were requested or exported. Source publication is separate from binary distribution; no signed/notarized release is supplied and the build does not install the app.
 
@@ -40,7 +40,7 @@ Computer-use checks used native accessibility identifiers, container IDs and app
 
 | Interaction | Observed result |
 | --- | --- |
-| Branding | Canonical PNG rendered on the welcome screen; bundled ICNS generated from the same image. |
+| Branding | Canonical red PNG rendered on the welcome screen; the original blue Dock ICNS is restored byte-for-byte from the preserved early app bundle and checked during packaging. |
 | Onboarding → Explore demo | Clearly labelled separate synthetic workspace, 91 cached items and 160 source records. |
 | File-name search / keyboard | Cmd-F focused search and `Launch` returned 14 matches. Cmd-F from Activity opened All files and focused search; `Research` returned eight. Cmd-3/5/6/7/8/9 opened the expected screens after navigation caching. |
 | Invalid filters | Invalid Created date displayed a specific RFC3339 error and disabled Save search. Clear search removed invalid date and negative size inputs, restoring 89 active demo items. Activity invalid dates displayed an explicit range error. Sort buttons expose direction and current value; watch toggles identify their folder. |

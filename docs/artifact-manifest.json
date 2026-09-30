@@ -1,10 +1,11 @@
 {
-  "verified_at": "2026-09-30T00:29:15.076459+00:00",
-  "executable_sha256": "cc810597abda29f7edd6550255c5ce01b865956e5eeb69dd8b25c07e2b797190",
-  "zip_sha256": "77f5e57b73fdf274a1a25f13063a25ad4139d808d677157c2de6a72616805e07",
+  "verified_at": "2026-09-30T00:35:19.716724+00:00",
+  "executable_sha256": "e7e76171505402e5b4ed9aa5999d8cafc22237b118add54652d5a2da2507dd8b",
+  "zip_sha256": "ec14d52f08683899aeab38c9061266dfa0f0e262eecdef8cb399c664d169798d",
   "logo_sha256": "6312cce90437a33b45f9aea20003ff57328cd0a080c8210ee1691a3a2556b923",
-  "test_summary": "\u2714 Test run with 34 tests in 1 suite passed after 0.412 seconds.",
+  "test_summary": "\u2714 Test run with 34 tests in 1 suite passed after 0.447 seconds.",
   "signature": "Ad-hoc; all-architecture strict verification passed on generated and extracted archive bundles",
   "architecture": "universal arm64/x86_64",
-  "google_account_validation": "not performed"
+  "google_account_validation": "not performed",
+  "dock_icon_sha256": "a9e363928aaa257b940e65eea297a168834da77e16b4de3aa654c567193d4342"
 }
