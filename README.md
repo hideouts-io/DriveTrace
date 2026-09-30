@@ -273,7 +273,7 @@ Subscription lifetimes require renewal: generally up to seven days without resou
 
 **Decision:** defer the optional adapter. It may suit managed deployments with approved infrastructure, but requires live target eligibility, Pub/Sub access, renewal ownership and a privacy/billing review. No cloud resources or IAM grants were created. This API feasibility check is separate from the requested competitor comparison, which remains on hold until the implementation plan is complete.
 
-Additional ideas remain exploratory: explicit Python-cache import, an account switcher, optional People-name resolution, and encrypted local metadata. They are not available today. General editing, permanent deletion, emptying Trash, and Google Drive for desktop transfer-queue monitoring are outside the current implementation. Optional previews and confirmed Move to Trash are described above.
+Additional ideas remain exploratory: explicit Python-cache import, an account switcher, optional People-name resolution, and encrypted local metadata. They are not available today. General editing, permanent deletion, emptying Trash, and Google Drive for desktop transfer-queue monitoring are outside the current implementation. The requested [Empty Trash API and confirmation proposal](docs/EMPTY_TRASH.md) is ready for review; no permanent deletion is implemented. Optional previews and confirmed Move to Trash are described above.
 
 ## Testing and verification
 
