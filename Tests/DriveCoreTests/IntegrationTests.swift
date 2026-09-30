@@ -1,7 +1,16 @@
 import Foundation
 import Testing
+import UserNotifications
 @testable import DriveCore
 @testable import DriveExplorer
+
+@Test func notificationPermissionMustAllowDelivery() throws {
+    try requireNotificationAuthorization(.authorized)
+    try requireNotificationAuthorization(.provisional)
+    for status: UNAuthorizationStatus in [.notDetermined, .denied] {
+        #expect(throws: MonitorError.self) { try requireNotificationAuthorization(status) }
+    }
+}
 
 actor FixtureResponses {
     var requests: [URLRequest] = []

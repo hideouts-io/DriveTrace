@@ -41,6 +41,8 @@ import DriveCore
     var hasClient = false
     var syncVerified = false
     var operationNotice: String?
+    var notificationStatusText = "Checking macOS permission…"
+    var notificationTestNotice: String?
     var ready = false
     private var starting = false
     var lastSync: String?
@@ -270,11 +272,35 @@ import DriveCore
         if enabled { pollTask = Task { while !Task.isCancelled { do { try await Task.sleep(for: .seconds(60)); if !self.busy && !self.isDemo && self.connected { self.sync() } } catch is CancellationError { break } catch { self.error = error.localizedDescription; break } } } }
     }
     func requestNotifications() {
-        run { self.notifications = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]); if !self.notifications { throw MonitorError.invalid("Notifications are disabled. Enable Drive Explorer in macOS System Settings → Notifications.") } }
+        run {
+            self.notifications = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
+            let settings = await UNUserNotificationCenter.current().notificationSettings()
+            self.notificationStatusText = notificationStatus(settings)
+            try requireNotificationAuthorization(settings.authorizationStatus)
+        }
+    }
+    func refreshNotificationStatus() async {
+        notificationStatusText = notificationStatus(await UNUserNotificationCenter.current().notificationSettings())
+    }
+    func testNotification() {
+        run {
+            self.notificationTestNotice = nil
+            let center = UNUserNotificationCenter.current()
+            let settings = await center.notificationSettings()
+            self.notificationStatusText = notificationStatus(settings)
+            try requireNotificationAuthorization(settings.authorizationStatus)
+            let content = UNMutableNotificationContent()
+            content.title = "Drive Explorer notification test"
+            content.body = "This is a local test. No Google account or Drive data was used."
+            content.sound = .default
+            try await center.add(UNNotificationRequest(identifier: "drive-explorer-local-test", content: content, trigger: nil))
+            self.notificationTestNotice = "macOS accepted the test request. Check for a banner or Notification Center entry; acceptance does not prove display. Focus and system notification settings can suppress alerts."
+        }
     }
     private func notify(events: [DriveEvent]) async throws {
         guard notifications, !isDemo else { return }
         guard let database else { throw MonitorError.database("Cannot deliver watch notifications without an open database.") }
+        var deliveries: [(rule: WatchRule, batch: WatchBatch)] = []
         for rule in watches where rule.enabled {
             let pendingKey = "pendingNotifications." + rule.id
             let existing = try await decodeSetting(pendingKey, type: [String].self) ?? []
@@ -283,6 +309,12 @@ import DriveCore
             guard !batch.recordIDs.isEmpty else { continue }
             try await database.setSetting(pendingKey, value: encoded(batch.recordIDs))
             guard batch.deliveryDue else { continue }
+            deliveries.append((rule: rule, batch: batch))
+        }
+        for (rule, batch) in deliveries {
+            let settings = await UNUserNotificationCenter.current().notificationSettings()
+            notificationStatusText = notificationStatus(settings)
+            try requireNotificationAuthorization(settings.authorizationStatus)
             let content = UNMutableNotificationContent(); content.title = "\(rule.name) · \(batch.recordIDs.count) new records"; content.body = "Open Drive Explorer to review the recorded activity."; content.sound = .default
             try await UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil))
             try await database.acknowledgeWatch(ruleID: rule.id, delivered: batch.recordIDs, sentAt: timestamp(Date()))

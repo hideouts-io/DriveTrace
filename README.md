@@ -59,7 +59,7 @@ The app runs directly on macOS with system frameworks. It has no Python service,
 | Local indexing and search | **Implemented / tested** | Real SQLite integration and synthetic file/filter tests, including a 10,000-file integration scenario and separate 100,000-file core benchmark. |
 | Google API integration | **Implemented / live validation not done yet** | Pagination, retries, changes, and Activity have synthetic service-response tests; no real account has been used for validation. |
 | Desktop OAuth | **Implemented / live validation not done yet** | PKCE/state and a real local loopback callback are tested; Google consent and Keychain token lifecycle still need a real account. |
-| Folder notifications | **Implemented / delivery not verified** | Native rules and cooldown behavior are present; actual macOS notification delivery needs testing. |
+| Folder notifications | **Implemented / delivery not verified** | Rules, cooldown, permission status and a local test action are present; actual macOS delivery needs testing. |
 | Historical evidence | **Implemented / locally tested** | Browse folders and inspect last-observed metadata at a chosen cutoff. Missing ancestors and uncertain historical access remain explicit. |
 | Distribution | **Not done yet** | Local ad-hoc signed build only; no Developer ID signing, notarization, or downloadable production release. |
 
@@ -224,7 +224,7 @@ This is the working roadmap. Unchecked items are **not done yet** and have no pr
 
 - [x] **Guided connection:** native project/API, consent, Desktop import, browser sign-in and first-sync instructions with contextual troubleshooting. Cloud configuration and live access still require validation.
 - [ ] **Real-account validation:** consent, refresh/revocation, reconnect, account isolation, My Drive and Shared Drive synchronization, restricted permissions, API quotas and failures.
-- [ ] **Notification validation — partial:** cooldown accumulation, duplicate record IDs, moved-out items and atomic acknowledgement across SQLite reopen are tested. OS permission/delivery, crash between OS acceptance and database acknowledgement, and long-running live polling remain unverified.
+- [ ] **Notification validation — partial:** cooldown accumulation, duplicate record IDs, moved-out items, atomic acknowledgement across SQLite reopen and authorization gating are tested. Settings shows permission status and offers a Google-free test; foreground presentation is implemented. Visible OS delivery, permission changes during delivery, crash between OS acceptance and database acknowledgement, and long-running live polling remain unverified.
 - [x] **Observed hierarchy browser:** navigate retained metadata at a chosen cutoff, with missing-ancestor labels, per-item observation times, search, and raw inspection. Historical existence/access remains unknown; dedicated historical exports are not implemented.
 - [x] **Bounded scale profiling:** 100,000-file core benchmark and 25,000-item native UI check completed, including memory and in-flight sort cancellation. Date sorting improved from 57.16 s to 0.18 s on this host. Deep hierarchies, huge histories and live API throughput remain outside this measured workload. See [measurements and limits](docs/VERIFICATION.md#local-performance-measurements).
 - [x] **Ancestor navigation:** clickable breadcrumbs with shared-root, unknown-parent, and cycle handling.
@@ -247,7 +247,7 @@ Additional ideas remain exploratory: explicit Python-cache import, an account sw
 
 ## Testing and verification
 
-Run `./script/test.sh` for the Swift Testing suite. With the app closed, `./script/build.sh` produces and verifies a universal preview archive without launching it; `./script/build_and_run.sh` rebuilds and launches the app. `./script/verify_bundle.sh /absolute/path/DriveExplorer.app` checks a generated or extracted bundle. `dist/SHA256SUMS` records the ZIP hash. These are repeatable local build steps, not a claim of bit-for-bit reproducibility across toolchain versions. The current verified suite has **33 passing tests**, including real SQLite and loopback integrations plus synthetic Google responses. A passing test suite does not validate a live Google account.
+Run `./script/test.sh` for the Swift Testing suite. With the app closed, `./script/build.sh` produces and verifies a universal preview archive without launching it; `./script/build_and_run.sh` rebuilds and launches the app. `./script/verify_bundle.sh /absolute/path/DriveExplorer.app` checks a generated or extracted bundle. `dist/SHA256SUMS` records the ZIP hash. These are repeatable local build steps, not a claim of bit-for-bit reproducibility across toolchain versions. The current verified suite has **34 passing tests**, including real SQLite and loopback integrations plus synthetic Google responses. A passing test suite does not validate a live Google account.
 
 [Verification](docs/VERIFICATION.md) is the detailed record of checks, screenshots, and remaining gaps. [Research](docs/RESEARCH.md) lists API documentation and projects that informed the design. [Parity](docs/PARITY.md) compares native behavior with the separate development reference.
 
@@ -262,7 +262,7 @@ Run `./script/test.sh` for the Swift Testing suite. With the app closed, `./scri
 | Token revoked or refresh fails | Reconnect through Settings and review the Google grant. Do not paste tokens into issues. |
 | Expired Changes cursor / HTTP 410 | Use the explicit **Rebuild local index** control after reviewing its confirmation; local evidence is cleared as described above. |
 | File size, actor or parent unavailable | Google may omit it, or its scope may not be indexed. Review raw evidence and coverage rather than substituting a guess. |
-| No folder notification | Keep the app running; check the watch rule, cooldown, indexed ancestry, polling and macOS permission. Real delivery remains unverified. |
+| No folder notification | Keep the app running; check the watch rule, cooldown, indexed ancestry and polling. Settings → Monitoring shows macOS permission and provides Test notification without Google. Allow notifications in macOS, check Focus and alert settings, then retry. Real delivery remains unverified. |
 | Build signing fails under a synced folder | Keep the default local build-cache path. The build script avoids file-provider metadata on generated bundles. |
 
 ## Repository structure

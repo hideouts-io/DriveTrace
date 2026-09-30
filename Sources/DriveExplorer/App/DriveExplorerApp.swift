@@ -2,6 +2,7 @@ import SwiftUI
 import AppKit
 
 @main struct DriveExplorerApp: App {
+    @NSApplicationDelegateAdaptor(NotificationDelegate.self) private var notificationDelegate
     @AppStorage("appearance") private var appearance = "system"
     @State private var model = AppModel()
     var body: some Scene {
@@ -40,6 +41,6 @@ import AppKit
             SetupView(model: model)
                 .preferredColorScheme(appearance == "dark" ? .dark : appearance == "light" ? .light : nil)
         }.defaultSize(width: 880, height: 740)
-        Settings { SettingsView(model: model).frame(width: 640, height: 580) }
+        Settings { SettingsView(model: model).frame(width: 680, height: 720) }
     }
 }

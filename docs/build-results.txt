@@ -1,8 +1,15 @@
 Building for production...
-[1 / 2]
-Build complete! (0.34 sec)
-~/Library/Caches/DriveExplorerBuild/package.O5SgPV/DriveExplorer.app: replacing existing signature
+[4 / 18] DriveCore
+[8 / 20] DriveCore
+[14 / 15] DriveExplorer-product
+[15 / 16] DriveExplorer-product
+[17 / 18] DriveExplorer-product
+[18 / 19] DriveExplorer-product
+[23 / 26] DriveExplorer-product
+[25 / 26] DriveExplorer-product
+Build complete! (19.37 sec)
+~/Library/Caches/DriveExplorerBuild/package.eg3yBv/DriveExplorer.app: replacing existing signature
 Verified both architectures, signature, bundle identity, minimum OS, icon, canonical logo and license.
 Verified both architectures, signature, bundle identity, minimum OS, icon, canonical logo and license.
-301a7c821a6313715c118024ee91cc501ffb884ec8edff8117ab839d9759aef7  DriveExplorer.zip
+77f5e57b73fdf274a1a25f13063a25ad4139d808d677157c2de6a72616805e07  DriveExplorer.zip
 Packaged universal ad-hoc preview. Developer ID signing and notarization are not performed.
