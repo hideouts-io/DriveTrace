@@ -151,6 +151,7 @@ func fixtureClient(_ tokens: FixtureTokens) -> GoogleClient {
         let tokens = FixtureTokens(); await tokens.grantManagement()
         let report = await fixtureClient(tokens).trashBatch(confirmed: files) { _ in }
         #expect(report.completed == 2); #expect(report.failed == 1); #expect(report.remaining == 0); #expect(!report.cancelled)
+        #expect(report.summary.hasPrefix("Finished with gaps"))
         #expect(report.results[1].failure?.contains("Shared Drive policy denies trash") == true)
         let requests = await FixtureProtocol.fixture.allRequests()
         #expect(requests.count == 6)

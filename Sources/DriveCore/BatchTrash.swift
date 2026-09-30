@@ -15,7 +15,7 @@ public struct BatchTrashReport: Sendable {
     public var failed: Int { results.filter { $0.failure != nil }.count }
     public var remaining: Int { requested - results.count }
     public var summary: String {
-        "\(cancelled ? "Stopped" : "Finished") · \(completed) moved to Trash · \(failed) unconfirmed · \(remaining) not attempted"
+        "\(cancelled ? "Stopped" : failed > 0 ? "Finished with gaps" : "Finished") · \(completed) moved to Trash · \(failed) unconfirmed · \(remaining) not attempted"
     }
 }
 

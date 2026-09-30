@@ -54,7 +54,7 @@ extension AppModel {
             self.serverResults = self.serverResults?.map { updated[$0.id] ?? $0 }
             self.selectedFiles = []
             if report.cancelled {
-                self.error = "The batch stopped. Confirmed results were recorded locally. Refresh to reconcile the displayed index and any unconfirmed requests before trying again."
+                self.error = "The batch stopped. Review the per-item results and any local index errors. Refresh to reconcile the displayed index and unconfirmed requests before trying again."
                 return
             }
             do { try await self.reload() }
