@@ -18,6 +18,7 @@ import DriveCore
     }
     var batchDownload: BatchDownloadPresentation?
     var filter = FileFilter()
+    var storageGrouping = "type"
     var minimumSizeInput = ""
     var maximumSizeInput = ""
     var searching = false
@@ -97,6 +98,7 @@ import DriveCore
         return roots
     }
     var title: String {
+        if let scope = filter.storage { return storageTitle(scope, index: index, drives: drives) }
         guard let selection else { return "All files" }
         if selection.hasPrefix("folder:") { return index[String(selection.dropFirst(7))]?.name ?? "Folder" }
         if selection.hasPrefix("drive:") { return drives.first { $0.id == String(selection.dropFirst(6)) }?.name ?? "Shared Drive" }
@@ -173,6 +175,12 @@ import DriveCore
     }
     func resetSearch() {
         minimumSizeInput = ""; maximumSizeInput = ""; filter = FileFilter(); serverResults = nil; updateResults()
+    }
+    func openStorageGroup(_ group: StorageGroup) {
+        navigate("all")
+        filter.storage = group.scope
+        order = .size; ascending = false
+        updateResults()
     }
     func updateSizes() {
         filter.minimumBytes = Int64(minimumSizeInput); filter.maximumBytes = Int64(maximumSizeInput)

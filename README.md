@@ -104,7 +104,7 @@ Browse retained snapshots with their observation times, original metadata, and e
 
 ![Storage charts in dark appearance](docs/screenshots/storage-dark.png)
 
-Group known storage by type, direct parent, or Drive. Missing sizes stay **Unknown**; Workspace documents are not silently counted as zero-byte files. A [light appearance capture](docs/screenshots/storage.png) is also available.
+Group known storage by type, direct parent, or Drive. Click a chart bar or category row to open its indexed, nontrashed files, largest first. Search, sort, inspect and save the category as a local search; Back to Storage overview returns to the same grouping. Clear search removes the category. Same-named folders and drives remain separate by ID. “Chemical” means Google reported a `chemical/*` MIME type; it is metadata, not a content analysis. Missing sizes stay **Unknown**; Workspace documents are not silently counted as zero-byte files. A [light appearance capture](docs/screenshots/storage.png) is also available.
 
 ## What it does
 
@@ -282,7 +282,7 @@ Additional ideas remain exploratory: explicit Python-cache import, an account sw
 
 ## Testing and verification
 
-Run `./script/test.sh` for the Swift Testing suite. With the app closed, `./script/build.sh` produces and verifies a universal preview archive without launching it; `./script/build_and_run.sh` rebuilds and launches the app. `./script/verify_bundle.sh /absolute/path/DriveExplorer.app` checks a generated or extracted bundle. `dist/SHA256SUMS` records the ZIP hash. These are repeatable local build steps, not a claim of bit-for-bit reproducibility across toolchain versions. The current verified suite has **58 passing tests**, including real SQLite and loopback integrations plus synthetic Google responses. A passing test suite does not validate a live Google account.
+Run `./script/test.sh` for the Swift Testing suite. With the app closed, `./script/build.sh` produces and verifies a universal preview archive without launching it; `./script/build_and_run.sh` rebuilds and launches the app. `./script/verify_bundle.sh /absolute/path/DriveExplorer.app` checks a generated or extracted bundle. `dist/SHA256SUMS` records the ZIP hash. These are repeatable local build steps, not a claim of bit-for-bit reproducibility across toolchain versions. The current verified suite has **60 passing tests**, including real SQLite and loopback integrations plus synthetic Google responses. A passing test suite does not validate a live Google account.
 
 [Verification](docs/VERIFICATION.md) is the detailed record of checks, screenshots, and remaining gaps. [Research](docs/RESEARCH.md) lists API documentation and projects that informed the design. [Parity](docs/PARITY.md) compares native behavior with the separate development reference.
 

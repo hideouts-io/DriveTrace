@@ -14,7 +14,7 @@ Return checklist: reproduce each mouse gesture in the native file table, inspect
 
 ## Implemented and automated
 
-`./script/test.sh` passes **58 Swift Testing tests**, zero failures. The XCTest wrapper prints “0 tests”; the following Swift Testing result is the actual 58-test run. Full output: `test-results.txt`.
+`./script/test.sh` passes **60 Swift Testing tests**, zero failures. The XCTest wrapper prints “0 tests”; the following Swift Testing result is the actual 60-test run. Full output: `test-results.txt`.
 
 Coverage includes:
 
@@ -41,6 +41,14 @@ Toolbar, inspector and multiple-selection context-menu actions review the select
 **Controlled live validation, 2026-09-30:** the user explicitly authorized only two named synthetic files inside an uploaded disposable test folder. Clicking one row and using Shift+Down selected exactly that pair. Right-click opened both batch actions; Move Selected to Trash opened a review containing exactly those two items. After confirmation, the app received and validated Google's trashed responses and displayed **2 moved to Trash, 0 unconfirmed, 0 not attempted**. The active folder changed from five top-level items to the expected three; its other files and nested folder remained listed. The result sheet finished and closed normally. No other files or folders were selected for this mutation, and no permanent deletion was performed.
 
 The user reported restoring both test files in Google Drive. After starting Refresh, a read-only check of the active account index found both exact test names under the unique test folder with `trashed: false`. The native folder view also showed both restored files among its five top-level items. This verifies the restoration was reflected in the app's refreshed metadata; the browser restore interaction itself was not observed because browser attachment was unavailable. Earlier toolbar/inspector review cancellation is verified. Literal Shift-click and Command-click failed the user’s subsequent manual check; see the open bug above. Shift+Down establishes keyboard range selection only. Context-menu actions were successfully exercised on uniquely named test files, although an earlier attempt on other rows failed in automation's ambiguous accessibility lookup. The experimental cell grouping was removed; native selection behavior remains unchanged. Live partial failure, account switching during review and in-flight cancellation remain unverified.
+
+## Storage category navigation
+
+Storage rows are native buttons with stable category identifiers and file-count accessibility hints. Chart taps map plot coordinates to those same exact categories. Opening a category clears earlier filters and selection, sorts its active nonfolder files by size, and retains search, inspection, paging and saved searches. Back to Storage overview preserves the grouping choice; Clear search removes the category. Parent and Drive groups now use IDs instead of display names. MIME groups distinguish Google Workspace from the other application types; Chemical represents `chemical/*` metadata rather than content classification. No Drive content is read to construct these groups.
+
+Automated model/filter integration verifies category totals and opened file IDs agree, unknown sizes remain included, trashed items/folders are excluded, sorting is largest-first, stale search/selection clears, category scope survives serialization and local narrowing, and navigation clears the scope. Same-named parent groups and missing-parent/personal-drive buckets are checked separately. Google server search rejects the local storage scope with guidance instead of silently broadening it.
+
+The universal app was rebuilt, packaged, signature/archive-verified and launched. Native UI automation was unavailable in this session, so actual bar/row mouse clicks, visual layout and spoken accessibility for these new controls remain **unverified**. Manual check: open Storage overview, click Chemical (or another category), compare the displayed file count, inspect MIME types, search within the category, return using Back to Storage overview, then repeat using a chart bar and the Direct parent/Drive grouping options. Do not perform file mutations for this check. Earlier rendered chart checks below predate these new controls.
 
 ## Folder and multi-selection downloads
 

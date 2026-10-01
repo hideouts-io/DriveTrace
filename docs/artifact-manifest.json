@@ -1,9 +1,9 @@
 {
-  "verified_at": "2026-10-01T11:22:18.723361+00:00",
-  "executable_sha256": "3e1c9b1f760f0a814dc30a6c82f7f66b0a1df929e92173d6fd546bbcd7d9f8a9",
-  "zip_sha256": "a7e93437aa34c2d14c019d7d7e7b163049ea43969271986bc1855948f416f5d8",
+  "verified_at": "2026-10-01T23:52:28.897873+00:00",
+  "executable_sha256": "639cf80400b897e8917f1b2e9cb993e7f20eaef885087dd455cdbd4700ee7a26",
+  "zip_sha256": "3e117b8b782bc0efbf3dbb0dc234eb10f82b43e29f5976f243aaffa9e90dd910",
   "logo_sha256": "6312cce90437a33b45f9aea20003ff57328cd0a080c8210ee1691a3a2556b923",
-  "test_summary": "✔ Test run with 58 tests in 1 suite passed after 0.439 seconds.",
+  "test_summary": "✔ Test run with 60 tests in 1 suite passed after 0.403 seconds.",
   "signature": "Ad-hoc; all-architecture strict verification passed on generated and extracted archive bundles",
   "architecture": "universal arm64/x86_64",
   "google_account_validation": "partial: saved connection, user-corpus collection, controlled binary folder/multi-file downloads and explicitly authorized two-file trashing observed; user-performed restoration reflected in refreshed metadata and native folder view, with both restored files downloaded and hash-checked. Consent lifecycle, full tenant and Activity coverage remain unverified",
@@ -15,5 +15,6 @@
   "binary_size_validation": "Synthetic HTTP responses and real filesystem: short/oversized responses and invalid metadata sizes rejected before destination commit; batch preserves individual failure and continues. Converted exports excluded; absent metadata size and same-size corruption are not certified by this check. Live interrupted-network behavior unverified. Rebuilt universal app launched; repeated native recursive fixture download saved 6 files with zero failures/unattempted and all sizes/SHA-256 hashes matching originals.",
   "size_checked_folder_verified_at": "2026-10-01T07:14:34.047413+00:00",
   "checksum_validation": "Synthetic transport and real filesystem: optional SHA-256 checks reject same-size corruption before save; batch records failure and continues. Chunked hashing, uppercase/empty-file checksums, malformed values and pre-cancelled tasks tested. Missing checksum is not integrity evidence; live exports/interruption and large-file peak memory remain separate checks. Native recursive download with checksum code enabled saved all six original fixture files with zero failures/unattempted; independent sizes/SHA-256 matched. Additional native-document, duplicate-name and empty-folder fixtures absent from this folder listing; location clarification pending.",
-  "checksum_folder_verified_at": "2026-10-01T11:23:36.538840+00:00"
+  "checksum_folder_verified_at": "2026-10-01T11:23:36.538840+00:00",
+  "storage_navigation_validation": "Implemented chart/row navigation to exact indexed categories. Model/filter integration verifies totals, matching IDs, sorting, same-named parent isolation, unknown sizes, missing-parent/personal-drive buckets, scope serialization, filter narrowing and clearing. Universal build/package verification and launch passed; native mouse interaction/rendering/accessibility speech unverified because UI automation unavailable."
 }

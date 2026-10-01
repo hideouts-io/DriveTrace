@@ -464,7 +464,7 @@ func fixtureClient(_ tokens: FixtureTokens) -> GoogleClient {
 }
 @Test func allUnknownStorageRemainsUnknown() {
     let document = DriveFile(id: "one", name: "Google document", mimeType: "application/vnd.google-apps.document")
-    let groups = storageGroups([document]) { $0.mimeType }
+    let groups = storageGroups([document], key: storageType, label: { storageTitle($0, index: [:], drives: []) })
     #expect(groups.first?.bytes == nil)
     #expect(groups.first?.unknown == 1)
     #expect(sumKnown([]) == nil)

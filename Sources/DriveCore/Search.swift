@@ -4,6 +4,7 @@ public enum FileOrder: String, CaseIterable, Codable, Sendable {
     case name, size, quota, created, modified, discovered, activity, activityCount, type, owner, location
 }
 public struct FileFilter: Codable, Equatable, Sendable {
+    public var storage: StorageScope?
     public var text: String = ""
     public var fileID: String = ""
     public var mime: String = ""
@@ -37,6 +38,7 @@ public struct FileFacts: Sendable {
 }
 public func matches(_ file: DriveFile, filter: FileFilter) -> Bool {
     let checks: [Bool] = [
+        filter.storage.map { matchesStorage(file, scope: $0) } ?? true,
         filter.text.isEmpty || file.name.localizedStandardContains(filter.text),
         filter.fileID.isEmpty || file.id == filter.fileID,
         filter.mime.isEmpty || file.mimeType.localizedCaseInsensitiveContains(filter.mime),
@@ -109,6 +111,7 @@ public func orderedFiles(_ files: [DriveFile], order: FileOrder, ascending: Bool
 }
 public func serverQuery(_ filter: FileFilter) throws -> String {
     try validateFilter(filter)
+    guard filter.storage == nil else { throw MonitorError.invalid("Storage categories describe the local index. Clear the category before searching Google.") }
     guard filter.minimumBytes == nil, filter.maximumBytes == nil, filter.ext.isEmpty, filter.fileID.isEmpty, filter.discoveredAfter.isEmpty, filter.discoveredBefore.isEmpty else {
         throw MonitorError.invalid("Google query does not support this size, extension or file-ID filter. Use Local index, or open a file by ID.")
     }

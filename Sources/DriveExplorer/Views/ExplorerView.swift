@@ -26,6 +26,12 @@ struct ExplorerView: View {
                         Button("Watch folder") { model.watch(file) }.accessibilityIdentifier("watchCurrentFolder")
                     }.font(.caption)
                 }
+                if model.filter.storage != nil {
+                    HStack {
+                        Button("Back to Storage overview") { model.navigate("storage") }.accessibilityIdentifier("backToStorage")
+                        Text("Indexed active files in this category. Search and filters narrow this list; Clear search removes the category.").font(.caption).foregroundStyle(.secondary)
+                    }
+                }
                 HStack(spacing: 10) {
                     Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
                     TextField("Search file names…", text: $model.filter.text).textFieldStyle(.plain).accessibilityIdentifier("fileSearch").accessibilityLabel("Search file names").focused($searchFocused)
