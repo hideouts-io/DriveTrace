@@ -14,7 +14,7 @@ Return checklist: reproduce each mouse gesture in the native file table, inspect
 
 ## Implemented and automated
 
-`./script/test.sh` passes **55 Swift Testing tests**, zero failures. The XCTest wrapper prints “0 tests”; the following Swift Testing result is the actual 55-test run. Full output: `test-results.txt`.
+`./script/test.sh` passes **56 Swift Testing tests**, zero failures. The XCTest wrapper prints “0 tests”; the following Swift Testing result is the actual 56-test run. Full output: `test-results.txt`.
 
 Coverage includes:
 
@@ -45,6 +45,8 @@ The user reported restoring both test files in Google Drive. After starting Refr
 ## Folder and multi-selection downloads
 
 The suite includes paginated live-folder request fixtures, nested directory creation on the real filesystem, case-insensitive duplicate allocation, shortcut skip reporting, inaccessible-file failures while other files complete, incomplete/repeated-page rejection, saved JSON report round-trips, cancellation retaining completed files with an unattempted count, and no-overwrite commits. Additional batch checks cover document-export versus binary filename collisions, an export-size denial while other items complete, empty-folder preservation, exact unattempted paths in the persisted cancellation report, and cancellation before creating the next local folder. The main status bar now follows discovery/transfer progress. Transport responses are synthetic; these tests do not certify a live folder copy. Downloads continue to stream through URLSession's disk-backed API.
+
+Binary downloads now compare the disk-backed response size with refreshed Google metadata when `size` is supplied. A mismatch or malformed/negative/out-of-range metadata size fails before committing the destination; batch execution retains the per-file error and continues to later items. An integration check verifies short and oversized HTTP 200 responses preserve an existing destination, one failed item is absent from batch output while the next succeeds, and the private report retains both outcomes. These are synthetic transport responses with real filesystem operations, not a live network-interruption test. Google editor exports are excluded because conversion changes the byte size; the export test includes a different metadata size. Missing metadata size does not establish byte-count integrity, and matching size does not establish a checksum match. [Google File resource](https://developers.google.com/workspace/drive/api/reference/rest/v3/files). The rebuilt universal app was launched and repeated the controlled live folder download with this check enabled: **6 files saved, 0 failed/skipped, 0 not attempted**. All six downloaded sizes and SHA-256 hashes matched the original fixture; no Drive files were changed. This validates the successful path, not a live truncated-response failure.
 
 **Controlled live validation, 2026-09-30:** the actual packaged app recursively downloaded the user-uploaded synthetic folder through Download Selected and the native destination picker. It reported **6 files saved, 0 failed/skipped, 0 not attempted**. The saved report recorded three directories and six files. All six file sizes and SHA-256 hashes matched the prepared local manifest, including nested content, a Unicode filename and a 16 MiB binary. Comparing canonically equivalent Unicode filenames found no missing or extra files. The empty fixture folder was absent from live discovery and the uploaded folder's visible listing, so this run does not establish live empty-folder preservation.
 

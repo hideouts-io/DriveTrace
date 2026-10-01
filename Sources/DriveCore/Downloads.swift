@@ -68,6 +68,16 @@ extension GoogleClient {
                         throw MonitorError.http(http.statusCode, "Download file=\(current.id); export=\(format.exportMIME ?? "original"); response=\(String(decoding: body, as: UTF8.self))")
                     }
                     try Task.checkCancellation()
+                    // Workspace metadata size is not the size of a converted export.
+                    if format.exportMIME == nil, let recordedSize = current.size {
+                        guard let expected = Int64(recordedSize), expected >= 0 else {
+                            throw MonitorError.invalid("Google returned an invalid byte size for file \(current.id): \(recordedSize). Refresh its metadata before downloading again.")
+                        }
+                        let actual = try temporary.resourceValues(forKeys: [.fileSizeKey]).fileSize
+                        guard let actual, Int64(actual) == expected else {
+                            throw MonitorError.invalid("Download size mismatch for file \(current.id): Google metadata expected \(expected) bytes, received \(actual.map(String.init) ?? "unknown"). The response may be incomplete or the source changed during transfer. The destination was not changed; refresh and retry.")
+                        }
+                    }
                     try save(temporary)
                 } catch {
                     try removeFailedDownload(temporary, cause: error)
