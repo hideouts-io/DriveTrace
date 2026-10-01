@@ -6,8 +6,9 @@
   "test_summary": "\u2714 Test run with 55 tests in 1 suite passed after 0.423 seconds.",
   "signature": "Ad-hoc; all-architecture strict verification passed on generated and extracted archive bundles",
   "architecture": "universal arm64/x86_64",
-  "google_account_validation": "partial: saved connection and user-corpus collection observed; inspector live-item Trash confirmation opened and cancelled with a saved management grant; real trash/restore and complete tenant coverage unverified",
+  "google_account_validation": "partial: saved connection, user-corpus collection, controlled binary folder/multi-file downloads and explicitly authorized two-file trashing observed; consent lifecycle, restoration, full tenant and Activity coverage remain unverified",
   "dock_icon_sha256": "a9e363928aaa257b940e65eea297a168834da77e16b4de3aa654c567193d4342",
-  "download_validation": "synthetic API and real-filesystem batch tests passed, including document export collisions, empty folders, export denial, cancellation before folder creation and persisted unattempted paths; complete live folder copy and external volumes unverified",
-  "bulk_trash_validation": "55-test suite passed, including explicit partial-failure summary; keyboard range selection observed again; pointer context-menu lookup blocked by ambiguous accessibility rows; live trash/restore unverified"
+  "download_validation": "controlled live folder download: 6 files, 3 directories, all sizes/SHA-256 hashes matched; separate context-menu two-file download matched both originals; zero failed/skipped/unattempted in both batches. Live native-document exports, empty folders, interrupted transfers and external volumes unverified",
+  "bulk_trash_validation": "explicitly authorized two synthetic files; native Shift+Down selection, right-click review and confirmation passed; Google confirmed 2 moved, 0 unconfirmed, 0 unattempted; active folder retained its other three top-level items. Google web verification/restoration and literal modifier-click gestures unverified",
+  "live_file_actions_verified_at": "2026-10-01T06:36:29.809245+00:00"
 }
