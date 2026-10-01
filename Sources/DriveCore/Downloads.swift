@@ -78,6 +78,7 @@ extension GoogleClient {
                             throw MonitorError.invalid("Download size mismatch for file \(current.id): Google metadata expected \(expected) bytes, received \(actual.map(String.init) ?? "unknown"). The response may be incomplete or the source changed during transfer. The destination was not changed; refresh and retry.")
                         }
                     }
+                    if format.exportMIME == nil { try validateDownloadChecksum(temporary, file: current) }
                     try save(temporary)
                 } catch {
                     try removeFailedDownload(temporary, cause: error)

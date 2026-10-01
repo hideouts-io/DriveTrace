@@ -275,6 +275,29 @@ func fixtureClient(_ tokens: FixtureTokens) -> GoogleClient {
         #expect(saved.failures == 1); #expect(saved.completed == 1)
         try FileManager.default.removeItem(at: directory)
     }
+    @Test func checksumMismatchPreservesDestinationAndReportsBatchFailure() async throws {
+        let metadata = #"{"id":"checksum-test","name":"Hash.txt","mimeType":"text/plain","size":"5","sha256Checksum":"2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824","capabilities":{"canDownload":true}}"#
+        let file = try JSONDecoder().decode(DriveFile.self, from: Data(metadata.utf8))
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let destination = directory.appendingPathComponent("existing.txt")
+        try Data("keep".utf8).write(to: destination)
+        let tokens = FixtureTokens(); await tokens.grantManagement()
+        let client = fixtureClient(tokens)
+        await FixtureProtocol.fixture.prepare([(200, metadata), (200, "wrong")])
+        await #expect(throws: MonitorError.self) { try await client.download(file: file, to: destination) }
+        #expect(try Data(contentsOf: destination) == Data("keep".utf8))
+        let plan = DownloadPlan(items: [DownloadItem(file: file, components: ["damaged.txt"]), DownloadItem(file: file, components: ["correct.txt"])], issues: [])
+        await FixtureProtocol.fixture.prepare([(200, metadata), (200, "wrong"), (200, metadata), (200, "hello")])
+        let report = try await client.downloadBatch(plan: plan, parent: directory, progress: { _ in })
+        #expect(report.completed == 1); #expect(report.failures == 1); #expect(report.remaining == 0)
+        #expect(report.results.first?.message?.contains("SHA-256 mismatch") == true)
+        #expect(!FileManager.default.fileExists(atPath: report.directory.appendingPathComponent("Files/damaged.txt").path))
+        #expect(try Data(contentsOf: report.directory.appendingPathComponent("Files/correct.txt")) == Data("hello".utf8))
+        let saved = try JSONDecoder().decode(BatchDownloadReport.self, from: Data(contentsOf: report.directory.appendingPathComponent("download-report.json")))
+        #expect(saved.failures == 1); #expect(saved.completed == 1)
+        try FileManager.default.removeItem(at: directory)
+    }
     @Test func documentDownloadUsesExportAndRejectsRestrictedContent() async throws {
         let metadata = #"{"id":"export-test","name":"Report","mimeType":"application/vnd.google-apps.document","size":"999","capabilities":{"canDownload":true}}"#
         let file = try JSONDecoder().decode(DriveFile.self, from: Data(metadata.utf8))
