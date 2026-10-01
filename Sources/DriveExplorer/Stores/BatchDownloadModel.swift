@@ -26,6 +26,7 @@ extension AppModel {
                 panel.beginSheetModal(for: window) { continuation.resume(returning: $0) }
             }
             guard response == .OK, let parent = panel.url else { return }
+            try validateBatchDestination(parent)
             self.batchDownload = BatchDownloadPresentation(id: UUID(), status: "Discovering current folder contents…", progress: BatchProgress(current: "", discovered: 0, completed: 0, failed: 0), report: nil, finished: false)
             defer { self.batchDownload?.finished = true }
             do {

@@ -1,4 +1,5 @@
 import Foundation
+import Darwin
 
 public struct FileDownload: Sendable {
     public let name: String
@@ -96,10 +97,23 @@ func saveDownloadedFile(_ source: URL, to destination: URL) throws {
     }
 }
 
-/// A hard link on the destination volume fails atomically if the destination already exists.
+/// Commit on the destination volume without replacing an existing file or symlink.
 func saveNewDownloadedFile(_ source: URL, to destination: URL) throws {
     try stageDownloadedFile(source, destination: destination) { staged in
-        try FileManager.default.linkItem(at: staged, to: destination)
+        guard renamex_np(staged.path, destination.path, UInt32(RENAME_EXCL)) == 0 else {
+            let code = errno
+            throw MonitorError.invalid("Could not commit the completed download at \(destination.path) without replacing an existing item: \(String(cString: strerror(code))) (errno \(code)). Choose a writable volume supporting exclusive rename; existing files are never overwritten.")
+        }
+    }
+}
+
+/// Reject incompatible destinations before discovery or network content transfer.
+public func validateBatchDestination(_ directory: URL) throws {
+    guard directory.isFileURL else { throw MonitorError.invalid("Choose a local folder for batch downloads.") }
+    let values = try directory.resourceValues(forKeys: [.isDirectoryKey, .volumeSupportsExclusiveRenamingKey])
+    guard values.isDirectory == true else { throw MonitorError.invalid("The download destination is not a directory: \(directory.path). Choose an existing folder.") }
+    guard values.volumeSupportsExclusiveRenaming == true else {
+        throw MonitorError.invalid("The destination volume does not report support for exclusive rename: \(directory.path). Choose a supported local volume, such as APFS, so completed files can be saved without overwriting existing items.")
     }
 }
 

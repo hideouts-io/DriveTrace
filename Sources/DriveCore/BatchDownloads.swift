@@ -27,7 +27,7 @@ extension GoogleClient {
     /// Every job owns a new private directory. Completed files survive cancellation and partial failure.
     public func downloadBatch(plan: DownloadPlan, parent: URL, progress: @Sendable (BatchProgress) async -> Void) async throws -> BatchDownloadReport {
         try Task.checkCancellation()
-        guard parent.isFileURL else { throw MonitorError.invalid("Choose a local folder for batch downloads.") }
+        try validateBatchDestination(parent)
         let directory = parent.appendingPathComponent("DriveTrace Download " + UUID().uuidString, isDirectory: true)
         try createDownloadDirectory(directory)
         let content = directory.appendingPathComponent("Files", isDirectory: true)

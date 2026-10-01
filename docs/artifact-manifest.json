@@ -1,14 +1,15 @@
 {
-  "verified_at": "2026-09-30T08:52:11.568519+00:00",
-  "executable_sha256": "62c8700e0603f7522d057192b4a8ac88b79b8d7c3d7dd37f9f1bfd0caef79a0f",
-  "zip_sha256": "bcee8f5ff8df8414cbdb8ce7103e9d5aa36a2e41731aa0300b5931828d62f61f",
+  "verified_at": "2026-10-01T07:02:59.972656+00:00",
+  "executable_sha256": "c9f592998ce52c9850f5db96aa3ffe3284d755df79f8cf91e5100665e71541d2",
+  "zip_sha256": "f74ebfd35d329a09008fa5fae42fbccef7096c0095cff751bba6ebc022dc577f",
   "logo_sha256": "6312cce90437a33b45f9aea20003ff57328cd0a080c8210ee1691a3a2556b923",
-  "test_summary": "\u2714 Test run with 55 tests in 1 suite passed after 0.423 seconds.",
+  "test_summary": "✔ Test run with 55 tests in 1 suite passed after 0.405 seconds.",
   "signature": "Ad-hoc; all-architecture strict verification passed on generated and extracted archive bundles",
   "architecture": "universal arm64/x86_64",
-  "google_account_validation": "partial: saved connection, user-corpus collection, controlled binary folder/multi-file downloads and explicitly authorized two-file trashing observed; consent lifecycle, restoration, full tenant and Activity coverage remain unverified",
+  "google_account_validation": "partial: saved connection, user-corpus collection, controlled binary folder/multi-file downloads and explicitly authorized two-file trashing observed; user-performed restoration reflected in refreshed metadata and native folder view, with both restored files downloaded and hash-checked. Consent lifecycle, full tenant and Activity coverage remain unverified",
   "dock_icon_sha256": "a9e363928aaa257b940e65eea297a168834da77e16b4de3aa654c567193d4342",
-  "download_validation": "controlled live folder download: 6 files, 3 directories, all sizes/SHA-256 hashes matched; separate context-menu two-file download matched both originals; zero failed/skipped/unattempted in both batches. Live native-document exports, empty folders, interrupted transfers and external volumes unverified",
-  "bulk_trash_validation": "explicitly authorized two synthetic files; native Shift+Down selection, right-click review and confirmation passed; Google confirmed 2 moved, 0 unconfirmed, 0 unattempted; active folder retained its other three top-level items. Google web verification/restoration and literal modifier-click gestures unverified",
-  "live_file_actions_verified_at": "2026-10-01T06:36:29.809245+00:00"
+  "download_validation": "controlled live folder download: 6 files, 3 directories, all sizes/SHA-256 hashes matched; separate context-menu two-file download matched both originals; rebuilt exclusive-rename save operation downloaded both restored test files with matching hashes. Zero failed/skipped/unattempted in all three batches. Live native-document exports, empty folders, interrupted transfers and external volumes unverified",
+  "bulk_trash_validation": "explicitly authorized two synthetic files; native Shift+Down selection, right-click review and confirmation passed; Google confirmed 2 moved, 0 unconfirmed, 0 unattempted. User subsequently restored both; refreshed index and native view confirmed return. Browser restore interaction and literal modifier-click gestures unverified. No further mutation performed",
+  "live_file_actions_verified_at": "2026-10-01T06:36:29.809245+00:00",
+  "restored_download_verified_at": "2026-10-01T06:59:17.458006+00:00"
 }

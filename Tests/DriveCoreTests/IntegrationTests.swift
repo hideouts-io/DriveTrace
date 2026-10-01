@@ -465,6 +465,21 @@ func fixtureClient(_ tokens: FixtureTokens) -> GoogleClient {
     try Data("existing".utf8).write(to: destination)
     #expect(throws: (any Error).self) { try saveNewDownloadedFile(source, to: destination) }
     #expect(try Data(contentsOf: destination) == Data("existing".utf8))
+    let link = directory.appendingPathComponent("existing-link")
+    try FileManager.default.createSymbolicLink(at: link, withDestinationURL: destination)
+    #expect(throws: MonitorError.self) { try saveNewDownloadedFile(source, to: link) }
+    #expect(try FileManager.default.destinationOfSymbolicLink(atPath: link.path) == destination.path)
+    #expect(try Data(contentsOf: destination) == Data("existing".utf8))
+    let dangling = directory.appendingPathComponent("dangling-link")
+    try FileManager.default.createSymbolicLink(atPath: dangling.path, withDestinationPath: "missing-target")
+    #expect(throws: MonitorError.self) { try saveNewDownloadedFile(source, to: dangling) }
+    #expect(try FileManager.default.destinationOfSymbolicLink(atPath: dangling.path) == "missing-target")
+    let fresh = directory.appendingPathComponent("fresh")
+    try saveNewDownloadedFile(source, to: fresh)
+    #expect(try Data(contentsOf: fresh) == Data("new".utf8))
+    #expect(try FileManager.default.attributesOfItem(atPath: fresh.path)[.referenceCount] as? Int == 1)
+    try validateBatchDestination(directory)
+    #expect(throws: MonitorError.self) { try validateBatchDestination(source) }
     #expect(try availableDownloadName("Report.txt", occupiedKeys: ["report.txt"]) == "Report (2).txt")
     #expect(throws: MonitorError.self) { try availableDownloadName("..", occupiedKeys: []) }
     try FileManager.default.removeItem(at: directory)
