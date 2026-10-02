@@ -30,7 +30,7 @@ struct SettingsView: View {
                     Button("Test notification", action: model.testNotification).disabled(model.busy).accessibilityIdentifier("testNotification")
                     Button("Check permission") { Task { await model.refreshNotificationStatus() } }.accessibilityIdentifier("checkNotificationPermission")
                 }
-                Text("Test delivery without Google. To change permission, open System Settings → Notifications → Drive Explorer. Focus or disabled alerts can prevent banners.").font(.caption).foregroundStyle(.secondary)
+                Text("Test delivery without Google. To change permission, open System Settings → Notifications → DriveTrace. Focus or disabled alerts can prevent banners.").font(.caption).foregroundStyle(.secondary)
                 if let notice = model.notificationTestNotice { Text(notice).font(.caption).textSelection(.enabled).accessibilityIdentifier("notificationTestResult") }
                 Text("The first Activity poll requests the previous seven days under My Drive and each observed Shared Drive. Further polls overlap by five minutes. Shared-with-me items outside those ancestors may lack Activity evidence; metadata Changes still cover accessible items.").font(.caption).foregroundStyle(.secondary)
             }

@@ -61,7 +61,7 @@ actor Loopback {
         }
         let codes = url.queryItems?.filter { $0.name == "code" } ?? []
         guard codes.count == 1, let code = codes[0].value, !code.isEmpty else { respond(connection, text: "Missing authorization code.", status: "400 Bad Request"); return }
-        respond(connection, text: "Authorization received. Return to Drive Explorer to complete sign-in.", status: "200 OK")
+        respond(connection, text: "Authorization received. Return to DriveTrace to complete sign-in.", status: "200 OK")
         finish(.success(code))
     }
     private func respond(_ connection: NWConnection, text: String, status: String) {

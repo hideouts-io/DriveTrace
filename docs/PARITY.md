@@ -25,7 +25,7 @@ The matrix compares behavior and evidence, not just matching screen labels. “A
 
 ## Architecture and tradeoffs
 
-macOS 14+ Swift 6 package, testable `DriveCore` library and `DriveExplorer` executable. Value models and pure transformations isolate query, event and export logic. Actors serialize SQLite/HTTP/OAuth connectors. A main-actor observable app session owns cancellable operations and native UI state. System frameworks and SQLite avoid a Python service, web runtime or third-party dependency tree.
+macOS 14+ Swift 6 package, testable `DriveCore` library and `DriveTrace` executable. Value models and pure transformations isolate query, event and export logic. Actors serialize SQLite/HTTP/OAuth connectors. A main-actor observable app session owns cancellable operations and native UI state. System frameworks and SQLite avoid a Python service, web runtime or third-party dependency tree.
 
 The file index is loaded into memory for quick interactive metadata queries, with sorting/filtering off the main actor. History queries use SQLite indexes and a visible 10,000-record Activity window. Core performance and rendered synthetic-workspace measurements are bounded; see [Verification](VERIFICATION.md#local-performance-measurements) for workload sizes and limits. Arbitrary-scale indexing is not claimed. The native app does not silently ingest the Python database; the original remains a reference, and connecting creates a fresh native baseline.
 

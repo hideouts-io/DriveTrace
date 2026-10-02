@@ -2,7 +2,7 @@ import Foundation
 import Testing
 import UserNotifications
 @testable import DriveCore
-@testable import DriveExplorer
+@testable import DriveTrace
 
 @Test func notificationPermissionMustAllowDelivery() throws {
     try requireNotificationAuthorization(.authorized)

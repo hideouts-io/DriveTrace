@@ -1,6 +1,12 @@
 # Verification report
 
-Latest build and focused file-action validation recorded 2026-10-01 UTC on macOS 27.0 (26A428), Apple silicon, Swift 6.4. This is a local native preview, not a complete live-account or distribution certification.
+Latest branding build and native UI validation recorded 2026-10-01 America/Los_Angeles on macOS 27.0 (26A428), Apple silicon, Swift 6.4. This is a local native preview, not a complete live-account or distribution certification.
+
+## Product identity
+
+DriveTrace is the canonical product, Swift package, executable target, app bundle and archive name. The original blue icon is shared by the app and README; the rejected red badge and its old welcome screenshot have been removed. The native About panel, app menu, Settings title and Desktop OAuth instructions were checked in the rebuilt app; fresh About and setup screenshots contain no account details. Other screenshots retain their original capture dates and contain no old product name.
+
+The bundle identifier, OAuth Keychain service, Application Support path and build-cache path retain their existing internal names to preserve compatibility. The renamed app was built and launched, then restored the existing saved client/sign-in and account index after leaving the isolated demo. No sync or Google mutation was requested; this is not a new OAuth lifecycle or notarization verification. GitHub's repository name is already DriveTrace and its active social-preview bytes match `assets/drivetrace-social-preview.jpg`. No GitHub releases exist; future release titles use `DriveTrace <version>` and packaging produces `DriveTrace.zip`.
 
 ## OPEN BUG — modifier-click selection
 
@@ -10,7 +16,7 @@ Latest build and focused file-action validation recorded 2026-10-01 UTC on macOS
 
 Requested reproduction in the disposable test folder: click Trash test A.txt, Shift-click Trash test B.txt (expected 2 selected), Command-click A (expected 1), then Command-click A again (expected 2). The user reported that both gestures did not work; the exact observed counts and click locations were not supplied. Earlier automated Shift+Down success establishes only keyboard range selection.
 
-Return checklist: reproduce each mouse gesture in the native file table, inspect selection binding/cell gesture handling and selection changes during polling, fix the cause, then verify range selection, nonadjacent addition/removal, right-click preservation of selected rows, and the reviewed batch-action item list. Use disposable files and cancel Trash review; no new mutation is authorized by this checklist. Relevant code: `Sources/DriveExplorer/Views/ExplorerView.swift` (`FileTable`) and the selection/batch-action stores. Do not claim a root cause before reproducing it.
+Return checklist: reproduce each mouse gesture in the native file table, inspect selection binding/cell gesture handling and selection changes during polling, fix the cause, then verify range selection, nonadjacent addition/removal, right-click preservation of selected rows, and the reviewed batch-action item list. Use disposable files and cancel Trash review; no new mutation is authorized by this checklist. Relevant code: `Sources/DriveTrace/Views/ExplorerView.swift` (`FileTable`) and the selection/batch-action stores. Do not claim a root cause before reproducing it.
 
 ## Implemented and automated
 
@@ -84,7 +90,7 @@ Loading the first real index exposed a native-table freeze beyond the earlier 25
 
 ## Packaged native app
 
-`./script/build.sh` builds arm64 and x86_64 Release slices, stages a fresh bundle, copies the original blue Dock icon, ad-hoc signs and checks every architecture. It verifies the bundle identity, minimum OS, icon, canonical PNG and license; then extracts the ZIP into a temporary directory and repeats verification. `./script/build_and_run.sh` closes the existing app, runs packaging and opens the actual app. Build-only packaging refuses to overwrite a running app. `dist/SHA256SUMS` contains the archive checksum. Output: `build-results.txt`. `dist/DriveExplorer.app` links to the generated bundle under `~/Library/Caches/DriveExplorerBuild`; `dist/DriveExplorer.zip` contains the portable `.app`. Build-cache placement avoids this host's Documents file-provider metadata breaking code-signature verification.
+`./script/build.sh` builds arm64 and x86_64 Release slices, stages a fresh bundle, copies the original blue Dock icon, ad-hoc signs and checks every architecture. It verifies the bundle identity, minimum OS, icon, canonical PNG and license; then extracts the ZIP into a temporary directory and repeats verification. `./script/build_and_run.sh` closes the existing app, runs packaging and opens the actual app. Build-only packaging refuses to overwrite a running app. `dist/SHA256SUMS` contains the archive checksum. Output: `build-results.txt`. `dist/DriveTrace.app` links to the generated bundle under `~/Library/Caches/DriveExplorerBuild`; `dist/DriveTrace.zip` contains the portable `.app`. Build-cache placement avoids this host's Documents file-provider metadata breaking code-signature verification.
 
 The generated executable is universal arm64/x86_64; both slices compile and pass signature/architecture checks. Native launch is verified on Apple silicon. Developer ID signing, notarization, sandbox distribution and Intel/older-macOS runtime are **unverified / not supplied**. A read-only identity check found zero Developer ID Application identities on this host. No signing credentials were requested or exported. Source publication is separate from binary distribution; no signed/notarized release is supplied and the build does not install the app.
 
@@ -100,7 +106,7 @@ Computer-use checks used native accessibility identifiers, container IDs and app
 
 | Interaction | Observed result |
 | --- | --- |
-| Branding | Canonical red PNG rendered on the welcome screen; the original blue Dock ICNS is restored byte-for-byte from the preserved early app bundle and checked during packaging. |
+| Branding | DriveTrace About panel, app menu, Settings title and setup instructions verified in the renamed app; original blue icon checked byte-for-byte during packaging. Welcome resource packaged; first-run welcome rendering not rechecked with the connected account. |
 | Onboarding → Explore demo | Clearly labelled separate synthetic workspace, 91 cached items and 160 source records. |
 | File-name search / keyboard | Cmd-F focused search and `Launch` returned 14 matches. Cmd-F from Activity opened All files and focused search; `Research` returned eight. Cmd-3/5/6/7/8/9 opened the expected screens after navigation caching. |
 | Invalid filters | Invalid Created date displayed a specific RFC3339 error and disabled Save search. Clear search removed invalid date and negative size inputs, restoring 89 active demo items. Activity invalid dates displayed an explicit range error. Sort buttons expose direction and current value; watch toggles identify their folder. |
@@ -119,7 +125,7 @@ Computer-use checks used native accessibility identifiers, container IDs and app
 | Guided connection | Opened from Settings, inspected all five steps and scope URLs, verified missing-client sign-in and demo synchronization are disabled. Imported a synthetic invalid Web-client JSON through the native sheet: actionable error stayed in the guide and the client remained not imported. Updated step 4 explains selecting both read-only permissions and preserving a prior saved sign-in on incomplete consent; checked in the rendered app. No credentials entered. |
 | Settings | Permission status read from macOS; Test notification without authorization displayed a specific corrective message in the pinned, visible error panel. Check permission refreshed the state. No permission prompt accepted or Google account used. Banner delivery and the foreground delegate remain unverified at runtime. |
 
-Screenshots in `screenshots/` are direct captures from the Swift app: welcome, largest files, advanced search, activity, observed history, storage light, storage dark and Google setup. They use synthetic names and `example.test` identities only. They were not composited or edited.
+Screenshots in `screenshots/` are direct captures from the Swift app: About, largest files, advanced search, activity, observed history, storage light, storage dark and Google setup. They use synthetic names and `example.test` identities only. They were not composited or edited.
 
 ## Live Google validation — partial
 

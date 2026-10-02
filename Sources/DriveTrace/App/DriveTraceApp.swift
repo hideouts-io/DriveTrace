@@ -1,12 +1,12 @@
 import SwiftUI
 import AppKit
 
-@main struct DriveExplorerApp: App {
+@main struct DriveTraceApp: App {
     @NSApplicationDelegateAdaptor(NotificationDelegate.self) private var notificationDelegate
     @AppStorage("appearance") private var appearance = "system"
     @State private var model = AppModel()
     var body: some Scene {
-        WindowGroup("Drive Explorer", id: "main") {
+        WindowGroup("DriveTrace", id: "main") {
             ContentView(model: model)
                 .frame(minWidth: 1040, minHeight: 680)
                 .preferredColorScheme(appearance == "dark" ? .dark : appearance == "light" ? .light : nil)
@@ -14,6 +14,10 @@ import AppKit
         }
         .defaultSize(width: 1440, height: 900)
         .commands {
+            CommandGroup(replacing: .appInfo) {
+                Button("About DriveTrace") { NSApp.orderFrontStandardAboutPanel(options: [:]) }
+                    .accessibilityIdentifier("aboutDriveTrace")
+            }
             CommandGroup(after: .newItem) {
                 Button("Refresh Drive", action: model.sync).keyboardShortcut("r").disabled(model.busy || !model.connected || model.isDemo)
                 Button("Cancel Current Operation", action: model.cancel).keyboardShortcut(".").disabled(!model.busy)

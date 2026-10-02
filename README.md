@@ -1,9 +1,9 @@
-# Drive Explorer for macOS
+# DriveTrace
 
 ### Native Google Drive exploration, advanced search, storage insights, and activity evidence
 
 <p align="center">
-  <img src="Sources/DriveExplorer/Resources/drive-explorer-logo.png" width="280" alt="Drive Explorer red, black, and silver cloud-search logo">
+  <img src="Sources/DriveTrace/Resources/drivetrace-icon.png" width="280" alt="DriveTrace blue drive icon">
 </p>
 
 <p align="center">
@@ -45,7 +45,7 @@
 
 ## Overview
 
-Drive Explorer is a native SwiftUI desktop application for browsing and investigating Google Drive metadata. It combines the **Google Drive API** for files, folders, permissions, and change tracking with the **Google Drive Activity API** for the actor/action evidence Google makes available.
+DriveTrace is a native SwiftUI desktop application for browsing and investigating Google Drive metadata. It combines the **Google Drive API** for files, folders, permissions, and change tracking with the **Google Drive Activity API** for the actor/action evidence Google makes available.
 
 Use it to find recent additions, inspect the largest known files, combine metadata filters, review sharing details, or follow a folder's changes. A local SQLite index makes repeated searches and recorded-history review possible without requesting every file again. Real synchronization contacts Google; demo mode uses a separate synthetic workspace.
 
@@ -70,9 +70,9 @@ Detailed evidence and limits are in [Verification](docs/VERIFICATION.md) and the
 
 These are direct captures from the native macOS app using synthetic files and `example.test` identities. They contain no connected Google account or private Drive inventory.
 
-### Welcome and account setup
+### App identity and account setup
 
-![Drive Explorer welcome screen with project logo](docs/screenshots/welcome.png)
+![DriveTrace About panel with the original blue icon](docs/screenshots/about.png)
 
 Start with the isolated demo or configure your own Desktop OAuth client.
 
@@ -127,13 +127,13 @@ Group known storage by type, direct parent, or Drive. Click a chart bar or categ
 Use macOS 14 or later and a Swift 6 toolchain with the macOS SDK. Development was verified on Apple silicon with Swift 6.4 and the macOS 27 SDK; older OS/toolchain and Intel compatibility have not been run.
 
 ```sh
-git clone https://github.com/hideouts-io/drive-explorer-swift.git
-cd drive-explorer-swift
+git clone https://github.com/hideouts-io/DriveTrace.git
+cd DriveTrace
 ./script/test.sh
 ./script/build_and_run.sh
 ```
 
-The second command builds Release, packages the original blue Dock icon, creates and ad-hoc signs the native bundle, then launches it. `dist/DriveExplorer.app` is a local symbolic link to the verified bundle in the build cache; `dist/DriveExplorer.zip` is the portable archive. The Codex Run action uses the same script. The generated app and build intermediates go to `~/Library/Caches/DriveExplorerBuild` because this machine's Documents file provider attaches metadata that can invalidate strict signature checks on application and test bundles. Only generated application-bundle extended attributes are cleared before signing.
+The second command builds Release, packages the original blue Dock icon, creates and ad-hoc signs the native bundle, then launches it. `dist/DriveTrace.app` is a local symbolic link to the verified bundle in the build cache; `dist/DriveTrace.zip` is the portable archive. The Codex Run action uses the same script. The generated app and build intermediates go to `~/Library/Caches/DriveExplorerBuild` because this machine's Documents file provider attaches metadata that can invalidate strict signature checks on application and test bundles. Only generated application-bundle extended attributes are cleared before signing.
 
 The `.app` is for local use. It is not notarized or signed with a Developer ID; do not present it as a distributable release. The build does not install the app or modify Google Drive.
 
@@ -144,16 +144,16 @@ Choose **Explore demo** to use synthetic data without credentials or startup Key
 The preview still runs locally without a Developer ID. A prepared `script/notarize.sh` workflow signs a separate copy, uploads that copy to Apple, waits for acceptance, staples the ticket, and verifies the final extracted ZIP. It never publishes a GitHub release or changes the running preview. Its preflight and local ad-hoc signing checks pass; **Developer ID signing, Apple submission and end-user Gatekeeper launch remain unverified**.
 
 1. Install your **Developer ID Application** certificate and its private key locally using Xcode or Keychain Access. Find its certificate SHA-1 with `security find-identity -v -p codesigning`. This host currently has no such identity.
-2. In your own Terminal, run `xcrun notarytool store-credentials "DriveExplorer-notary"` and complete Apple's secure prompts. Keep the credentials in Keychain; never paste them into chat, command arguments or Git.
+2. In your own Terminal, run `xcrun notarytool store-credentials "DriveTrace-notary"` and complete Apple's secure prompts. Keep the credentials in Keychain; never paste them into chat, command arguments or Git.
 3. Quit the app, run `./script/test.sh` and `./script/build.sh`, and review the generated app before uploading it.
-4. Explicitly run `./script/notarize.sh "YOUR_40_CHARACTER_CERTIFICATE_SHA1" "DriveExplorer-notary"`. This is the step that uploads the signed app to Apple. Output and private diagnostics stay under `~/Library/Caches/DriveExplorerBuild/notarization.*`.
-5. Only a successful run reports the final `DriveExplorer.zip` and `SHA256SUMS`. A timeout may leave a submission processing at Apple; inspect its local `submission.json` and use `notarytool info`/`log` before resubmitting. Test the final archive on a separate Gatekeeper-enabled Mac, including supported older macOS/Intel machines, before distribution.
+4. Explicitly run `./script/notarize.sh "YOUR_40_CHARACTER_CERTIFICATE_SHA1" "DriveTrace-notary"`. This is the step that uploads the signed app to Apple. Output and private diagnostics stay under `~/Library/Caches/DriveExplorerBuild/notarization.*`.
+5. Only a successful run reports the final `DriveTrace.zip` and `SHA256SUMS`. A timeout may leave a submission processing at Apple; inspect its local `submission.json` and use `notarytool info`/`log` before resubmitting. Test the final archive on a separate Gatekeeper-enabled Mac, including supported older macOS/Intel machines, before distribution.
 
 Follow [Apple's notarization workflow](https://developer.apple.com/documentation/security/customizing-the-notarization-workflow) and [Developer ID requirements](https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution). Notarization does not validate Google consent, API coverage or accessibility.
 
 ## Connect your Google account
 
-Open **Drive Explorer → Settings** (`⌘,`) → **Connect Google Drive…**, or use the welcome-screen button. The native guide stays open beside your browser and separates configuration saved, sign-in saved, and a completed sync in the current session. Advancing a page does not claim the Cloud project was verified. Instructions were checked against official Google documentation on **2026-09-29**.
+Open **DriveTrace → Settings** (`⌘,`) → **Connect Google Drive…**, or use the welcome-screen button. The native guide stays open beside your browser and separates configuration saved, sign-in saved, and a completed sync in the current session. Advancing a page does not claim the Cloud project was verified. Instructions were checked against official Google documentation on **2026-09-29**.
 
 1. **Project and APIs:** in [Google Cloud Console](https://console.cloud.google.com/), select or create a project. Under **APIs & Services → Library**, enable **Google Drive API** and **Google Drive Activity API** in that same project. See Google's [Drive quickstart](https://developers.google.com/workspace/drive/api/quickstart/python) and [Activity quickstart](https://developers.google.com/workspace/drive/activity/v2/quickstart/python).
 2. **Consent:** open **Google Auth platform → Branding → Get Started**. Supply an app name, support/contact email and audience; review Google's policy yourself. Personal Gmail uses **External**. In Testing, add your sign-in account under **Audience → Test users**. Eligible Workspace projects can use Internal, subject to organization policy. Under **Data Access → Add or Remove Scopes**, declare `https://www.googleapis.com/auth/drive.metadata.readonly` and `https://www.googleapis.com/auth/drive.activity.readonly`, then save. For the optional file viewing and Trash features, use `https://www.googleapis.com/auth/drive` instead of `drive.metadata.readonly`, keeping `drive.activity.readonly`. [Official consent guide](https://developers.google.com/workspace/guides/configure-oauth-consent).
@@ -282,7 +282,7 @@ Additional ideas remain exploratory: explicit Python-cache import, an account sw
 
 ## Testing and verification
 
-Run `./script/test.sh` for the Swift Testing suite. With the app closed, `./script/build.sh` produces and verifies a universal preview archive without launching it; `./script/build_and_run.sh` rebuilds and launches the app. `./script/verify_bundle.sh /absolute/path/DriveExplorer.app` checks a generated or extracted bundle. `dist/SHA256SUMS` records the ZIP hash. These are repeatable local build steps, not a claim of bit-for-bit reproducibility across toolchain versions. The current verified suite has **60 passing tests**, including real SQLite and loopback integrations plus synthetic Google responses. A passing test suite does not validate a live Google account.
+Run `./script/test.sh` for the Swift Testing suite. With the app closed, `./script/build.sh` produces and verifies a universal preview archive without launching it; `./script/build_and_run.sh` rebuilds and launches the app. `./script/verify_bundle.sh /absolute/path/DriveTrace.app` checks a generated or extracted bundle. `dist/SHA256SUMS` records the ZIP hash. These are repeatable local build steps, not a claim of bit-for-bit reproducibility across toolchain versions. The current verified suite has **60 passing tests**, including real SQLite and loopback integrations plus synthetic Google responses. A passing test suite does not validate a live Google account.
 
 [Verification](docs/VERIFICATION.md) is the detailed record of checks, screenshots, and remaining gaps. [Research](docs/RESEARCH.md) lists API documentation and projects that informed the design. [Parity](docs/PARITY.md) compares native behavior with the separate development reference.
 
@@ -305,11 +305,11 @@ Run `./script/test.sh` for the Swift Testing suite. With the app closed, `./scri
 ```text
 Package.swift                         SwiftPM products and system SQLite dependency
 Sources/DriveCore/                    Models, indexing, Google APIs, search and exports
-Sources/DriveExplorer/App/            App entry point and keyboard commands
-Sources/DriveExplorer/Stores/         UI session and cancellable operations
-Sources/DriveExplorer/Services/       Keychain, OAuth and loopback callback
-Sources/DriveExplorer/Views/          Native screens, inspectors and settings
-Sources/DriveExplorer/Resources/      Canonical Drive Explorer logo
+Sources/DriveTrace/App/               App entry point and keyboard commands
+Sources/DriveTrace/Stores/            UI session and cancellable operations
+Sources/DriveTrace/Services/          Keychain, OAuth and loopback callback
+Sources/DriveTrace/Views/             Native screens, inspectors and settings
+Sources/DriveTrace/Resources/         Canonical DriveTrace logo
 Sources/CSQLite/                      System SQLite module bridge
 Tests/DriveCoreTests/                 Core and integration verification
 script/                              Tests, icon conversion, packaging and launch
@@ -317,7 +317,7 @@ assets/                              Logo generation provenance
 docs/                               Verification, research, parity and demo screenshots
 ```
 
-The red Drive Explorer logo is used by the README and welcome screen. The Dock and Finder use the original blue drive icon in `assets/drive-explorer-dock.icns`, recovered from the preserved early app bundle. Packaging copies this icon unchanged and verifies it in both the app and ZIP; generated bundles are ignored by Git.
+DriveTrace is the canonical product name. The README, welcome screen, About panel, Dock, Finder and social preview use the original blue drive icon. The PNG is extracted from `assets/drivetrace.icns`; packaging preserves the icon and verifies it in both the app and ZIP. The bundle identifier `local.driveexplorer`, Keychain service `local.driveexplorer.oauth`, Application Support directory and build-cache directory retain their existing internal names for compatibility with saved credentials, preferences and indexed history. Release titles should use `DriveTrace <version>`; downloadable bundles and archives are `DriveTrace.app` and `DriveTrace.zip`.
 
 ## Contributing
 
@@ -327,6 +327,6 @@ Never attach OAuth JSON, tokens, real Drive caches, private exports, or unredact
 
 ## License
 
-Released under the [MIT License](LICENSE), copyright © 2026 hideouts-io. This repository includes the app source, documentation, and project artwork under that license. The logo was generated for this project; its [generation prompt](assets/drive-explorer-logo.prompt.txt) is included.
+Released under the [MIT License](LICENSE), copyright © 2026 hideouts-io. This repository includes the app source, documentation, and project artwork under that license. The social preview uses the existing blue icon; its [generation prompt](assets/drivetrace-social-preview.prompt.txt) is included.
 
 Google Drive and related names belong to their respective owners. This is an independent project and is not affiliated with or endorsed by Google or Apple. Apple system frameworks and Google services remain subject to their own terms; references and their licenses are documented in [Research](docs/RESEARCH.md).

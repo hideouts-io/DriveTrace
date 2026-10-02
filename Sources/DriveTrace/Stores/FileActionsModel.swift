@@ -38,7 +38,7 @@ extension AppModel {
     func showPreviewSample() {
         run {
             guard self.isDemo else { throw MonitorError.invalid("The synthetic preview sample is available only in the demo workspace.") }
-            let content = PreviewContent(data: Data("Drive Explorer preview sample\n\nThis is synthetic text for trying the native viewer. It is not the content of any indexed Drive file. No Google account or download was used.\n".utf8), fileExtension: "txt")
+            let content = PreviewContent(data: Data("DriveTrace preview sample\n\nThis is synthetic text for trying the native viewer. It is not the content of any indexed Drive file. No Google account or download was used.\n".utf8), fileExtension: "txt")
             self.preview = try await self.previewStore.save(content, name: "Synthetic preview sample")
         }
     }

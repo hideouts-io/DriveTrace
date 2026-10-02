@@ -18,7 +18,7 @@ func requireNotificationAuthorization(_ status: UNAuthorizationStatus) throws {
     case .notDetermined:
         throw MonitorError.invalid("Notification permission has not been requested. Enable Native watch notifications in Settings and respond to the macOS permission prompt. Pending watch records are retained.")
     case .denied:
-        throw MonitorError.invalid("macOS has denied notification permission. Open System Settings → Notifications → Drive Explorer and allow notifications, then refresh Drive to retry pending watch records.")
+        throw MonitorError.invalid("macOS has denied notification permission. Open System Settings → Notifications → DriveTrace and allow notifications, then refresh Drive to retry pending watch records.")
     @unknown default:
         throw MonitorError.invalid("macOS returned an unsupported notification authorization state (\(status.rawValue)). Check System Settings → Notifications. Pending watch records are retained.")
     }

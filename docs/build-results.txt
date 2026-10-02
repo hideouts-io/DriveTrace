@@ -1,17 +1,17 @@
 Building for production...
-[Planning deferred tasks]
-[11 / 25] DriveCore
-[15 / 27] DriveCore
-[28 / 31] DriveExplorer-product
-[31 / 34] DriveExplorer-product
-[32 / 34] DriveExplorer-product
-[35 / 36] DriveExplorer-product
-[35 / 40] DriveExplorer-product
-[37 / 40] DriveExplorer-product
-[39 / 40] DriveExplorer-product
-Build complete! (26.53 sec)
-$HOME/Library/Caches/DriveExplorerBuild/package.SaiEVQ/DriveExplorer.app: replacing existing signature
+[2 / 13]
+[4 / 15] DriveCore
+[8 / 20] DriveCore
+[14 / 18] DriveTrace-product
+[15 / 19] DriveTrace-product
+[18 / 21] DriveTrace-product
+[19 / 22] DriveTrace-product
+[19 / 23] DriveTrace-product
+[21 / 23] DriveTrace-product
+[23 / 23] DriveTrace-product
+Build complete! (34.24 sec)
+~/Library/Caches/DriveExplorerBuild/package.umoWoE/DriveTrace.app: replacing existing signature
 Verified both architectures, signature, bundle identity, minimum OS, icon, canonical logo and license.
 Verified both architectures, signature, bundle identity, minimum OS, icon, canonical logo and license.
-3e117b8b782bc0efbf3dbb0dc234eb10f82b43e29f5976f243aaffa9e90dd910  DriveExplorer.zip
+5c6132a35acc4f0ebc6a603e7a2574dd510ed0fc3b3563fead9d5722743d42f6  DriveTrace.zip
 Packaged universal ad-hoc preview. Developer ID signing and notarization are not performed.

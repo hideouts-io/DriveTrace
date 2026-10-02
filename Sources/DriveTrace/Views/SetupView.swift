@@ -85,7 +85,7 @@ struct SetupView: View {
             Link("Google’s Drive Activity setup guide", destination: URL(string: "https://developers.google.com/workspace/drive/activity/v2/quickstart/python")!)
             Text("Next advances this guide; it does not check or change your Cloud project.").font(.caption).foregroundStyle(.secondary)
         case .consent:
-            instruction("Describe your app", "Open Google Auth platform → Branding → Get Started. Enter an app name (for example, Drive Explorer Personal), your support email, audience and contact email. Review Google’s policy yourself, then create the configuration.")
+            instruction("Describe your app", "Open Google Auth platform → Branding → Get Started. Enter an app name (for example, DriveTrace Personal), your support email, audience and contact email. Review Google’s policy yourself, then create the configuration.")
             instruction("Allow your account", "For a personal Gmail account, choose External. Keep the project in Testing and add the exact Google account you will sign in with under Audience → Test users → Add users → Save. Internal is for eligible Workspace organization projects; an administrator may restrict access.")
             instruction("Declare the access you want", "Under Data Access → Add or Remove Scopes, add the two scopes for your selected connection. Metadata-only access uses the URLs below. For file viewing and Move to Trash, replace drive.metadata.readonly with drive; keep drive.activity.readonly. Do not add every scope in the list.")
             Text("Metadata only: https://www.googleapis.com/auth/drive.metadata.readonly\nFile management: https://www.googleapis.com/auth/drive\nBoth options: https://www.googleapis.com/auth/drive.activity.readonly").font(.caption.monospaced()).textSelection(.enabled)
@@ -93,8 +93,8 @@ struct SetupView: View {
             Link("Google consent and audience instructions", destination: URL(string: "https://developers.google.com/workspace/guides/configure-oauth-consent")!)
             Link("Google refresh-token expiration rules", destination: URL(string: "https://developers.google.com/identity/protocols/oauth2#expiration")!)
         case .client:
-            instruction("Create a Desktop app client", "In Google Auth platform → Clients → Create Client, choose Desktop app. Name it Drive Explorer Mac, create it and download the JSON. Keep the downloaded file on your Mac. No manual redirect URI or web server setup is needed.")
-            instruction("Import the downloaded file", "Choose the JSON below. Drive Explorer checks its Desktop-client structure before storing it in macOS Keychain. Do not use a Web application client, service-account key or token file.")
+            instruction("Create a Desktop app client", "In Google Auth platform → Clients → Create Client, choose Desktop app. Name it DriveTrace Mac, create it and download the JSON. Keep the downloaded file on your Mac. No manual redirect URI or web server setup is needed.")
+            instruction("Import the downloaded file", "Choose the JSON below. DriveTrace checks its Desktop-client structure before storing it in macOS Keychain. Do not use a Web application client, service-account key or token file.")
             Button(model.hasClient ? "Replace Desktop client JSON…" : "Import Desktop client JSON…", action: model.importClient).buttonStyle(.borderedProminent).disabled(model.busy).accessibilityIdentifier("importOAuth")
             Label(model.hasClient ? "Desktop configuration saved; Google validity is checked during sign-in." : "No Desktop client has been imported.", systemImage: model.hasClient ? "checkmark.circle" : "circle")
             Text("Replacing a different client removes the saved sign-in. Your local metadata is retained.").font(.caption).foregroundStyle(.secondary)

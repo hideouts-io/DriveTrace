@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 @testable import DriveCore
-@testable import DriveExplorer
+@testable import DriveTrace
 
 private let completeTokenResponse = #"{"access_token":"synthetic-access","expires_in":3600,"refresh_token":"synthetic-refresh","scope":"https://www.googleapis.com/auth/drive.metadata.readonly https://www.googleapis.com/auth/drive.activity.readonly","token_type":"Bearer","unrelated_field":"ignored"}"#
 

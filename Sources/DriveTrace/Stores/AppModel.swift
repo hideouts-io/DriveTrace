@@ -102,7 +102,7 @@ import DriveCore
         guard let selection else { return "All files" }
         if selection.hasPrefix("folder:") { return index[String(selection.dropFirst(7))]?.name ?? "Folder" }
         if selection.hasPrefix("drive:") { return drives.first { $0.id == String(selection.dropFirst(6)) }?.name ?? "Shared Drive" }
-        return ["all":"All files", "my":"My Drive", "shared":"Shared with me", "newest":"Newest items", "largest":"Largest files", "activity":"Activity", "history":"Observed history", "security":"Sharing audit", "storage":"Storage overview", "watches":"Folder watches", "trash":"Trash"][selection] ?? "Drive Explorer"
+        return ["all":"All files", "my":"My Drive", "shared":"Shared with me", "newest":"Newest items", "largest":"Largest files", "activity":"Activity", "history":"Observed history", "security":"Sharing audit", "storage":"Storage overview", "watches":"Folder watches", "trash":"Trash"][selection] ?? "DriveTrace"
     }
     func start() async {
         guard !ready && !starting else { return }; starting = true
@@ -318,7 +318,7 @@ import DriveCore
             self.notificationStatusText = notificationStatus(settings)
             try requireNotificationAuthorization(settings.authorizationStatus)
             let content = UNMutableNotificationContent()
-            content.title = "Drive Explorer notification test"
+            content.title = "DriveTrace notification test"
             content.body = "This is a local test. No Google account or Drive data was used."
             content.sound = .default
             try await center.add(UNNotificationRequest(identifier: "drive-explorer-local-test", content: content, trigger: nil))
@@ -343,7 +343,7 @@ import DriveCore
             let settings = await UNUserNotificationCenter.current().notificationSettings()
             notificationStatusText = notificationStatus(settings)
             try requireNotificationAuthorization(settings.authorizationStatus)
-            let content = UNMutableNotificationContent(); content.title = "\(rule.name) · \(batch.recordIDs.count) new records"; content.body = "Open Drive Explorer to review the recorded activity."; content.sound = .default
+            let content = UNMutableNotificationContent(); content.title = "\(rule.name) · \(batch.recordIDs.count) new records"; content.body = "Open DriveTrace to review the recorded activity."; content.sound = .default
             try await UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil))
             try await database.acknowledgeWatch(ruleID: rule.id, delivered: batch.recordIDs, sentAt: timestamp(Date()))
         }

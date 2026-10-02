@@ -1,9 +1,9 @@
 {
-  "verified_at": "2026-10-01T23:52:28.897873+00:00",
-  "executable_sha256": "639cf80400b897e8917f1b2e9cb993e7f20eaef885087dd455cdbd4700ee7a26",
-  "zip_sha256": "3e117b8b782bc0efbf3dbb0dc234eb10f82b43e29f5976f243aaffa9e90dd910",
-  "logo_sha256": "6312cce90437a33b45f9aea20003ff57328cd0a080c8210ee1691a3a2556b923",
-  "test_summary": "✔ Test run with 60 tests in 1 suite passed after 0.403 seconds.",
+  "verified_at": "2026-10-02T06:01:42.353570+00:00",
+  "executable_sha256": "5ec4c4ca4fcfeb4c5562e69be98cffe97c58d5c45ea24c63f8970ff74bc753fd",
+  "zip_sha256": "5c6132a35acc4f0ebc6a603e7a2574dd510ed0fc3b3563fead9d5722743d42f6",
+  "logo_sha256": "3e1ba4cebe45f2405baf547b2cf4f9311e7c8b9fa0759ab43cae7abdbfc42d0f",
+  "test_summary": "\u2714 Test run with 60 tests in 1 suite passed after 0.420 seconds.",
   "signature": "Ad-hoc; all-architecture strict verification passed on generated and extracted archive bundles",
   "architecture": "universal arm64/x86_64",
   "google_account_validation": "partial: saved connection, user-corpus collection, controlled binary folder/multi-file downloads and explicitly authorized two-file trashing observed; user-performed restoration reflected in refreshed metadata and native folder view, with both restored files downloaded and hash-checked. Consent lifecycle, full tenant and Activity coverage remain unverified",
@@ -16,5 +16,6 @@
   "size_checked_folder_verified_at": "2026-10-01T07:14:34.047413+00:00",
   "checksum_validation": "Synthetic transport and real filesystem: optional SHA-256 checks reject same-size corruption before save; batch records failure and continues. Chunked hashing, uppercase/empty-file checksums, malformed values and pre-cancelled tasks tested. Missing checksum is not integrity evidence; live exports/interruption and large-file peak memory remain separate checks. Native recursive download with checksum code enabled saved all six original fixture files with zero failures/unattempted; independent sizes/SHA-256 matched. Additional native-document, duplicate-name and empty-folder fixtures absent from this folder listing; location clarification pending.",
   "checksum_folder_verified_at": "2026-10-01T11:23:36.538840+00:00",
-  "storage_navigation_validation": "Implemented chart/row navigation to exact indexed categories. Model/filter integration verifies totals, matching IDs, sorting, same-named parent isolation, unknown sizes, missing-parent/personal-drive buckets, scope serialization, filter narrowing and clearing. Universal build/package verification and launch passed; native mouse interaction/rendering/accessibility speech unverified because UI automation unavailable."
+  "storage_navigation_validation": "Implemented chart/row navigation to exact indexed categories. Model/filter integration verifies totals, matching IDs, sorting, same-named parent isolation, unknown sizes, missing-parent/personal-drive buckets, scope serialization, filter narrowing and clearing. Universal build/package verification and launch passed; native mouse interaction/rendering/accessibility speech unverified because UI automation unavailable.",
+  "product_branding_validation": "DriveTrace package/target/executable/app/archive names verified. Original blue ICNS preserved; rejected red resource removed. Native About/menu/Settings/setup checked; About and setup screenshots refreshed. Saved client/sign-in and account index restored after demo without Google mutation. Stable bundle ID, Keychain service and data paths retained. GitHub repository already DriveTrace; active social preview matches local SHA-256. No releases exist. Welcome first-run rendering not rechecked."
 }

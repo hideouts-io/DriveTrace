@@ -80,15 +80,15 @@ struct WelcomeView: View {
     @Environment(\.openWindow) private var openWindow
     @Bindable var model: AppModel
     private static let logo: NSImage = {
-        guard let url = Bundle.module.url(forResource: "drive-explorer-logo", withExtension: "png"),
-              let image = NSImage(contentsOf: url) else { preconditionFailure("Drive Explorer logo is missing or unreadable. Rebuild with script/build_and_run.sh to package its resources.") }
+        guard let url = Bundle.module.url(forResource: "drivetrace-icon", withExtension: "png"),
+              let image = NSImage(contentsOf: url) else { preconditionFailure("DriveTrace logo is missing or unreadable. Rebuild with script/build_and_run.sh to package its resources.") }
         return image
     }()
     var body: some View {
         VStack(spacing: 24) {
-            Image(nsImage: Self.logo).resizable().scaledToFit().frame(width: 160, height: 160).accessibilityLabel("Drive Explorer logo")
+            Image(nsImage: Self.logo).resizable().scaledToFit().frame(width: 160, height: 160).accessibilityLabel("DriveTrace logo")
             VStack(spacing: 8) {
-                Text("A clearer view of your Drive").font(.largeTitle.bold())
+                Text("DriveTrace").font(.largeTitle.bold())
                 Text("Find the newest and largest files. Explore folders.\nUnderstand who changed what, with the evidence beside it.").multilineTextAlignment(.center).foregroundStyle(.secondary).font(.title3)
             }
             HStack(spacing: 14) {

@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 @testable import DriveCore
-@testable import DriveExplorer
+@testable import DriveTrace
 
 @Test @MainActor func storageCategoryNavigationMatchesTotalsAndKeepsFiltersScoped() async throws {
     var first = DriveFile(id: "first", name: "First", mimeType: "chemical/x-pdb"); first.size = "10"; first.parents = ["a"]

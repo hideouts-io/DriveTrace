@@ -1,5 +1,5 @@
 version = 1
-name = "Drive Explorer Swift"
+name = "DriveTrace"
 [setup]
 script = ""
 [[actions]]
