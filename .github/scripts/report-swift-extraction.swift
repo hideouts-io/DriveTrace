@@ -60,7 +60,7 @@ func summarizeInvocation(_ text: String) throws -> SwiftInvocationSummary {
     let target: String = try singleValue(#"-target\s+((?:arm64|x86_64)-apple-macosx?[0-9]{1,2}(?:\.[0-9]{1,2}){0,2})(?=\s|\")"#, command, "target")
     let sdk: String = try singleValue(#"-sdk\s+[^\s\"]*/(MacOSX[0-9]{1,2}(?:\.[0-9]{1,2}){0,2}\.sdk)(?=\s|\")"#, command, "SDK")
     let sources: [String] = try capturedValues(#"(?:\s|^)([^\s\"]+\.swift)(?=\s|\")"#, command)
-    let compilerErrors: [String] = lines.filter { $0.contains("ERROR [extractor/compiler]") }
+    let compilerErrors: [String] = lines.filter { $0.contains("ERRO [extractor/compiler]") }
     let ambiguities: Int = compilerErrors.filter { $0.contains("reference to 'NSAccessibilityElement' is ambiguous") }.count
     return SwiftInvocationSummary(
         module: module, target: target, sdk: sdk, sourceArgumentCount: sources.count,
