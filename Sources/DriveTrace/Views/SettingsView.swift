@@ -23,7 +23,7 @@ struct SettingsView: View {
                 }
             }
             Section("Monitoring") {
-                Toggle("Poll Drive every 60 seconds while the app is running", isOn: Binding(get: { model.autoRefresh }, set: model.setPolling)).disabled(!model.connected || model.isDemo).accessibilityIdentifier("automaticPolling")
+                Toggle("Poll Drive every 60 seconds while the app is running", isOn: Binding(get: { model.autoRefresh }, set: { model.setPolling($0) })).disabled(!model.connected || model.isDemo).accessibilityIdentifier("automaticPolling")
                 Toggle("Native watch notifications", isOn: Binding(get: { model.notifications }, set: { if $0 { model.requestNotifications() } else { model.notifications = false } })).disabled(model.busy).accessibilityIdentifier("watchNotifications")
                 LabeledContent("macOS permission", value: model.notificationStatusText).accessibilityIdentifier("notificationPermissionStatus")
                 HStack {
