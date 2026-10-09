@@ -24,7 +24,7 @@ jobs:
         include:
           - language: swift
             runner: macos-15
-            developer-dir: /Applications/Xcode_16.4.app/Contents/Developer
+            developer-dir: /Applications/Xcode_26.3.app/Contents/Developer
             build-mode: manual
           - language: c-cpp
             runner: macos-26
@@ -48,6 +48,17 @@ jobs:
           xcodebuild -version
           swift --version
           xcrun --sdk macosx --show-sdk-version
+      - name: Verify the selected notification SDK concurrency contract
+        if: matrix.language == 'swift'
+        run: |
+          cat > "$RUNNER_TEMP/notification-sdk-contract.swift" <<'SWIFT'
+          import UserNotifications
+          @MainActor func notificationSDKContract() async -> UNAuthorizationStatus {
+              let settings: UNNotificationSettings = await UNUserNotificationCenter.current().notificationSettings()
+              return settings.authorizationStatus
+          }
+          SWIFT
+          swiftc -swift-version 6 -strict-concurrency=complete -target arm64-apple-macosx14.0 -sdk "$(xcrun --sdk macosx --show-sdk-path)" -typecheck "$RUNNER_TEMP/notification-sdk-contract.swift"
       - name: Initialize CodeQL
         uses: github/codeql-action/init@24c54180a607b1449ed407dd24f251e4e9147c8d # v4
         with:
