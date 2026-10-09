@@ -52,7 +52,20 @@ jobs:
           build-mode: ${{ matrix.build-mode }}
       - name: Build the native Swift application
         if: matrix.language == 'swift'
-        run: swift build -c release --product DriveTrace --arch arm64 --scratch-path "$RUNNER_TEMP/drivetrace-codeql" --jobs 2
+        run: |
+          scratch="$RUNNER_TEMP/drivetrace-codeql"
+          swift build --build-system native -c release --target DriveCore --arch arm64 --scratch-path "$scratch" --jobs 2
+          bin_path="$(swift build --build-system native -c release --arch arm64 --scratch-path "$scratch" --show-bin-path)"
+          ruby -rjson -rpsych -e '
+            path = ARGV.fetch(0)
+            abort "SwiftPM manifest exceeds 5 MiB" if File.size(path) > 5 * 1024 * 1024
+            warn "ruby_version=#{RUBY_VERSION} psych_version=#{Psych::VERSION}"
+            STDOUT.write(JSON.generate(Psych.safe_load(File.read(path), permitted_classes: [], permitted_symbols: [], aliases: false)))
+          ' "$scratch/release.yaml" > "$scratch/link-plan.json"
+          git ls-files -z -- Sources/DriveCore Sources/DriveTrace > "$scratch/source-inventory"
+          swiftc -swift-version 6 -module-name BuildCodeQLApp .github/scripts/build-codeql-app.swift -o "$scratch/build-codeql-app"
+          "$scratch/build-codeql-app" "$bin_path/description.json" "$scratch/link-plan.json" "$scratch/source-inventory" \
+            "$GITHUB_WORKSPACE" "$bin_path" "$(xcrun --find swiftc)" "$(xcrun --sdk macosx --show-sdk-path)"
       - name: Compile the SQLite system header
         if: matrix.language == 'c-cpp'
         run: xcrun clang -std=c17 -Wall -Wextra -Werror -x c -c Sources/CSQLite/shim.h -o "$RUNNER_TEMP/CSQLite.o"
