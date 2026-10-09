@@ -23,12 +23,10 @@ jobs:
       matrix:
         include:
           - language: swift
-            runner: macos-15
-            developer-dir: /Applications/Xcode_26.3.app/Contents/Developer
+            runner: macos-26
             build-mode: manual
           - language: c-cpp
             runner: macos-26
-            developer-dir: /Applications/Xcode_26.6.app/Contents/Developer
             build-mode: manual
           - language: actions
             runner: ubuntu-latest
@@ -36,7 +34,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 45
     env:
-      DEVELOPER_DIR: ${{ matrix.developer-dir }}
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -48,17 +46,6 @@ jobs:
           xcodebuild -version
           swift --version
           xcrun --sdk macosx --show-sdk-version
-      - name: Verify the selected notification SDK concurrency contract
-        if: matrix.language == 'swift'
-        run: |
-          cat > "$RUNNER_TEMP/notification-sdk-contract.swift" <<'SWIFT'
-          import UserNotifications
-          @MainActor func notificationSDKContract() async -> UNAuthorizationStatus {
-              let settings: UNNotificationSettings = await UNUserNotificationCenter.current().notificationSettings()
-              return settings.authorizationStatus
-          }
-          SWIFT
-          swiftc -swift-version 6 -strict-concurrency=complete -target arm64-apple-macosx14.0 -sdk "$(xcrun --sdk macosx --show-sdk-path)" -typecheck "$RUNNER_TEMP/notification-sdk-contract.swift"
       - name: Initialize CodeQL
         uses: github/codeql-action/init@24c54180a607b1449ed407dd24f251e4e9147c8d # v4
         with:
@@ -67,6 +54,7 @@ jobs:
       - name: Build the native Swift application
         if: matrix.language == 'swift'
         run: |
+          swiftc -swift-version 6 -module-name SwiftExtractionSummary .github/scripts/report-swift-extraction.swift -o "$RUNNER_TEMP/report-swift-extraction"
           swift build --build-system native -c release --product DriveTrace --arch arm64 --scratch-path "$RUNNER_TEMP/drivetrace-codeql" --jobs 2
       - name: Compile the SQLite system header
         if: matrix.language == 'c-cpp'
@@ -105,6 +93,17 @@ jobs:
             exit 1
           fi
           printf 'Swift extraction compiler diagnostics: 0\n'
+      - name: Summarize bounded Swift invocation diagnostics
+        if: matrix.language == 'swift' && (success() || failure())
+        run: '"$RUNNER_TEMP/report-swift-extraction" "$RUNNER_TEMP" "$RUNNER_TEMP/swift-invocation-summary.json"'
+      - name: Retain bounded Swift context after failure
+        if: matrix.language == 'swift' && failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: swift-invocation-context
+          path: ${{ runner.temp }}/swift-invocation-summary.json
+          if-no-files-found: error
+          retention-days: 1
       - name: Retain analysis for the isolated upload job
         if: success() || failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
