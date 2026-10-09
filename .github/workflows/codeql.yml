@@ -1,0 +1,107 @@
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '45 7 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codeql-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: swift
+            runner: macos-26
+            build-mode: manual
+          - language: c-cpp
+            runner: macos-26
+            build-mode: manual
+          - language: actions
+            runner: ubuntu-latest
+            build-mode: none
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@24c54180a607b1449ed407dd24f251e4e9147c8d # v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+      - name: Build the native Swift application
+        if: matrix.language == 'swift'
+        run: swift build --product DriveTrace --arch arm64 --scratch-path "$RUNNER_TEMP/drivetrace-codeql" --jobs 2
+      - name: Compile the SQLite system header
+        if: matrix.language == 'c-cpp'
+        run: xcrun clang -std=c17 -Wall -Wextra -Werror -x c -c Sources/CSQLite/shim.h -o "$RUNNER_TEMP/CSQLite.o"
+      - name: Analyze without a security write token
+        uses: github/codeql-action/analyze@24c54180a607b1449ed407dd24f251e4e9147c8d # v4
+        with:
+          category: /language:${{ matrix.language }}
+          output: ${{ runner.temp }}/codeql-results
+          upload: false
+      - name: Retain analysis for the isolated upload job
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: codeql-${{ matrix.language }}
+          path: ${{ runner.temp }}/codeql-results/*.sarif
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    name: Publish analysis (${{ matrix.language }})
+    needs: analyze
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [swift, c-cpp, actions]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: codeql-${{ matrix.language }}
+          path: ${{ runner.temp }}/codeql-results
+      - name: Upload the completed analysis
+        uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # v4
+        with:
+          sarif_file: ${{ runner.temp }}/codeql-results
+          category: /language:${{ matrix.language }}
+
+  complete:
+    name: CodeQL source analysis
+    if: always()
+    needs: [analyze, publish]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require analysis and upload for every language
+        env:
+          ANALYSIS_RESULT: ${{ needs.analyze.result }}
+          PUBLISH_RESULT: ${{ needs.publish.result }}
+        run: |
+          if [[ "$ANALYSIS_RESULT" != success || "$PUBLISH_RESULT" != success ]]; then
+            printf 'CodeQL requires successful extraction, analysis, and upload for every configured language. Analysis=%s upload=%s\n' "$ANALYSIS_RESULT" "$PUBLISH_RESULT" >&2
+            exit 1
+          fi

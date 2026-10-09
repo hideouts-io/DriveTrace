@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Swift build and tests
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Build the native application
+        run: swift build --product DriveTrace --arch arm64 --scratch-path "$RUNNER_TEMP/drivetrace-build" --jobs 2
+      - name: Run source and SQLite integration tests
+        run: swift test --arch arm64 --scratch-path "$RUNNER_TEMP/drivetrace-build" --jobs 2
+      - name: Compile the SQLite system header
+        run: xcrun clang -std=c17 -Wall -Wextra -Werror -x c -c Sources/CSQLite/shim.h -o "$RUNNER_TEMP/CSQLite.o"
