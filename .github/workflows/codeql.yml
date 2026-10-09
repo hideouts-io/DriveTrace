@@ -33,10 +33,19 @@ jobs:
             build-mode: none
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 45
+    env:
+      # Swift 6.3.3 in Xcode 26.6 crashes while generating SettingsView IR.
+      DEVELOPER_DIR: /Applications/Xcode_26.5.app/Contents/Developer
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
+      - name: Verify the selected Apple toolchain
+        if: matrix.language != 'actions'
+        run: |
+          test -d "$DEVELOPER_DIR"
+          xcodebuild -version
+          swift --version
       - name: Initialize CodeQL
         uses: github/codeql-action/init@24c54180a607b1449ed407dd24f251e4e9147c8d # v4
         with:
