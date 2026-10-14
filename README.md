@@ -192,6 +192,7 @@ A Picker/`drive.file` design limits access to selected/app-used files and includ
 
 ## Using the explorer
 
+- To move between controls with Tab and Shift-Tab, enable **System Settings → Keyboard → Keyboard navigation**. See [Apple’s keyboard navigation instructions](https://support.apple.com/en-ie/guide/mac-help/mchlc06d1059/27/mac/27).
 - `⌘1` All files, `⌘2` Newest items, `⌘3` Largest files, `⌘4` Activity, `⌘5` Storage, `⌘6` Sharing, `⌘7` My Drive, `⌘8` Watches, `⌘9` Observed history.
 - `⌘F` opens/focuses file search. `⌘⇧F` toggles the advanced filter builder. Filters combine with AND. Dates use complete RFC3339 timestamps, for example `2026-09-01T00:00:00Z`. Invalid date/size ranges show an error and block search saving; Clear search resets all inputs. Superseded local searches are cancelled. Saved searches store filters; sort order is chosen independently.
 - Table headers or the sort picker choose ordering. Missing sizes stay last in either direction. Equal values use name and then file ID as stable secondary keys.
