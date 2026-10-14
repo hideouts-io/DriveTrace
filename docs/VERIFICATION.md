@@ -30,6 +30,14 @@ The [fresh CodeQL run at `0bf55ce`](https://github.com/hideouts-io/DriveTrace/ac
 
 The native test step at `0bf55ce` remained active without a final result when the FIFO scheduling correction was prepared. Static review found that three globally parallel held `FileHandle.read` tasks could occupy cooperative workers required by their own async deadline checks and EOF-release controllers. Exactly those three tests now share `ControlledFIFOTests` with `.serialized`; every body, assertion, five-second deadline and production path is preserved. The final local run discovers all 141 tests in seven suites and completes successfully. Serialization reduces that concrete scheduling risk; it is not proof of the hosted delay's cause, a guarantee for a single-worker executor, or immediate interruption of blocking reads. Network fixture cancellation states still do not establish complete worker-task quiescence; that remains a distinct follow-up.
 
+### Hosted validation checkpoint
+
+Implementation and fixture revision `896208cca25e5db2143c2576a3ede37bc4fa088d` passed [native CI](https://github.com/hideouts-io/DriveTrace/actions/runs/38511169965) on Xcode 26.6 / Apple Swift 6.3.3: the production build, all **141 tests in seven suites** (39.523 seconds) and strict CSQLite compilation completed successfully. The serialized FIFO suite completed in 0.392 seconds. The superseded `0bf55ce` job compiled/linked the test bundle but was cancelled without emitting a final execution count; its logs do not prove the delay's cause.
+
+The same implementation revision's [CodeQL run](https://github.com/hideouts-io/DriveTrace/actions/runs/38511169958) **failed** the strict Swift extraction gate with one level-`none`, no-location `NSAccessibilityElement` ambiguity in the app invocation. Retained SARIF represents all 50 owned production Swift files, plus the manifest and summary helper; this does not establish complete imported-module semantics. C/CSQLite and Actions analysis passed, all processed-SARIF publishers were skipped and the required aggregate failed. The draft PR remains unmerged with the gate intact. There is no verified source remedy.
+
+This documentation-only checkpoint records that immutable implementation evidence; current PR-head checks still govern any later integration. The packaged artifact predates these fixture-only/documentation changes and retains the same production source and recorded hashes. Full rendered/keyboard/spoken, live Google, close/cleanup failure windows and distribution gates remain partial.
+
 Coverage includes:
 
 - Real SQLite schema creation, version-1 migration/reopen, staged baseline visibility, atomic promotion, rollback on malformed Changes records, durable cursors, retained snapshots, observation-cutoff historical paths that exclude future ancestor names, overlapping scope membership, scope retirement and newer-schema rejection.

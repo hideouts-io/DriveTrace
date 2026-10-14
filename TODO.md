@@ -6,6 +6,8 @@ Statuses describe each item's stated boundary: **planned** has not been implemen
 
 Keep the original blue branding, SwiftUI design, Keychain storage and existing permission boundaries. Use isolated synthetic workspaces for independent checks. Keep credentials, real caches, downloaded content, private exports and generated builds out of Git. The current request authorizes a validated source commit, branch push and review PR with the necessary existing CI inputs. Merge, release, deployment, visibility changes and permanent deletion remain separate decisions. GitHub validation must run at the published candidate; local checks do not substitute for required hosted checks.
 
+The published implementation/fixture checkpoint `896208c` passes native Xcode 26.6 CI with 141 tests in seven suites and strict CSQLite compilation. Swift CodeQL remains **blocked** by one extraction ambiguity despite all 50 owned Swift files being represented; preserve the gate and [hosted evidence](docs/VERIFICATION.md#hosted-validation-checkpoint). This does not complete the product plan or authorize integration.
+
 ## Critical deferred bug
 
 ### P0 — Modifier-click selection: BROKEN AND DEFERRED
