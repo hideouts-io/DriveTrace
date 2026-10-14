@@ -313,7 +313,7 @@ private final class StreamProtocol: URLProtocol, @unchecked Sendable {
     override class func canInit(with request: URLRequest) -> Bool { request.url?.host != "127.0.0.1" }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
     override func startLoading() {
-        Task {
+        Task { @Sendable [self] in
             do {
                 guard let key = request.value(forHTTPHeaderField: "X-DriveTrace-Stream-Fixture"),
                       let router = Self.registry.router(key: key), let source = request.url else {

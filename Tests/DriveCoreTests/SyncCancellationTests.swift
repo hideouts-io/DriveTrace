@@ -42,7 +42,7 @@ private final class SyncFixtureProtocol: URLProtocol, @unchecked Sendable {
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
     override func startLoading() {
-        loading = Task {
+        loading = Task { @Sendable [self] in
             do {
                 let result = try await Self.responses.next(request, id: requestID)
                 try Task.checkCancellation()
@@ -55,7 +55,8 @@ private final class SyncFixtureProtocol: URLProtocol, @unchecked Sendable {
     override func stopLoading() {
         loading?.cancel()
         let id = requestID
-        Task { await Self.responses.cancelResponse(id) }
+        let responses = Self.responses
+        Task { @Sendable [responses, id] in await responses.cancelResponse(id) }
     }
 }
 
