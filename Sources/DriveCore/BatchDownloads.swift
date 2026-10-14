@@ -69,6 +69,11 @@ extension GoogleClient {
                 results.append(DownloadResult(id: UUID(), path: path, outcome: item.file.isFolder ? .folderCreated : .downloaded, message: nil))
             } catch is CancellationError { cancelled = true; break }
             catch let error as URLError where error.code == .cancelled { cancelled = true; break }
+            catch let failure as DownloadFileCloseError where failure.cancelled {
+                cancelled = true
+                results.append(DownloadResult(id: UUID(), path: path, outcome: .failed, message: failure.localizedDescription))
+                break
+            }
             catch let failure as FailedDownloadCleanupError where failure.cancelled {
                 cancelled = true
                 results.append(DownloadResult(id: UUID(), path: path, outcome: .failed, message: failure.localizedDescription))

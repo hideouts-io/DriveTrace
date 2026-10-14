@@ -124,6 +124,65 @@ import Testing
         try await fixture.close()
     }
 
+    @Test func cancelledCloseFailureStopsBatchWithoutCancellingItsSwiftTask() async throws {
+        let cancelled = try await nativeCancelledURLSessionFailure()
+        let first = streamFixtureFile(id: "saved-close", name: "Saved.bin", bytes: 1_048_576)
+        let second = streamFixtureFile(id: "cancelled-close", name: "Cancelled.bin", bytes: 2 * 1_048_576 + 19)
+        let last = streamFixtureFile(id: "later-close", name: "Unattempted.bin", bytes: 65_536)
+        let files = [first, second, last]
+        let fixture = try await StreamingFixture.open(files: files, responses: [first.id: .complete(1_048_576), second.id: .complete(2 * 1_048_576 + 19), last.id: .complete(65_536)])
+        let observed = OSAllocatedUnfairLock<DownloadFileCloseError?>(initialState: nil)
+        let temporary = OSAllocatedUnfairLock<URL?>(initialState: nil)
+        do {
+            let sentinel = fixture.directory.appendingPathComponent("existing.txt")
+            let earlier = Data("Earlier bytes must survive a cancelled close failure".utf8)
+            try earlier.write(to: sentinel, options: .withoutOverwriting)
+            let tokens = FixtureTokens(); await tokens.grantManagement()
+            let client = GoogleClient(tokens: tokens, session: fixture.session, saveNewFile: { @Sendable [observed, temporary, second, cancelled] source, destination in
+                guard destination.lastPathComponent == second.name else { try saveNewDownloadedFile(source, to: destination); return }
+                temporary.withLock { $0 = source }
+                try stageDownloadedFile(source, destination: destination) { staged in
+                    #expect(!Task.isCancelled)
+                    #expect(try streamFileDigest(staged) == second.sha256Checksum)
+                    #expect(try streamFileAttributes(staged).st_size == 2 * 1_048_576 + 19)
+                    #expect(try streamFileAttributes(staged).st_mode & 0o777 == 0o600)
+                    let reader = try FileHandle(forReadingFrom: staged)
+                    do {
+                        try withDownloadFileHandle(reader, file: staged, operation: .stagingInput, closing: closeFixtureWithPOSIXFailure) { handle in
+                            #expect(try handle.read(upToCount: 65_536) == streamFixtureChunk)
+                            throw cancelled
+                        }
+                        throw MonitorError.invalid("The controlled cancelled close boundary unexpectedly reached commit.")
+                    } catch let failure as DownloadFileCloseError {
+                        observed.withLock { $0 = failure }
+                        throw failure
+                    }
+                }
+            })
+            let plan = DownloadPlan(items: files.map { DownloadItem(file: $0, components: [$0.name]) }, issues: [])
+            let report = try await runCleanupBatch(client, plan: plan, parent: fixture.directory)
+            #expect(!Task.isCancelled)
+            #expect(report.cancelled)
+            try assertCancelledCleanupReport(report, first: first, second: second, last: last)
+            let failure = try #require(observed.withLock { $0 })
+            #expect(failure.cancelled)
+            let original = try #require(failure.cause as? URLError)
+            #expect(original.code == .cancelled)
+            #expect((failure.closing as NSError).domain == NSPOSIXErrorDomain)
+            #expect((failure.closing as NSError).code == Int(EBADF))
+            #expect(report.results[1].message == failure.localizedDescription)
+            #expect(!FileManager.default.fileExists(atPath: failure.file.deletingLastPathComponent().path))
+            let returnedTemporary = try #require(temporary.withLock { $0 })
+            #expect(!FileManager.default.fileExists(atPath: returnedTemporary.path))
+            #expect(try Data(contentsOf: sentinel) == earlier)
+            try assertCleanupReportRoundTrip(report)
+            #expect(await fixture.router.requests() == ["metadata:" + first.id, "media:" + first.id, "metadata:" + second.id, "media:" + second.id])
+            #expect(await fixture.server.snapshot().paths == ["/media/" + first.id, "/media/" + second.id])
+            #expect(await fixture.server.snapshot().failures.isEmpty)
+        } catch { try await fixture.close(after: error); throw error }
+        try await fixture.close()
+    }
+
     @Test func cancelledBatchRetainsStageCleanupFailureAndRemovesTransportTemporary() async throws {
         let first = streamFixtureFile(id: "saved-stage", name: "Saved.bin", bytes: 1_048_576)
         let second = streamFixtureFile(id: "cancelled-stage", name: "Cancelled.bin", bytes: 2 * 1_048_576 + 19)

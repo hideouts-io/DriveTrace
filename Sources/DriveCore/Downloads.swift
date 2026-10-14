@@ -26,10 +26,7 @@ public struct FailedDownloadCleanupError: LocalizedError {
     public let temporary: URL
     public let cause: any Error
     public let cleanup: any Error
-    public var cancelled: Bool {
-        cause is CancellationError || (cause as? URLError)?.code == .cancelled
-            || (cause as? FailedDownloadCleanupError)?.cancelled == true
-    }
+    public var cancelled: Bool { downloadWasCancelled(cause) }
     public var errorDescription: String? {
         "Download \(cancelled ? "cancelled before completion" : "failed"): \(cause.localizedDescription). Temporary data could not be removed at \(temporary.path): \(cleanup.localizedDescription). Review that temporary location and correct its permissions before removing leftover data or retrying."
     }
@@ -126,8 +123,7 @@ extension GoogleClient {
                     retryAfter = http.value(forHTTPHeaderField: "Retry-After")
                     guard http.statusCode == 200 else {
                         let handle = try FileHandle(forReadingFrom: temporary)
-                        let body = try handle.read(upToCount: 4097) ?? Data()
-                        try handle.close()
+                        let body = try withDownloadFileHandle(handle, file: temporary, operation: .errorResponse) { try $0.read(upToCount: 4097) ?? Data() }
                         throw googleHTTPFailure(status: http.statusCode, responseData: body, operation: format.exportMIME == nil ? .fileDownload : .documentExport)
                     }
                     try Task.checkCancellation()
@@ -234,14 +230,14 @@ func removeSavedDownloadTemporary(_ temporary: URL, destination: URL) throws(Sav
 func copyDownloadChunks(_ source: URL, to destination: URL) throws {
     try Task.checkCancellation()
     let reader = try FileHandle(forReadingFrom: source)
-    do {
+    try withDownloadFileHandle(reader, file: source, operation: .stagingInput) { reader in
         let descriptor = open(destination.path, O_WRONLY | O_CREAT | O_EXCL, 0o600)
         guard descriptor >= 0 else {
             let code = errno
             throw MonitorError.invalid("Could not create download staging file at \(destination.path): \(String(cString: strerror(code))) (errno \(code)). Choose a writable destination with available space.")
         }
         let writer = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
-        do {
+        try withDownloadFileHandle(writer, file: destination, operation: .stagingOutput) { writer in
             while true {
                 try Task.checkCancellation()
                 // Foundation read/write buffers must leave their autorelease pool after each bounded chunk.
@@ -253,20 +249,8 @@ func copyDownloadChunks(_ source: URL, to destination: URL) throws {
                 }
                 if !copied { break }
             }
-        } catch {
-            let cause = error
-            do { try writer.close() }
-            catch { throw MonitorError.invalid("Download staging failed: \(cause.localizedDescription). Closing its output file also failed: \(error.localizedDescription)") }
-            throw cause
         }
-        try writer.close()
-    } catch {
-        let cause = error
-        do { try reader.close() }
-        catch { throw MonitorError.invalid("Download staging failed: \(cause.localizedDescription). Closing its input file also failed: \(error.localizedDescription)") }
-        throw cause
     }
-    try reader.close()
     try Task.checkCancellation()
 }
 

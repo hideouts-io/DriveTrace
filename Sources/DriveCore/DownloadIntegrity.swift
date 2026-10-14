@@ -18,7 +18,7 @@ func validateDownloadChecksum(_ temporary: URL, file: DriveFile) throws {
 private func downloadedSHA256(_ url: URL) throws -> String {
     let handle = try FileHandle(forReadingFrom: url)
     var hash = SHA256()
-    do {
+    try withDownloadFileHandle(handle, file: url, operation: .checksumInput) { handle in
         while true {
             try Task.checkCancellation()
             // Bound autoreleased Foundation buffers as well as each read's byte count.
@@ -30,13 +30,7 @@ private func downloadedSHA256(_ url: URL) throws -> String {
             }
             if !hashed { break }
         }
-    } catch {
-        let cause = error
-        do { try handle.close() }
-        catch { throw MonitorError.invalid("Download checksum validation failed: \(cause.localizedDescription). Closing the temporary file also failed: \(error.localizedDescription)") }
-        throw cause
     }
-    try handle.close()
     try Task.checkCancellation()
     return hash.finalize().map { String(format: "%02x", $0) }.joined()
 }
