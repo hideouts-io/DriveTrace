@@ -170,98 +170,100 @@ import Testing
     #expect(try Data(contentsOf: destination) == savedBytes)
 }
 
-@Test func checksumCancellationAfterMultipleConsumedChunksCompletesWithoutChangingDestination() async throws {
-    let manager = FileManager.default
-    let root = try interruptionDirectory()
-    defer { removeInterruptionDirectory(root) }
-    let source = root.appendingPathComponent("controlled-checksum-source")
-    let destination = root.appendingPathComponent("already-saved.bin")
-    let earlier = Data("saved bytes must survive checksum cancellation".utf8)
-    try earlier.write(to: destination)
-    guard mkfifo(source.path, 0o600) == 0 else {
-        throw interruptionPOSIXFailure("Create controlled checksum source", code: errno)
-    }
-    let descriptor = open(source.path, O_RDWR | O_NONBLOCK)
-    guard descriptor >= 0 else {
-        throw interruptionPOSIXFailure("Open controlled checksum source", code: errno)
-    }
-    var keeper: Int32? = descriptor
-    defer {
-        if let descriptor = keeper, close(descriptor) != 0 {
-            Issue.record(interruptionPOSIXFailure("Close remaining checksum source keeper", code: errno))
+extension ControlledFIFOTests {
+    @Test func checksumCancellationAfterMultipleConsumedChunksCompletesWithoutChangingDestination() async throws {
+        let manager = FileManager.default
+        let root = try interruptionDirectory()
+        defer { removeInterruptionDirectory(root) }
+        let source = root.appendingPathComponent("controlled-checksum-source")
+        let destination = root.appendingPathComponent("already-saved.bin")
+        let earlier = Data("saved bytes must survive checksum cancellation".utf8)
+        try earlier.write(to: destination)
+        guard mkfifo(source.path, 0o600) == 0 else {
+            throw interruptionPOSIXFailure("Create controlled checksum source", code: errno)
         }
-    }
-    var file = DriveFile(id: "dynamic-checksum", name: "Source.bin", mimeType: "application/octet-stream")
-    file.sha256Checksum = String(repeating: "0", count: 64)
-    let selected = file
-    let completion = DiskInterruptionCompletion()
-    let task = Task.detached {
+        let descriptor = open(source.path, O_RDWR | O_NONBLOCK)
+        guard descriptor >= 0 else {
+            throw interruptionPOSIXFailure("Open controlled checksum source", code: errno)
+        }
+        var keeper: Int32? = descriptor
+        defer {
+            if let descriptor = keeper, close(descriptor) != 0 {
+                Issue.record(interruptionPOSIXFailure("Close remaining checksum source keeper", code: errno))
+            }
+        }
+        var file = DriveFile(id: "dynamic-checksum", name: "Source.bin", mimeType: "application/octet-stream")
+        file.sha256Checksum = String(repeating: "0", count: 64)
+        let selected = file
+        let completion = DiskInterruptionCompletion()
+        let task = Task.detached {
+            do {
+                try validateDownloadChecksum(source, file: selected)
+                await completion.finish()
+            } catch {
+                await completion.finish()
+                throw error
+            }
+        }
         do {
-            try validateDownloadChecksum(source, file: selected)
-            await completion.finish()
-        } catch {
-            await completion.finish()
-            throw error
-        }
-    }
-    do {
-        let bytes = Data(repeating: 74, count: 3 * 1_048_576 + 23)
-        let deadline = ContinuousClock.now.advanced(by: .seconds(5))
-        var offset = 0
-        while offset < bytes.count {
-            try Task.checkCancellation()
-            guard ContinuousClock.now < deadline else {
-                throw MonitorError.invalid("Controlled checksum source did not consume its fixture before the test deadline.")
-            }
-            let written = bytes.withUnsafeBytes { buffer in
-                write(descriptor, buffer.baseAddress!.advanced(by: offset), min(65_536, bytes.count - offset))
-            }
-            if written > 0 { offset += written }
-            else if written < 0 && [EAGAIN, EINTR].contains(errno) { await Task.yield() }
-            else if written < 0 { throw interruptionPOSIXFailure("Write controlled checksum source", code: errno) }
-            else { throw MonitorError.invalid("Controlled checksum source returned a zero-byte write.") }
-        }
-        while try interruptionUnreadBytes(descriptor) != 0 {
-            guard ContinuousClock.now < deadline else {
-                throw MonitorError.invalid("Checksum validation did not consume the final fixture bytes before the test deadline.")
-            }
-            await Task.yield()
-        }
-        #expect(!(await completion.finished()))
-        // The pipe is drained, and the keeper prevents EOF until cancellation releases the next read.
-        task.cancel()
-        keeper = nil
-        guard close(descriptor) == 0 else {
-            throw interruptionPOSIXFailure("Release controlled checksum EOF", code: errno)
-        }
-        try await waitForDiskInterruption(completion)
-        await #expect(throws: CancellationError.self) { try await task.value }
-        #expect(try Data(contentsOf: destination) == earlier)
-        #expect(try interruptionAttributes(source).st_mode & mode_t(S_IFMT) == mode_t(S_IFIFO))
-        #expect(try manager.contentsOfDirectory(atPath: root.path).sorted() == [destination.lastPathComponent, source.lastPathComponent].sorted())
-    } catch {
-        let cause = error
-        task.cancel()
-        do {
-            if let descriptor = keeper {
-                // Keep the writer until the reader either finishes or demonstrates an opened descriptor.
-                let deadline = ContinuousClock.now.advanced(by: .seconds(5))
-                while !(await completion.finished()) {
-                    if try interruptionUnreadBytes(descriptor) == 0 { break }
-                    if ContinuousClock.now >= deadline { break }
-                    await Task.yield()
+            let bytes = Data(repeating: 74, count: 3 * 1_048_576 + 23)
+            let deadline = ContinuousClock.now.advanced(by: .seconds(5))
+            var offset = 0
+            while offset < bytes.count {
+                try Task.checkCancellation()
+                guard ContinuousClock.now < deadline else {
+                    throw MonitorError.invalid("Controlled checksum source did not consume its fixture before the test deadline.")
                 }
-                keeper = nil
-                guard close(descriptor) == 0 else {
-                    throw interruptionPOSIXFailure("Release controlled checksum EOF during cleanup", code: errno)
+                let written = bytes.withUnsafeBytes { buffer in
+                    write(descriptor, buffer.baseAddress!.advanced(by: offset), min(65_536, bytes.count - offset))
                 }
+                if written > 0 { offset += written }
+                else if written < 0 && [EAGAIN, EINTR].contains(errno) { await Task.yield() }
+                else if written < 0 { throw interruptionPOSIXFailure("Write controlled checksum source", code: errno) }
+                else { throw MonitorError.invalid("Controlled checksum source returned a zero-byte write.") }
+            }
+            while try interruptionUnreadBytes(descriptor) != 0 {
+                guard ContinuousClock.now < deadline else {
+                    throw MonitorError.invalid("Checksum validation did not consume the final fixture bytes before the test deadline.")
+                }
+                await Task.yield()
+            }
+            #expect(!(await completion.finished()))
+            // The pipe is drained, and the keeper prevents EOF until cancellation releases the next read.
+            task.cancel()
+            keeper = nil
+            guard close(descriptor) == 0 else {
+                throw interruptionPOSIXFailure("Release controlled checksum EOF", code: errno)
             }
             try await waitForDiskInterruption(completion)
-            do { try await task.value } catch is CancellationError {}
+            await #expect(throws: CancellationError.self) { try await task.value }
+            #expect(try Data(contentsOf: destination) == earlier)
+            #expect(try interruptionAttributes(source).st_mode & mode_t(S_IFMT) == mode_t(S_IFIFO))
+            #expect(try manager.contentsOfDirectory(atPath: root.path).sorted() == [destination.lastPathComponent, source.lastPathComponent].sorted())
         } catch {
-            throw MonitorError.invalid("Checksum interruption test failed: \(cause.localizedDescription). Releasing the task-owned reader also failed: \(error.localizedDescription)")
+            let cause = error
+            task.cancel()
+            do {
+                if let descriptor = keeper {
+                    // Keep the writer until the reader either finishes or demonstrates an opened descriptor.
+                    let deadline = ContinuousClock.now.advanced(by: .seconds(5))
+                    while !(await completion.finished()) {
+                        if try interruptionUnreadBytes(descriptor) == 0 { break }
+                        if ContinuousClock.now >= deadline { break }
+                        await Task.yield()
+                    }
+                    keeper = nil
+                    guard close(descriptor) == 0 else {
+                        throw interruptionPOSIXFailure("Release controlled checksum EOF during cleanup", code: errno)
+                    }
+                }
+                try await waitForDiskInterruption(completion)
+                do { try await task.value } catch is CancellationError {}
+            } catch {
+                throw MonitorError.invalid("Checksum interruption test failed: \(cause.localizedDescription). Releasing the task-owned reader also failed: \(error.localizedDescription)")
+            }
+            throw cause
         }
-        throw cause
     }
 }
 

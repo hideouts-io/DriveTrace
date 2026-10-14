@@ -3,91 +3,96 @@ import Darwin
 import Testing
 @testable import DriveCore
 
-@Test func cancellationDuringPartialStageRemovesOnlyOwnedStagingAndPreservesEarlierOutput() async throws {
-    let manager = FileManager.default
-    let root = try boundaryDirectory()
-    defer {
-        do { try manager.removeItem(at: root) }
-        catch { Issue.record(error) }
-    }
-    let source = root.appendingPathComponent("controlled-source")
-    let staging = root.appendingPathComponent("owned-staging", isDirectory: true)
-    let destination = root.appendingPathComponent("earlier-saved.txt")
-    try manager.createDirectory(at: staging, withIntermediateDirectories: false, attributes: [.posixPermissions: 0o700])
-    let earlierBytes = Data("earlier committed download".utf8)
-    try earlierBytes.write(to: destination, options: .withoutOverwriting)
-    guard mkfifo(source.path, 0o600) == 0 else { throw boundaryPOSIXFailure("Create controlled staging source", code: errno) }
-    let descriptor = open(source.path, O_RDWR | O_NONBLOCK)
-    guard descriptor >= 0 else { throw boundaryPOSIXFailure("Open controlled staging source keeper", code: errno) }
-    var keeper: Int32? = descriptor
-    defer {
-        if let descriptor = keeper, close(descriptor) != 0 {
-            Issue.record(boundaryPOSIXFailure("Close remaining staging keeper", code: errno))
+/// Held FIFO reads share cooperative workers; run one at a time so their async controllers can release EOF.
+@Suite(.serialized) struct ControlledFIFOTests {}
+
+extension ControlledFIFOTests {
+    @Test func cancellationDuringPartialStageRemovesOnlyOwnedStagingAndPreservesEarlierOutput() async throws {
+        let manager = FileManager.default
+        let root = try boundaryDirectory()
+        defer {
+            do { try manager.removeItem(at: root) }
+            catch { Issue.record(error) }
         }
-    }
-    let completion = BoundaryCopyCompletion()
-    let task = Task.detached {
-        do {
-            try stageDownloadedFile(source, destination: destination, staging: staging) { _ in
-                throw MonitorError.invalid("Partial staging must not reach commit before controlled EOF release.")
+        let source = root.appendingPathComponent("controlled-source")
+        let staging = root.appendingPathComponent("owned-staging", isDirectory: true)
+        let destination = root.appendingPathComponent("earlier-saved.txt")
+        try manager.createDirectory(at: staging, withIntermediateDirectories: false, attributes: [.posixPermissions: 0o700])
+        let earlierBytes = Data("earlier committed download".utf8)
+        try earlierBytes.write(to: destination, options: .withoutOverwriting)
+        guard mkfifo(source.path, 0o600) == 0 else { throw boundaryPOSIXFailure("Create controlled staging source", code: errno) }
+        let descriptor = open(source.path, O_RDWR | O_NONBLOCK)
+        guard descriptor >= 0 else { throw boundaryPOSIXFailure("Open controlled staging source keeper", code: errno) }
+        var keeper: Int32? = descriptor
+        defer {
+            if let descriptor = keeper, close(descriptor) != 0 {
+                Issue.record(boundaryPOSIXFailure("Close remaining staging keeper", code: errno))
             }
-            await completion.finish()
-        } catch {
-            await completion.finish()
-            throw error
         }
-    }
-    do {
-        let bytes = Data(repeating: 87, count: 3 * 1_048_576)
-        let deadline = ContinuousClock.now.advanced(by: .seconds(5))
-        var offset = 0
-        while offset < bytes.count {
-            try Task.checkCancellation()
-            guard ContinuousClock.now < deadline else { throw MonitorError.invalid("Partial staging did not consume the controlled source before the test deadline.") }
-            let count = bytes.withUnsafeBytes { buffer in
-                write(descriptor, buffer.baseAddress!.advanced(by: offset), min(65_536, bytes.count - offset))
-            }
-            if count > 0 { offset += count }
-            else if count < 0 && [EAGAIN, EINTR].contains(errno) { await Task.yield() }
-            else if count < 0 { throw boundaryPOSIXFailure("Write controlled partial staging source", code: errno) }
-            else { throw MonitorError.invalid("Writing the controlled staging source returned zero before its expected bytes.") }
-        }
-        let staged = try await boundaryStagedFile(staging, bytes: Int64(bytes.count), completion: completion, deadline: deadline)
-        #expect(try Data(contentsOf: staged) == bytes)
-        #expect(try boundaryAttributes(staged).st_mode & 0o777 == 0o600)
-        #expect(!(await completion.finished()))
-        #expect(try Data(contentsOf: destination) == earlierBytes)
-        // The keeper prevents EOF. Cancellation is observed when this owned blocked read returns.
-        task.cancel()
-        keeper = nil
-        guard close(descriptor) == 0 else { throw boundaryPOSIXFailure("Release controlled staging EOF", code: errno) }
-        try await boundaryWaitForCompletion(completion)
-        await #expect(throws: CancellationError.self) { try await task.value }
-        #expect(!manager.fileExists(atPath: staging.path))
-        #expect(try Data(contentsOf: destination) == earlierBytes)
-        #expect(try boundaryAttributes(source).st_mode & mode_t(S_IFMT) == mode_t(S_IFIFO))
-        #expect(try manager.contentsOfDirectory(atPath: root.path).sorted() == [source.lastPathComponent, destination.lastPathComponent].sorted())
-    } catch {
-        let cause = error
-        task.cancel()
-        do {
-            if let descriptor = keeper {
-                let deadline = ContinuousClock.now.advanced(by: .seconds(5))
-                while !(await completion.finished()) {
-                    let files = try manager.contentsOfDirectory(at: staging, includingPropertiesForKeys: nil)
-                    if !files.isEmpty { break }
-                    guard ContinuousClock.now < deadline else { throw MonitorError.invalid("The controlled staging reader never opened before the cleanup deadline.") }
-                    await Task.yield()
+        let completion = BoundaryCopyCompletion()
+        let task = Task.detached {
+            do {
+                try stageDownloadedFile(source, destination: destination, staging: staging) { _ in
+                    throw MonitorError.invalid("Partial staging must not reach commit before controlled EOF release.")
                 }
-                keeper = nil
-                guard close(descriptor) == 0 else { throw boundaryPOSIXFailure("Release controlled staging EOF during cleanup", code: errno) }
+                await completion.finish()
+            } catch {
+                await completion.finish()
+                throw error
             }
-            try await boundaryWaitForCompletion(completion)
-            do { try await task.value } catch is CancellationError {}
-        } catch {
-            throw MonitorError.invalid("Partial staging check failed: \(cause.localizedDescription). Finishing its owned copy also failed: \(error.localizedDescription)")
         }
-        throw cause
+        do {
+            let bytes = Data(repeating: 87, count: 3 * 1_048_576)
+            let deadline = ContinuousClock.now.advanced(by: .seconds(5))
+            var offset = 0
+            while offset < bytes.count {
+                try Task.checkCancellation()
+                guard ContinuousClock.now < deadline else { throw MonitorError.invalid("Partial staging did not consume the controlled source before the test deadline.") }
+                let count = bytes.withUnsafeBytes { buffer in
+                    write(descriptor, buffer.baseAddress!.advanced(by: offset), min(65_536, bytes.count - offset))
+                }
+                if count > 0 { offset += count }
+                else if count < 0 && [EAGAIN, EINTR].contains(errno) { await Task.yield() }
+                else if count < 0 { throw boundaryPOSIXFailure("Write controlled partial staging source", code: errno) }
+                else { throw MonitorError.invalid("Writing the controlled staging source returned zero before its expected bytes.") }
+            }
+            let staged = try await boundaryStagedFile(staging, bytes: Int64(bytes.count), completion: completion, deadline: deadline)
+            #expect(try Data(contentsOf: staged) == bytes)
+            #expect(try boundaryAttributes(staged).st_mode & 0o777 == 0o600)
+            #expect(!(await completion.finished()))
+            #expect(try Data(contentsOf: destination) == earlierBytes)
+            // The keeper prevents EOF. Cancellation is observed when this owned blocked read returns.
+            task.cancel()
+            keeper = nil
+            guard close(descriptor) == 0 else { throw boundaryPOSIXFailure("Release controlled staging EOF", code: errno) }
+            try await boundaryWaitForCompletion(completion)
+            await #expect(throws: CancellationError.self) { try await task.value }
+            #expect(!manager.fileExists(atPath: staging.path))
+            #expect(try Data(contentsOf: destination) == earlierBytes)
+            #expect(try boundaryAttributes(source).st_mode & mode_t(S_IFMT) == mode_t(S_IFIFO))
+            #expect(try manager.contentsOfDirectory(atPath: root.path).sorted() == [source.lastPathComponent, destination.lastPathComponent].sorted())
+        } catch {
+            let cause = error
+            task.cancel()
+            do {
+                if let descriptor = keeper {
+                    let deadline = ContinuousClock.now.advanced(by: .seconds(5))
+                    while !(await completion.finished()) {
+                        let files = try manager.contentsOfDirectory(at: staging, includingPropertiesForKeys: nil)
+                        if !files.isEmpty { break }
+                        guard ContinuousClock.now < deadline else { throw MonitorError.invalid("The controlled staging reader never opened before the cleanup deadline.") }
+                        await Task.yield()
+                    }
+                    keeper = nil
+                    guard close(descriptor) == 0 else { throw boundaryPOSIXFailure("Release controlled staging EOF during cleanup", code: errno) }
+                }
+                try await boundaryWaitForCompletion(completion)
+                do { try await task.value } catch is CancellationError {}
+            } catch {
+                throw MonitorError.invalid("Partial staging check failed: \(cause.localizedDescription). Finishing its owned copy also failed: \(error.localizedDescription)")
+            }
+            throw cause
+        }
     }
 }
 
