@@ -1,286 +1,297 @@
 Building for debugging...
-[5 / 6] DriveBenchmarks-product
-[5 / 6] DriveCoreTests-product
-Build complete! (0.74 sec)
-Test Suite 'All tests' started at 2026-10-13 23:50:41.913.
-Test Suite 'All tests' passed at 2026-10-13 23:50:41.915.
+[1 / 1]
+Build complete! (0.43 sec)
+Test Suite 'All tests' started at 2026-10-14 08:00:12.291.
+Test Suite 'All tests' passed at 2026-10-14 08:00:12.293.
 	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.002) seconds
 ◇ Test run started.
 ↳ Testing Library Version: 2084
 ↳ Target Platform: arm64e-apple-macos14.0
-◇ Test cancelledSortStopsAndDateOrderingUsesInstants() started.
-◇ Suite StreamingDownloadTests started.
-◇ Test loopbackRejectsWrongStateThenAcceptsValidCallback() started.
-◇ Test cancelledPreviewPersistenceDoesNotCreateTemporaryContent() started.
-◇ Test observedHierarchyUsesCutoffAndRetainsUncertainItems() started.
-◇ Suite GoogleSearchTests started.
-◇ Test multiScopeMembershipAndRemoval() started.
-◇ Test retainedReportCopyFailureThenSuccessPreservesTransfersAndJob() started.
-◇ Test folderCyclesTerminate() started.
-◇ Test previewPersistenceSecuresAnExistingDirectoryAndRetainsEarlierContent() started.
-◇ Test transferTemporaryCleanupFailurePreservesCommittedOutcomeAndCause() started.
-◇ Suite GoogleIntegrationTests started.
-◇ Test loopbackCancellationFinishes() started.
-◇ Test reportCopyRejectsOccupiedFilesAndSymlinksWithoutChangingTargets() started.
-◇ Test fileCloseFailureRetainsRealTaskCancellationAndClosesOnce() started.
-◇ Test cancellationAtCompletedStageWithDeniedCleanupPreservesBothCausesAndEarlierOutput() started.
-◇ Test fileTablePagesCoverEveryMatchWithoutChangingOrdering() started.
-◇ Suite ConnectionCancellationTests started.
-◇ Test tokenRenewalRetainsOrRotatesOfflineGrant() started.
-◇ Suite ControlledFIFOTests started.
-◇ Test failedTrashConfirmationKeepsReviewOpen() started.
-◇ Test largeIndexSearchAndPersistence() started.
-◇ Suite GoogleFailureTests started.
-◇ Test inaccessiblePreviewCleanupReportsItsCauseAndRetainsContent() started.
-◇ Test automaticReportPersistenceStillFinishesInsideCancelledTransferTask() started.
-◇ Test tokenResponseRequiresBothReadOnlyGrants() started.
-◇ Suite SingleFileRecoveryTests started.
-◇ Test eventExportsKeepAttributionAndSource() started.
-◇ Test historicalPathsNeverUseFutureAncestorNames() started.
-◇ Test timestampFiltersCompareInstantsNotLexicalOffsets() started.
-◇ Test managementGrantIsExplicitAndLegacyTokensStayRestricted() started.
-◇ Test successfulStagingBodyWithCloseFailureDeniesCommitWithoutInventingPrimaryCancellation() started.
-◇ Test reportCopyPreservesEveryOutcomeAndPrivatePermissions() started.
-◇ Test nestedFileCloseFailuresAndDeniedCleanupRetainCancellationAndBothCloseCauses() started.
-◇ Test activityAttributionAndDeduplication() started.
-◇ Test timestampsRoundTrip() started.
-◇ Test reportCopyDestinationFailuresAllowRetryWithoutLosingOutcomes() started.
-◇ Test previewStorageRefusesRedirectedRootAndCleanupOutsideItsDirectory() started.
-◇ Test storageCategoryNavigationMatchesTotalsAndKeepsFiltersScoped() started.
-◇ Test fileCloseFailureRetainsGenuineURLSessionCancellationWithoutTaskCancellation() started.
-◇ Test unsafeOrOversizedPreviewContentDoesNotMutateStorage() started.
-◇ Test invalidMetadataFailsExplicitly() started.
-◇ Test nativeFileHandleClosingReturnsValueAndPreservesOriginalCancellation() started.
-◇ Test failedCancellationCleanupPreservesPrimaryCauseAndAllowsExplicitRemovalRetry() started.
-◇ Test allUnknownStorageRemainsUnknown() started.
 ◇ Test newerSchemaIsRejectedWithoutDowngrade() started.
 ◇ Test stagedDownloadCopiesMultipleChunksPrivatelyAndPreservesSource() started.
-◇ Test storageParentAndDriveGroupsUseIdentityInsteadOfNames() started.
-◇ Test activityFiltersRecoverWithoutChangingLoadedEvidence() started.
-◇ Test completedStagingCommitRefusalPreservesOccupiedFileAndSymlink() started.
-◇ Test baselineIsAtomicAndSurvivesReopen() started.
-◇ Test staleAndUnfinishedReportCopiesRejectBeforeWriting() started.
-◇ Test preparedNavigationPreservesRootsAndTerminatesCycles() started.
-◇ Test invalidAndReversedSearchRangesAreRejected() started.
 ◇ Test watchCooldownAndAcknowledgementSurviveReopen() started.
-◇ Test compoundFiltersAndSortUnknowns() started.
-◇ Test malformedPageRollsBackChangesAndCursor() started.
-◇ Test invalidAndDeniedBatchDestinationsFailBeforeWritingWithRecoveryContext() started.
-◇ Test alreadyCancelledReportCopyLeavesRetainedResultsAndDiskUnchanged() started.
-◇ Test exportsRoundTripAndProtectSpreadsheetCells() started.
-◇ Test previewStorageUsesPrivateTemporaryPathsAndCleansUp() started.
-◇ Test breadcrumbsKeepRootIdentityAndCoverageBoundaries() started.
-◇ Test stagingCleanupFailurePreservesSavedBytesAndBatchOutcome() started.
-◇ Test desktopOAuthConfigurationAndPKCE() started.
+◇ Test reportCloseFaultPreservesConcurrentFinalSymlinkAndTarget() started.
+◇ Test folderCyclesTerminate() started.
+◇ Test previewPersistenceSecuresAnExistingDirectoryAndRetainsEarlierContent() started.
+◇ Test eventExportsKeepAttributionAndSource() started.
+◇ Test observedHierarchyUsesCutoffAndRetainsUncertainItems() started.
 ◇ Test retryTimingParsesHTTPDatesAndRejectsInvalidValues() started.
-◇ Test notificationPermissionMustAllowDelivery() started.
+◇ Test storageCategoryNavigationMatchesTotalsAndKeepsFiltersScoped() started.
+◇ Test previewStorageUsesPrivateTemporaryPathsAndCleansUp() started.
+◇ Test multiScopeMembershipAndRemoval() started.
+◇ Test staleAndUnfinishedReportCopiesRejectBeforeWriting() started.
+◇ Test largeIndexSearchAndPersistence() started.
+◇ Test activityFiltersRecoverWithoutChangingLoadedEvidence() started.
+◇ Test successfulStagingBodyWithCloseFailureDeniesCommitWithoutInventingPrimaryCancellation() started.
+◇ Test preparedNavigationPreservesRootsAndTerminatesCycles() started.
+◇ Suite GoogleFailureTests started.
+◇ Suite ControlledFIFOTests started.
+◇ Test tokenResponseRequiresBothReadOnlyGrants() started.
+◇ Test activityAttributionAndDeduplication() started.
+◇ Test nestedFileCloseFailuresAndDeniedCleanupRetainCancellationAndBothCloseCauses() started.
 ◇ Test cancelledDownloadSavePreservesExistingFile() started.
-◇ Test batchFileCommitNeverOverwritesExistingPaths() started.
-◇ Test retryTimingHonorsServerMinimumAndBoundedJitter() started.
-◇ Test membershipDoesNotResurrectAfterRestart() started.
-◇ Test schemaOneMigratesWithoutLosingFiles() started.
-◇ Test streamedChecksumHandlesChunksEmptyFilesInvalidMetadataAndCancellation() started.
+◇ Suite StreamingDownloadTests started.
+◇ Test alreadyCancelledReportCopyLeavesRetainedResultsAndDiskUnchanged() started.
+◇ Test nativeFileHandleClosingReturnsValueAndPreservesOriginalCancellation() started.
+◇ Suite GoogleIntegrationTests started.
+◇ Test failedCancellationCleanupPreservesPrimaryCauseAndAllowsExplicitRemovalRetry() started.
+◇ Test timestampsRoundTrip() started.
+◇ Suite GoogleSearchTests started.
+◇ Suite ConnectionCancellationTests started.
+◇ Test stagingCleanupFailurePreservesSavedBytesAndBatchOutcome() started.
+◇ Test completedStagingCommitRefusalPreservesOccupiedFileAndSymlink() started.
+◇ Test reportStagingIdentityChangeRefusesReplacementCleanup() started.
 ◇ Test retiringDriveScopePreservesHistoryAndOtherMembership() started.
-◇ Test substantialDownloadStreamsExactPrivateContent() started.
-◇ Test completeSearchKeepsPaginationContextAndCurrentSort() started.
-✔ Test folderCyclesTerminate() passed after 0.019 seconds.
-◇ Test cancellationFromFinalDiscoveryProgressDoesNotReturnAPlan() started.
-◇ Test cancelledListenerCannotStartAgain() started.
-◇ Test immediateConnectCancellationPreservesAvailableWorkspaceState() started.
-◇ Test preCancelledCallbackTaskClosesTheActiveListener() started.
-◇ Test cancellingCallbackTaskFinishesTheActiveListener() started.
-◇ Test preCancelledListenerStartDoesNotLeaveReadinessWaiting() started.
-◇ Test repeatedListenerStartLeavesTheFirstAttemptUsable() started.
-◇ Test listenerCancellationClosesAnIncompleteLocalRequest() started.
-◇ Test consentRejectionRequiresMatchingStateAndReturnsRecoveryGuidance() started.
-◇ Test checksumCancellationAfterMultipleConsumedChunksCompletesWithoutChangingDestination() started.
+◇ Test baselineIsAtomicAndSurvivesReopen() started.
+◇ Test unsafeOrOversizedPreviewContentDoesNotMutateStorage() started.
+◇ Suite SingleFileRecoveryTests started.
+◇ Test reportCopyDestinationFailuresAllowRetryWithoutLosingOutcomes() started.
+◇ Test cancelledPreviewPersistenceDoesNotCreateTemporaryContent() started.
+◇ Test fileTablePagesCoverEveryMatchWithoutChangingOrdering() started.
+◇ Test invalidAndDeniedBatchDestinationsFailBeforeWritingWithRecoveryContext() started.
+◇ Test failedTrashConfirmationKeepsReviewOpen() started.
+◇ Test reportCopyPreservesEveryOutcomeAndPrivatePermissions() started.
+◇ Test cancellationAtCompletedStageWithDeniedCleanupPreservesBothCausesAndEarlierOutput() started.
+◇ Test batchFileCommitNeverOverwritesExistingPaths() started.
+◇ Test schemaOneMigratesWithoutLosingFiles() started.
+◇ Test loopbackCancellationFinishes() started.
+◇ Test compoundFiltersAndSortUnknowns() started.
+◇ Test desktopOAuthConfigurationAndPKCE() started.
+◇ Test streamedChecksumHandlesChunksEmptyFilesInvalidMetadataAndCancellation() started.
+◇ Test storageParentAndDriveGroupsUseIdentityInsteadOfNames() started.
+◇ Test membershipDoesNotResurrectAfterRestart() started.
+◇ Test loopbackRejectsWrongStateThenAcceptsValidCallback() started.
+◇ Test invalidMetadataFailsExplicitly() started.
+◇ Test invalidAndReversedSearchRangesAreRejected() started.
+◇ Test fileCloseFailureRetainsGenuineURLSessionCancellationWithoutTaskCancellation() started.
+◇ Test exportsRoundTripAndProtectSpreadsheetCells() started.
+◇ Test breadcrumbsKeepRootIdentityAndCoverageBoundaries() started.
+◇ Test malformedPageRollsBackChangesAndCursor() started.
+◇ Test transferTemporaryCleanupFailurePreservesCommittedOutcomeAndCause() started.
+◇ Test reportCopyRejectsOccupiedFilesAndSymlinksWithoutChangingTargets() started.
+◇ Test retryTimingHonorsServerMinimumAndBoundedJitter() started.
+◇ Test historicalPathsNeverUseFutureAncestorNames() started.
+◇ Test notificationPermissionMustAllowDelivery() started.
+◇ Test reportCloseFaultPreservesConcurrentFinalRegularReplacement() started.
+◇ Test managementGrantIsExplicitAndLegacyTokensStayRestricted() started.
+◇ Test tokenRenewalRetainsOrRotatesOfflineGrant() started.
+◇ Test automaticReportPersistenceStillFinishesInsideCancelledTransferTask() started.
+◇ Test retainedReportCopyFailureThenSuccessPreservesTransfersAndJob() started.
+◇ Test allUnknownStorageRemainsUnknown() started.
+◇ Test cancelledSortStopsAndDateOrderingUsesInstants() started.
+◇ Test successfulReportClosePublishesOnlyCompletePrivateJSONWithoutStagingLeftovers() started.
+◇ Test timestampFiltersCompareInstantsNotLexicalOffsets() started.
+◇ Test previewStorageRefusesRedirectedRootAndCleanupOutsideItsDirectory() started.
+◇ Test inaccessiblePreviewCleanupReportsItsCauseAndRetainsContent() started.
+◇ Test reportStagingCleanupDenialRetainsPrimaryCloseAndSecondaryPathAndAllowsRetry() started.
+◇ Test lateOccupiedReportDestinationRefusesExclusivePublicationAndRetainsOutcomes() started.
+◇ Test fileCloseFailureRetainsRealTaskCancellationAndClosesOnce() started.
+✔ Test folderCyclesTerminate() passed after 0.030 seconds.
+◇ Test knownLegacyReasonsRetainStatusAndActionableGuidanceWithoutProviderFields() started.
 ◇ Test invalidSchemasKeepHTTPStatusAndNeverExposeUnrecognizedProviderContent() started.
+◇ Test goneResponsesRecommendRebuildingOnlyForChangeTracking() started.
+◇ Test errorInfoGuidanceUsesTheRequestedAPIAndIgnoresUnrelatedDetails() started.
 ◇ Test oversizedResponsesAndExcessiveReasonsStopAtTheDiagnosticBoundary() started.
 ◇ Test failedMutationsRetainAnUnconfirmedOutcomeAndRequireStateReview() started.
-◇ Test errorInfoGuidanceUsesTheRequestedAPIAndIgnoresUnrelatedDetails() started.
-◇ Test knownLegacyReasonsRetainStatusAndActionableGuidanceWithoutProviderFields() started.
-◇ Test goneResponsesRecommendRebuildingOnlyForChangeTracking() started.
-✔ Test tokenRenewalRetainsOrRotatesOfflineGrant() passed after 0.033 seconds.
+✔ Test preparedNavigationPreservesRootsAndTerminatesCycles() passed after 0.035 seconds.
+◇ Test checksumCancellationAfterMultipleConsumedChunksCompletesWithoutChangingDestination() started.
+✔ Test eventExportsKeepAttributionAndSource() passed after 0.050 seconds.
+✔ Test tokenResponseRequiresBothReadOnlyGrants() passed after 0.056 seconds.
+✔ Test previewStorageUsesPrivateTemporaryPathsAndCleansUp() passed after 0.057 seconds.
+◇ Test completeSearchKeepsPaginationContextAndCurrentSort() started.
+◇ Test listenerCancellationClosesAnIncompleteLocalRequest() started.
+◇ Test substantialDownloadStreamsExactPrivateContent() started.
+◇ Test consentRejectionRequiresMatchingStateAndReturnsRecoveryGuidance() started.
+◇ Test cancelledListenerCannotStartAgain() started.
+◇ Test preCancelledCallbackTaskClosesTheActiveListener() started.
+◇ Test repeatedListenerStartLeavesTheFirstAttemptUsable() started.
+◇ Test cancellingCallbackTaskFinishesTheActiveListener() started.
+◇ Test immediateConnectCancellationPreservesAvailableWorkspaceState() started.
+✔ Test timestampsRoundTrip() passed after 0.056 seconds.
+◇ Test preCancelledListenerStartDoesNotLeaveReadinessWaiting() started.
+◇ Test cancellationFromFinalDiscoveryProgressDoesNotReturnAPlan() started.
+✔ Test previewPersistenceSecuresAnExistingDirectoryAndRetainsEarlierContent() passed after 0.057 seconds.
+✔ Test retryTimingParsesHTTPDatesAndRejectsInvalidValues() passed after 0.057 seconds.
+✔ Test reportCloseFaultPreservesConcurrentFinalSymlinkAndTarget() passed after 0.057 seconds.
+✔ Test failedCancellationCleanupPreservesPrimaryCauseAndAllowsExplicitRemovalRetry() passed after 0.056 seconds.
 ◇ Test committedDownloadPublishesSavedNoticeAndExactBytes() started.
-✔ Test eventExportsKeepAttributionAndSource() passed after 0.033 seconds.
-✔ Test timestampFiltersCompareInstantsNotLexicalOffsets() passed after 0.034 seconds.
-✔ Test managementGrantIsExplicitAndLegacyTokensStayRestricted() passed after 0.037 seconds.
-✔ Test tokenResponseRequiresBothReadOnlyGrants() passed after 0.038 seconds.
-✔ Test timestampsRoundTrip() passed after 0.039 seconds.
-✔ Test reportCopyRejectsOccupiedFilesAndSymlinksWithoutChangingTargets() passed after 0.039 seconds.
-✔ Test previewPersistenceSecuresAnExistingDirectoryAndRetainsEarlierContent() passed after 0.039 seconds.
-✔ Test invalidMetadataFailsExplicitly() passed after 0.039 seconds.
-✔ Test reportCopyPreservesEveryOutcomeAndPrivatePermissions() passed after 0.039 seconds.
-✔ Test allUnknownStorageRemainsUnknown() passed after 0.039 seconds.
-✔ Test transferTemporaryCleanupFailurePreservesCommittedOutcomeAndCause() passed after 0.040 seconds.
-✔ Test previewStorageRefusesRedirectedRootAndCleanupOutsideItsDirectory() passed after 0.039 seconds.
-✔ Test inaccessiblePreviewCleanupReportsItsCauseAndRetainsContent() passed after 0.039 seconds.
-✔ Test storageParentAndDriveGroupsUseIdentityInsteadOfNames() passed after 0.039 seconds.
-✔ Test preparedNavigationPreservesRootsAndTerminatesCycles() passed after 0.039 seconds.
-✔ Test invalidAndReversedSearchRangesAreRejected() passed after 0.039 seconds.
-✔ Test unsafeOrOversizedPreviewContentDoesNotMutateStorage() passed after 0.039 seconds.
-✔ Test compoundFiltersAndSortUnknowns() passed after 0.039 seconds.
-✔ Test failedCancellationCleanupPreservesPrimaryCauseAndAllowsExplicitRemovalRetry() passed after 0.039 seconds.
-✔ Test reportCopyDestinationFailuresAllowRetryWithoutLosingOutcomes() passed after 0.039 seconds.
-✔ Test exportsRoundTripAndProtectSpreadsheetCells() passed after 0.039 seconds.
-✔ Test stagedDownloadCopiesMultipleChunksPrivatelyAndPreservesSource() passed after 0.039 seconds.
-✔ Test previewStorageUsesPrivateTemporaryPathsAndCleansUp() passed after 0.039 seconds.
-✔ Test breadcrumbsKeepRootIdentityAndCoverageBoundaries() passed after 0.039 seconds.
-✔ Test historicalPathsNeverUseFutureAncestorNames() passed after 0.040 seconds.
-✔ Test desktopOAuthConfigurationAndPKCE() passed after 0.039 seconds.
-✔ Test notificationPermissionMustAllowDelivery() passed after 0.039 seconds.
-✔ Test invalidAndDeniedBatchDestinationsFailBeforeWritingWithRecoveryContext() passed after 0.039 seconds.
-✔ Test retryTimingHonorsServerMinimumAndBoundedJitter() passed after 0.039 seconds.
-✔ Test fileTablePagesCoverEveryMatchWithoutChangingOrdering() passed after 0.040 seconds.
-✔ Test multiScopeMembershipAndRemoval() passed after 0.040 seconds.
-✔ Test stagingCleanupFailurePreservesSavedBytesAndBatchOutcome() passed after 0.039 seconds.
-✔ Test retryTimingParsesHTTPDatesAndRejectsInvalidValues() passed after 0.039 seconds.
-✔ Test activityAttributionAndDeduplication() passed after 0.043 seconds.
-✔ Test activityFiltersRecoverWithoutChangingLoadedEvidence() passed after 0.044 seconds.
-✔ Test batchFileCommitNeverOverwritesExistingPaths() passed after 0.045 seconds.
-✔ Test cancelledPreviewPersistenceDoesNotCreateTemporaryContent() passed after 0.047 seconds.
-✔ Test observedHierarchyUsesCutoffAndRetainsUncertainItems() passed after 0.047 seconds.
-✔ Test cancelledSortStopsAndDateOrderingUsesInstants() passed after 0.047 seconds.
-✔ Test oversizedResponsesAndExcessiveReasonsStopAtTheDiagnosticBoundary() passed after 0.014 seconds.
-✔ Test failedMutationsRetainAnUnconfirmedOutcomeAndRequireStateReview() passed after 0.014 seconds.
-✔ Test errorInfoGuidanceUsesTheRequestedAPIAndIgnoresUnrelatedDetails() passed after 0.014 seconds.
-✔ Test goneResponsesRecommendRebuildingOnlyForChangeTracking() passed after 0.014 seconds.
-✔ Test knownLegacyReasonsRetainStatusAndActionableGuidanceWithoutProviderFields() passed after 0.014 seconds.
-✔ Test invalidSchemasKeepHTTPStatusAndNeverExposeUnrecognizedProviderContent() passed after 0.014 seconds.
-✔ Test automaticReportPersistenceStillFinishesInsideCancelledTransferTask() passed after 0.047 seconds.
-✔ Test malformedPageRollsBackChangesAndCursor() passed after 0.046 seconds.
-✔ Test fileCloseFailureRetainsRealTaskCancellationAndClosesOnce() passed after 0.047 seconds.
-✔ Test fileCloseFailureRetainsGenuineURLSessionCancellationWithoutTaskCancellation() passed after 0.047 seconds.
-✔ Test nativeFileHandleClosingReturnsValueAndPreservesOriginalCancellation() passed after 0.047 seconds.
-✔ Test cancelledDownloadSavePreservesExistingFile() passed after 0.046 seconds.
-✔ Test newerSchemaIsRejectedWithoutDowngrade() passed after 0.047 seconds.
-✔ Test completedStagingCommitRefusalPreservesOccupiedFileAndSymlink() passed after 0.047 seconds.
-✔ Test cancellationAtCompletedStageWithDeniedCleanupPreservesBothCausesAndEarlierOutput() passed after 0.047 seconds.
-✔ Test baselineIsAtomicAndSurvivesReopen() passed after 0.047 seconds.
-✔ Test loopbackCancellationFinishes() passed after 0.047 seconds.
-✔ Test staleAndUnfinishedReportCopiesRejectBeforeWriting() passed after 0.047 seconds.
-✔ Test cancelledListenerCannotStartAgain() passed after 0.015 seconds.
-✔ Test preCancelledListenerStartDoesNotLeaveReadinessWaiting() passed after 0.015 seconds.
-✔ Test streamedChecksumHandlesChunksEmptyFilesInvalidMetadataAndCancellation() passed after 0.047 seconds.
-✔ Suite GoogleFailureTests passed after 0.047 seconds.
-✔ Test preCancelledCallbackTaskClosesTheActiveListener() passed after 0.016 seconds.
-✔ Test nestedFileCloseFailuresAndDeniedCleanupRetainCancellationAndBothCloseCauses() passed after 0.047 seconds.
-✔ Test retainedReportCopyFailureThenSuccessPreservesTransfersAndJob() passed after 0.048 seconds.
-✔ Test successfulStagingBodyWithCloseFailureDeniesCommitWithoutInventingPrimaryCancellation() passed after 0.048 seconds.
-✔ Test alreadyCancelledReportCopyLeavesRetainedResultsAndDiskUnchanged() passed after 0.047 seconds.
-✔ Test immediateConnectCancellationPreservesAvailableWorkspaceState() passed after 0.017 seconds.
-✔ Test cancellationFromFinalDiscoveryProgressDoesNotReturnAPlan() passed after 0.018 seconds.
+✔ Test stagedDownloadCopiesMultipleChunksPrivatelyAndPreservesSource() passed after 0.057 seconds.
+✔ Test unsafeOrOversizedPreviewContentDoesNotMutateStorage() passed after 0.056 seconds.
+✔ Test reportStagingIdentityChangeRefusesReplacementCleanup() passed after 0.056 seconds.
+✔ Test reportCopyDestinationFailuresAllowRetryWithoutLosingOutcomes() passed after 0.056 seconds.
+✔ Test reportCopyPreservesEveryOutcomeAndPrivatePermissions() passed after 0.056 seconds.
+✔ Test stagingCleanupFailurePreservesSavedBytesAndBatchOutcome() passed after 0.056 seconds.
+✔ Test compoundFiltersAndSortUnknowns() passed after 0.056 seconds.
+✔ Test desktopOAuthConfigurationAndPKCE() passed after 0.057 seconds.
+✔ Test invalidAndDeniedBatchDestinationsFailBeforeWritingWithRecoveryContext() passed after 0.059 seconds.
+✔ Test storageParentAndDriveGroupsUseIdentityInsteadOfNames() passed after 0.058 seconds.
+✔ Test activityAttributionAndDeduplication() passed after 0.059 seconds.
+✔ Test invalidMetadataFailsExplicitly() passed after 0.058 seconds.
+✔ Test invalidAndReversedSearchRangesAreRejected() passed after 0.058 seconds.
+✔ Test exportsRoundTripAndProtectSpreadsheetCells() passed after 0.059 seconds.
+✔ Test breadcrumbsKeepRootIdentityAndCoverageBoundaries() passed after 0.059 seconds.
+✔ Test completedStagingCommitRefusalPreservesOccupiedFileAndSymlink() passed after 0.059 seconds.
+✔ Test multiScopeMembershipAndRemoval() passed after 0.059 seconds.
+✔ Test retryTimingHonorsServerMinimumAndBoundedJitter() passed after 0.059 seconds.
+✔ Test newerSchemaIsRejectedWithoutDowngrade() passed after 0.060 seconds.
+✔ Test notificationPermissionMustAllowDelivery() passed after 0.059 seconds.
+✔ Test fileTablePagesCoverEveryMatchWithoutChangingOrdering() passed after 0.059 seconds.
+✔ Test managementGrantIsExplicitAndLegacyTokensStayRestricted() passed after 0.059 seconds.
+✔ Test tokenRenewalRetainsOrRotatesOfflineGrant() passed after 0.059 seconds.
+✔ Test batchFileCommitNeverOverwritesExistingPaths() passed after 0.059 seconds.
+✔ Test allUnknownStorageRemainsUnknown() passed after 0.059 seconds.
+✔ Test retiringDriveScopePreservesHistoryAndOtherMembership() passed after 0.059 seconds.
+✔ Test timestampFiltersCompareInstantsNotLexicalOffsets() passed after 0.059 seconds.
+✔ Test reportCopyRejectsOccupiedFilesAndSymlinksWithoutChangingTargets() passed after 0.059 seconds.
+✔ Test transferTemporaryCleanupFailurePreservesCommittedOutcomeAndCause() passed after 0.059 seconds.
+✔ Test reportCloseFaultPreservesConcurrentFinalRegularReplacement() passed after 0.059 seconds.
+✔ Test previewStorageRefusesRedirectedRootAndCleanupOutsideItsDirectory() passed after 0.059 seconds.
+✔ Test inaccessiblePreviewCleanupReportsItsCauseAndRetainsContent() passed after 0.059 seconds.
+✔ Test observedHierarchyUsesCutoffAndRetainsUncertainItems() passed after 0.060 seconds.
+✔ Test watchCooldownAndAcknowledgementSurviveReopen() passed after 0.060 seconds.
+✔ Test successfulReportClosePublishesOnlyCompletePrivateJSONWithoutStagingLeftovers() passed after 0.059 seconds.
+✔ Test activityFiltersRecoverWithoutChangingLoadedEvidence() passed after 0.061 seconds.
+✔ Test knownLegacyReasonsRetainStatusAndActionableGuidanceWithoutProviderFields() passed after 0.030 seconds.
+✔ Test invalidSchemasKeepHTTPStatusAndNeverExposeUnrecognizedProviderContent() passed after 0.030 seconds.
+✔ Test goneResponsesRecommendRebuildingOnlyForChangeTracking() passed after 0.030 seconds.
+✔ Test errorInfoGuidanceUsesTheRequestedAPIAndIgnoresUnrelatedDetails() passed after 0.029 seconds.
+✔ Test oversizedResponsesAndExcessiveReasonsStopAtTheDiagnosticBoundary() passed after 0.029 seconds.
+✔ Test failedMutationsRetainAnUnconfirmedOutcomeAndRequireStateReview() passed after 0.025 seconds.
+✔ Test lateOccupiedReportDestinationRefusesExclusivePublicationAndRetainsOutcomes() passed after 0.060 seconds.
+✔ Test cancelledPreviewPersistenceDoesNotCreateTemporaryContent() passed after 0.061 seconds.
+✔ Test nativeFileHandleClosingReturnsValueAndPreservesOriginalCancellation() passed after 0.062 seconds.
+✔ Test reportStagingCleanupDenialRetainsPrimaryCloseAndSecondaryPathAndAllowsRetry() passed after 0.061 seconds.
+✔ Test cancelledSortStopsAndDateOrderingUsesInstants() passed after 0.061 seconds.
+✔ Test cancelledDownloadSavePreservesExistingFile() passed after 0.062 seconds.
+✔ Test loopbackCancellationFinishes() passed after 0.062 seconds.
+✔ Suite GoogleFailureTests passed after 0.062 seconds.
+✔ Test successfulStagingBodyWithCloseFailureDeniesCommitWithoutInventingPrimaryCancellation() passed after 0.063 seconds.
+✔ Test streamedChecksumHandlesChunksEmptyFilesInvalidMetadataAndCancellation() passed after 0.062 seconds.
+✔ Test cancelledListenerCannotStartAgain() passed after 0.006 seconds.
+✔ Test preCancelledListenerStartDoesNotLeaveReadinessWaiting() passed after 0.006 seconds.
+✔ Test staleAndUnfinishedReportCopiesRejectBeforeWriting() passed after 0.063 seconds.
+✔ Test alreadyCancelledReportCopyLeavesRetainedResultsAndDiskUnchanged() passed after 0.063 seconds.
+✔ Test preCancelledCallbackTaskClosesTheActiveListener() passed after 0.006 seconds.
+✔ Test automaticReportPersistenceStillFinishesInsideCancelledTransferTask() passed after 0.062 seconds.
+✔ Test fileCloseFailureRetainsRealTaskCancellationAndClosesOnce() passed after 0.063 seconds.
+✔ Test baselineIsAtomicAndSurvivesReopen() passed after 0.065 seconds.
+✔ Test retainedReportCopyFailureThenSuccessPreservesTransfersAndJob() passed after 0.064 seconds.
+✔ Test fileCloseFailureRetainsGenuineURLSessionCancellationWithoutTaskCancellation() passed after 0.064 seconds.
+✔ Test cancellationFromFinalDiscoveryProgressDoesNotReturnAPlan() passed after 0.008 seconds.
 ◇ Test rejectedSelectedMetadataPublishesItsDiscoveryFailure() started.
-✔ Test failedTrashConfirmationKeepsReviewOpen() passed after 0.049 seconds.
-✔ Test storageCategoryNavigationMatchesTotalsAndKeepsFiltersScoped() passed after 0.050 seconds.
+✔ Test immediateConnectCancellationPreservesAvailableWorkspaceState() passed after 0.009 seconds.
+✔ Test failedTrashConfirmationKeepsReviewOpen() passed after 0.067 seconds.
 ✔ Test rejectedSelectedMetadataPublishesItsDiscoveryFailure() passed after 0.001 seconds.
 ◇ Test failedFolderPaginationKeepsItsGapAndAllowsACompleteFreshRetry() started.
-✔ Test completeSearchKeepsPaginationContextAndCurrentSort() passed after 0.048 seconds.
-◇ Test changingAndRestoringFilterCancelsObsoleteSearch() started.
-✔ Test listenerCancellationClosesAnIncompleteLocalRequest() passed after 0.018 seconds.
-✔ Test repeatedListenerStartLeavesTheFirstAttemptUsable() passed after 0.019 seconds.
-✔ Test cancellingCallbackTaskFinishesTheActiveListener() passed after 0.020 seconds.
-✔ Test committedDownloadPublishesSavedNoticeAndExactBytes() passed after 0.019 seconds.
+✔ Test cancellationAtCompletedStageWithDeniedCleanupPreservesBothCausesAndEarlierOutput() passed after 0.067 seconds.
+✔ Test nestedFileCloseFailuresAndDeniedCleanupRetainCancellationAndBothCloseCauses() passed after 0.068 seconds.
+✔ Test storageCategoryNavigationMatchesTotalsAndKeepsFiltersScoped() passed after 0.068 seconds.
+✔ Test listenerCancellationClosesAnIncompleteLocalRequest() passed after 0.013 seconds.
+✔ Test malformedPageRollsBackChangesAndCursor() passed after 0.069 seconds.
+✔ Test repeatedListenerStartLeavesTheFirstAttemptUsable() passed after 0.013 seconds.
+✔ Test cancellingCallbackTaskFinishesTheActiveListener() passed after 0.014 seconds.
+✔ Test committedDownloadPublishesSavedNoticeAndExactBytes() passed after 0.014 seconds.
 ◇ Test realStagingCleanupFailureKeepsSavedPresentationAndOriginalCause() started.
-✔ Test changingAndRestoringFilterCancelsObsoleteSearch() passed after 0.001 seconds.
-◇ Test invalidRawSizeInputCancelsObsoleteSearch() started.
-✔ Test retiringDriveScopePreservesHistoryAndOtherMembership() passed after 0.053 seconds.
-✔ Test watchCooldownAndAcknowledgementSurviveReopen() passed after 0.056 seconds.
-✔ Test checksumCancellationAfterMultipleConsumedChunksCompletesWithoutChangingDestination() passed after 0.025 seconds.
+✔ Test checksumCancellationAfterMultipleConsumedChunksCompletesWithoutChangingDestination() passed after 0.034 seconds.
+✔ Test completeSearchKeepsPaginationContextAndCurrentSort() passed after 0.014 seconds.
 ◇ Test cancellationDuringPartialStageRemovesOnlyOwnedStagingAndPreservesEarlierOutput() started.
-✔ Test realStagingCleanupFailureKeepsSavedPresentationAndOriginalCause() passed after 0.004 seconds.
+◇ Test changingAndRestoringFilterCancelsObsoleteSearch() started.
+✔ Test consentRejectionRequiresMatchingStateAndReturnsRecoveryGuidance() passed after 0.015 seconds.
+✔ Suite ConnectionCancellationTests passed after 0.072 seconds.
+✔ Test historicalPathsNeverUseFutureAncestorNames() passed after 0.072 seconds.
+✔ Test membershipDoesNotResurrectAfterRestart() passed after 0.072 seconds.
+✔ Test schemaOneMigratesWithoutLosingFiles() passed after 0.074 seconds.
+✔ Test realStagingCleanupFailureKeepsSavedPresentationAndOriginalCause() passed after 0.003 seconds.
 ◇ Test deniedDownloadPreservesExistingDestinationAndSurfacesRecovery() started.
-✔ Test membershipDoesNotResurrectAfterRestart() passed after 0.059 seconds.
-✔ Test schemaOneMigratesWithoutLosingFiles() passed after 0.061 seconds.
-✔ Test cancellationDuringPartialStageRemovesOnlyOwnedStagingAndPreservesEarlierOutput() passed after 0.005 seconds.
+✔ Test cancellationDuringPartialStageRemovesOnlyOwnedStagingAndPreservesEarlierOutput() passed after 0.006 seconds.
 ◇ Test cancellationDuringStagingStopsAnIncompleteCopy() started.
 ✔ Test cancellationDuringStagingStopsAnIncompleteCopy() passed after 0.001 seconds.
-✔ Suite ControlledFIFOTests passed after 0.064 seconds.
-✔ Test invalidRawSizeInputCancelsObsoleteSearch() passed after 0.016 seconds.
+✔ Suite ControlledFIFOTests passed after 0.080 seconds.
+✔ Test changingAndRestoringFilterCancelsObsoleteSearch() passed after 0.014 seconds.
+◇ Test invalidRawSizeInputCancelsObsoleteSearch() started.
+✔ Test invalidRawSizeInputCancelsObsoleteSearch() passed after 0.001 seconds.
 ◇ Test changingAndRestoringNavigationCancelsObsoleteSearch() started.
-✔ Test consentRejectionRequiresMatchingStateAndReturnsRecoveryGuidance() passed after 0.038 seconds.
-✔ Suite ConnectionCancellationTests passed after 0.071 seconds.
-✔ Test deniedDownloadPreservesExistingDestinationAndSurfacesRecovery() passed after 0.013 seconds.
+✔ Test deniedDownloadPreservesExistingDestinationAndSurfacesRecovery() passed after 0.011 seconds.
 ◇ Test cancellingHeldDownloadPreservesExistingDestination() started.
+✔ Test loopbackRejectsWrongStateThenAcceptsValidCallback() passed after 0.087 seconds.
 ✔ Test changingAndRestoringNavigationCancelsObsoleteSearch() passed after 0.001 seconds.
 ◇ Test changingAndRestoringWorkspaceCancelsObsoleteSearch() started.
-✔ Test loopbackRejectsWrongStateThenAcceptsValidCallback() passed after 0.073 seconds.
+✔ Test cancellingHeldDownloadPreservesExistingDestination() passed after 0.001 seconds.
+◇ Test immediateFileActionCancellationReturnsUsableStateWithoutCredentials() started.
 ✔ Test changingAndRestoringWorkspaceCancelsObsoleteSearch() passed after 0.001 seconds.
 ◇ Test changingAndRestoringDatabaseCancelsObsoleteSearch() started.
-✔ Test cancellingHeldDownloadPreservesExistingDestination() passed after 0.002 seconds.
-◇ Test immediateFileActionCancellationReturnsUsableStateWithoutCredentials() started.
-✔ Test changingAndRestoringDatabaseCancelsObsoleteSearch() passed after 0.001 seconds.
-◇ Test malformedPaginationPreservesPreviousValidResults() started.
+✔ Test failedFolderPaginationKeepsItsGapAndAllowsACompleteFreshRetry() passed after 0.021 seconds.
+◇ Test incompleteAndRepeatedFolderPagesPublishGapsWithoutPlanningPartialChildren() started.
 ✔ Test immediateFileActionCancellationReturnsUsableStateWithoutCredentials() passed after 0.001 seconds.
 ◇ Test previewPublicationRejectsCancelledAndRestoredSelectionRequests() started.
-✔ Test failedFolderPaginationKeepsItsGapAndAllowsACompleteFreshRetry() passed after 0.025 seconds.
-◇ Test incompleteAndRepeatedFolderPagesPublishGapsWithoutPlanningPartialChildren() started.
-✔ Test previewPublicationRejectsCancelledAndRestoredSelectionRequests() passed after 0.001 seconds.
-◇ Test deniedPreviewStorageKeepsEarlierPreviewAndSupportsRetry() started.
+✔ Test changingAndRestoringDatabaseCancelsObsoleteSearch() passed after 0.001 seconds.
+◇ Test malformedPaginationPreservesPreviousValidResults() started.
 ✔ Test incompleteAndRepeatedFolderPagesPublishGapsWithoutPlanningPartialChildren() passed after 0.001 seconds.
 ◇ Test selectedFolderAndChildPublishTheSkippedDuplicateWithoutPlanningTwoCopies() started.
-✔ Test deniedPreviewStorageKeepsEarlierPreviewAndSupportsRetry() passed after 0.001 seconds.
-✔ Suite SingleFileRecoveryTests passed after 0.078 seconds.
 ✔ Test selectedFolderAndChildPublishTheSkippedDuplicateWithoutPlanningTwoCopies() passed after 0.001 seconds.
 ◇ Test destinationDeniedAfterPreflightRetainsSavedOutputAndSkipsUnavailableChildTransfers() started.
+✔ Test previewPublicationRejectsCancelledAndRestoredSelectionRequests() passed after 0.001 seconds.
+◇ Test deniedPreviewStorageKeepsEarlierPreviewAndSupportsRetry() started.
+✔ Test deniedPreviewStorageKeepsEarlierPreviewAndSupportsRetry() passed after 0.001 seconds.
+✔ Suite SingleFileRecoveryTests passed after 0.092 seconds.
 ✔ Test malformedPaginationPreservesPreviousValidResults() passed after 0.004 seconds.
 ◇ Test explicitCancellationKeepsPreviousResultsAndUsesSearchNotice() started.
+✔ Test destinationDeniedAfterPreflightRetainsSavedOutputAndSkipsUnavailableChildTransfers() passed after 0.003 seconds.
+◇ Test longGeneratedNamesPreserveFolderStructureContentsAndExports() started.
 ✔ Test explicitCancellationKeepsPreviousResultsAndUsesSearchNotice() passed after 0.001 seconds.
 ◇ Test tokenFailureAfterContextCancellationCannotOverwriteCurrentError() started.
 ✔ Test tokenFailureAfterContextCancellationCannotOverwriteCurrentError() passed after 0.001 seconds.
-✔ Suite GoogleSearchTests passed after 0.080 seconds.
-✔ Test destinationDeniedAfterPreflightRetainsSavedOutputAndSkipsUnavailableChildTransfers() passed after 0.003 seconds.
-◇ Test longGeneratedNamesPreserveFolderStructureContentsAndExports() started.
-✔ Test longGeneratedNamesPreserveFolderStructureContentsAndExports() passed after 0.022 seconds.
+✔ Suite GoogleSearchTests passed after 0.095 seconds.
+✔ Test longGeneratedNamesPreserveFolderStructureContentsAndExports() passed after 0.018 seconds.
 ◇ Test impossibleSuffixAndCharacterBoundariesFailExplicitly() started.
 ✔ Test impossibleSuffixAndCharacterBoundariesFailExplicitly() passed after 0.001 seconds.
 ◇ Test searchEligibilityPreservesLocalFiltersAndRejectsUnsupportedRequests() started.
-✔ Test searchEligibilityPreservesLocalFiltersAndRejectsUnsupportedRequests() passed after 0.062 seconds.
+✔ Test searchEligibilityPreservesLocalFiltersAndRejectsUnsupportedRequests() passed after 0.064 seconds.
 ◇ Test fullSyncPaginatesAndResumes() started.
-✔ Test fullSyncPaginatesAndResumes() passed after 0.011 seconds.
+✔ Test fullSyncPaginatesAndResumes() passed after 0.010 seconds.
 ◇ Test metadataDiscoveryRetainsKnownDrivesWhenRootBecomesUnavailable() started.
-✔ Test metadataDiscoveryRetainsKnownDrivesWhenRootBecomesUnavailable() passed after 0.012 seconds.
+✔ Test metadataDiscoveryRetainsKnownDrivesWhenRootBecomesUnavailable() passed after 0.013 seconds.
 ◇ Test repeatedPageDoesNotPromotePartialIndex() started.
-✔ Test repeatedPageDoesNotPromotePartialIndex() passed after 0.005 seconds.
+✔ Test repeatedPageDoesNotPromotePartialIndex() passed after 0.003 seconds.
 ◇ Test incompleteSearchPreservesPreviousEvidence() started.
 ✔ Test incompleteSearchPreservesPreviousEvidence() passed after 0.003 seconds.
 ◇ Test authAndRateLimitRetriesThenSucceeds() started.
 Streaming fixture: 128 MiB saved with exact SHA-256, 64 KiB server chunks and mode 0600.
-✔ Test substantialDownloadStreamsExactPrivateContent() passed after 0.398 seconds.
+✔ Test substantialDownloadStreamsExactPrivateContent() passed after 0.297 seconds.
 ◇ Test activeNetworkCancellationPreservesAnExistingDestination() started.
-10,000-file SQLite stage/promote/load/filter/sort: 0.4171680212020874 seconds
-✔ Test largeIndexSearchAndPersistence() passed after 0.447 seconds.
-Streaming fixture: active transfer cancellation completed in 0.011045167 seconds, existing destination preserved.
+10,000-file SQLite stage/promote/load/filter/sort: 0.3813009262084961 seconds
+✔ Test largeIndexSearchAndPersistence() passed after 0.413 seconds.
+Streaming fixture: active transfer cancellation completed in 0.012083708 seconds, existing destination preserved.
 ✔ Test activeNetworkCancellationPreservesAnExistingDestination() passed after 0.094 seconds.
 ◇ Test activeBatchCancellationRetainsSavedAndUnattemptedPaths() started.
-Streaming fixture: active batch cancellation completed in 0.011008625 seconds, one saved and two unattempted paths retained.
-✔ Test activeBatchCancellationRetainsSavedAndUnattemptedPaths() passed after 0.095 seconds.
+Streaming fixture: active batch cancellation completed in 0.012146 seconds, one saved and two unattempted paths retained.
+✔ Test activeBatchCancellationRetainsSavedAndUnattemptedPaths() passed after 0.096 seconds.
 ◇ Test cancelledCloseFailureStopsBatchWithoutCancellingItsSwiftTask() started.
-✔ Test cancelledCloseFailureStopsBatchWithoutCancellingItsSwiftTask() passed after 0.047 seconds.
+✔ Test cancelledCloseFailureStopsBatchWithoutCancellingItsSwiftTask() passed after 0.041 seconds.
 ◇ Test cancelledBatchRetainsStageCleanupFailureAndRemovesTransportTemporary() started.
-✔ Test cancelledBatchRetainsStageCleanupFailureAndRemovesTransportTemporary() passed after 0.051 seconds.
+✔ Test cancelledBatchRetainsStageCleanupFailureAndRemovesTransportTemporary() passed after 0.059 seconds.
 ◇ Test cancelledBatchRetainsNestedStageAndImmutableTransportCleanupFailures() started.
-✔ Test cancelledBatchRetainsNestedStageAndImmutableTransportCleanupFailures() passed after 0.051 seconds.
+✔ Test cancelledBatchRetainsNestedStageAndImmutableTransportCleanupFailures() passed after 0.060 seconds.
 ◇ Test committedBatchTransportCleanupWarningKeepsSavedOutcomeAndContinues() started.
-✔ Test committedBatchTransportCleanupWarningKeepsSavedOutcomeAndContinues() passed after 0.052 seconds.
+✔ Test committedBatchTransportCleanupWarningKeepsSavedOutcomeAndContinues() passed after 0.061 seconds.
 ◇ Test shortSuccessfulBodyFailsWithoutReplacingOrRetrying() started.
-✔ Test shortSuccessfulBodyFailsWithoutReplacingOrRetrying() passed after 0.030 seconds.
+✔ Test shortSuccessfulBodyFailsWithoutReplacingOrRetrying() passed after 0.031 seconds.
 ◇ Test interruptedNetworkBodyExhaustsOnlyTheBoundedReadRetries() started.
-✔ Test authAndRateLimitRetriesThenSucceeds() passed after 4.195 seconds.
+✔ Test authAndRateLimitRetriesThenSucceeds() passed after 3.569 seconds.
 ◇ Test exhaustedRetriesSurfaceLastError() started.
-✔ Test interruptedNetworkBodyExhaustsOnlyTheBoundedReadRetries() passed after 8.938 seconds.
-✔ Suite StreamingDownloadTests passed after 9.763 seconds.
-✔ Test exhaustedRetriesSurfaceLastError() passed after 8.915 seconds.
+✔ Test interruptedNetworkBodyExhaustsOnlyTheBoundedReadRetries() passed after 9.341 seconds.
+✔ Suite StreamingDownloadTests passed after 10.142 seconds.
+✔ Test exhaustedRetriesSurfaceLastError() passed after 8.904 seconds.
 ◇ Test repeatedAuthenticationFailureRefreshesOnlyOnce() started.
-✔ Test repeatedAuthenticationFailureRefreshesOnlyOnce() passed after 1.169 seconds.
+✔ Test repeatedAuthenticationFailureRefreshesOnlyOnce() passed after 1.491 seconds.
 ◇ Test networkRetryAfterAuthenticationRefreshDoesNotRefreshAgain() started.
-✔ Test networkRetryAfterAuthenticationRefreshDoesNotRefreshAgain() passed after 12.981 seconds.
+✔ Test networkRetryAfterAuthenticationRefreshDoesNotRefreshAgain() passed after 12.171 seconds.
 ◇ Test batchTrashReportsPartialFailureAndContinuesReviewedItems() started.
-✔ Test batchTrashReportsPartialFailureAndContinuesReviewedItems() passed after 0.001 seconds.
+✔ Test batchTrashReportsPartialFailureAndContinuesReviewedItems() passed after 0.009 seconds.
 ◇ Test cancelledBatchTrashRetainsConfirmedResultAndStopsFurtherRequests() started.
 ✔ Test cancelledBatchTrashRetainsConfirmedResultAndStopsFurtherRequests() passed after 0.001 seconds.
 ◇ Test confirmedTrashRecordsObservationWithoutInventingActivity() started.
-✔ Test confirmedTrashRecordsObservationWithoutInventingActivity() passed after 0.006 seconds.
+✔ Test confirmedTrashRecordsObservationWithoutInventingActivity() passed after 0.013 seconds.
 ◇ Test trashRequiresGrantCapabilityAndUnchangedTarget() started.
 ✔ Test trashRequiresGrantCapabilityAndUnchangedTarget() passed after 0.001 seconds.
 ◇ Test transientTrashFailureDoesNotReplayThePatch() started.
@@ -288,7 +299,7 @@ Streaming fixture: active batch cancellation completed in 0.011008625 seconds, o
 ◇ Test previewDownloadsOnlyWithExplicitGrantAndCapability() started.
 ✔ Test previewDownloadsOnlyWithExplicitGrantAndCapability() passed after 0.001 seconds.
 ◇ Test fileDownloadSavesOriginalAndPreservesDestinationOnFailure() started.
-✔ Test fileDownloadSavesOriginalAndPreservesDestinationOnFailure() passed after 0.004 seconds.
+✔ Test fileDownloadSavesOriginalAndPreservesDestinationOnFailure() passed after 0.007 seconds.
 ◇ Test googleReadRejectsInvalidRetryHeaderWithoutAnotherRequest() started.
 ✔ Test googleReadRejectsInvalidRetryHeaderWithoutAnotherRequest() passed after 0.001 seconds.
 ◇ Test googleReadAndDownloadRejectRetryWaitBeyondBudget() started.
@@ -296,15 +307,15 @@ Streaming fixture: active batch cancellation completed in 0.011008625 seconds, o
 ◇ Test cancelledDownloadDoesNotRetryRateLimitedResponse() started.
 ✔ Test cancelledDownloadDoesNotRetryRateLimitedResponse() passed after 0.001 seconds.
 ◇ Test downloadRetriesTransientResponseAndSavesSuccessfulBytes() started.
-✔ Test downloadRetriesTransientResponseAndSavesSuccessfulBytes() passed after 1.498 seconds.
+✔ Test downloadRetriesTransientResponseAndSavesSuccessfulBytes() passed after 1.888 seconds.
 ◇ Test downloadExhaustionPreservesDestinationAndSurfacesLastHTTPFailure() started.
-✔ Test downloadExhaustionPreservesDestinationAndSurfacesLastHTTPFailure() passed after 8.401 seconds.
+✔ Test downloadExhaustionPreservesDestinationAndSurfacesLastHTTPFailure() passed after 9.627 seconds.
 ◇ Test previewRejectsInvalidRetryHeaderWithoutAnotherRequest() started.
 ✔ Test previewRejectsInvalidRetryHeaderWithoutAnotherRequest() passed after 0.001 seconds.
 ◇ Test binarySizeMismatchPreservesDestinationAndReportsBatchFailure() started.
-✔ Test binarySizeMismatchPreservesDestinationAndReportsBatchFailure() passed after 0.008 seconds.
+✔ Test binarySizeMismatchPreservesDestinationAndReportsBatchFailure() passed after 0.014 seconds.
 ◇ Test checksumMismatchPreservesDestinationAndReportsBatchFailure() started.
-✔ Test checksumMismatchPreservesDestinationAndReportsBatchFailure() passed after 0.004 seconds.
+✔ Test checksumMismatchPreservesDestinationAndReportsBatchFailure() passed after 0.007 seconds.
 ◇ Test documentDownloadUsesExportAndRejectsRestrictedContent() started.
 ✔ Test documentDownloadUsesExportAndRejectsRestrictedContent() passed after 0.001 seconds.
 ◇ Test nestedBatchPreservesStructureAndReportsPartialFailures() started.
@@ -312,18 +323,18 @@ Streaming fixture: active batch cancellation completed in 0.011008625 seconds, o
 ◇ Test folderDiscoveryRejectsIncompleteAndRepeatedPages() started.
 ✔ Test folderDiscoveryRejectsIncompleteAndRepeatedPages() passed after 0.001 seconds.
 ◇ Test folderBatchPreservesUnicodeFilenameCollisionsWithoutOverwrites() started.
-✔ Test folderBatchPreservesUnicodeFilenameCollisionsWithoutOverwrites() passed after 0.016 seconds.
+✔ Test folderBatchPreservesUnicodeFilenameCollisionsWithoutOverwrites() passed after 0.012 seconds.
 ◇ Test cancelledBatchRetainsCompletedFilesAndReportsUnattemptedItems() started.
 ✔ Test cancelledBatchRetainsCompletedFilesAndReportsUnattemptedItems() passed after 0.002 seconds.
 ◇ Test reportSaveFailureRetainsOutcomesAndDoesNotOverwriteExistingContent() started.
-✔ Test reportSaveFailureRetainsOutcomesAndDoesNotOverwriteExistingContent() passed after 0.003 seconds.
+✔ Test reportSaveFailureRetainsOutcomesAndDoesNotOverwriteExistingContent() passed after 0.002 seconds.
 ◇ Test cancellationBeforeFolderCreationReportsEveryUnattemptedPath() started.
 ✔ Test cancellationBeforeFolderCreationReportsEveryUnattemptedPath() passed after 0.001 seconds.
 ◇ Test folderBatchExportsDocumentsAndPreservesEmptyFolders() started.
-✔ Test folderBatchExportsDocumentsAndPreservesEmptyFolders() passed after 0.007 seconds.
+✔ Test folderBatchExportsDocumentsAndPreservesEmptyFolders() passed after 0.005 seconds.
 ◇ Test cancelledSyncDoesNotRequestPages() started.
 ✔ Test cancelledSyncDoesNotRequestPages() passed after 0.006 seconds.
 ◇ Test syncCancellationRetainsCommittedPagesAndSupportsContinuation() started.
-✔ Test syncCancellationRetainsCommittedPagesAndSupportsContinuation() passed after 0.022 seconds.
-✔ Suite GoogleIntegrationTests passed after 37.468 seconds.
-✔ Test run with 150 tests in 7 suites passed after 37.468 seconds.
+✔ Test syncCancellationRetainsCommittedPagesAndSupportsContinuation() passed after 0.014 seconds.
+✔ Suite GoogleIntegrationTests passed after 37.981 seconds.
+✔ Test run with 156 tests in 7 suites passed after 37.982 seconds.
