@@ -9,9 +9,16 @@ public struct ActivityPage: Decodable, Sendable { public let activities: [JSONVa
 public actor GoogleClient {
     let tokens: any TokenProvider
     let session: URLSession
+    let saveNewFile: @Sendable (URL, URL) throws -> Void
     let logger = Logger(subsystem: "local.driveexplorer", category: "GoogleAPI")
     public static let fileFields = "id,name,mimeType,parents,driveId,size,quotaBytesUsed,createdTime,modifiedTime,sharedWithMeTime,trashed,shared,owners(displayName,emailAddress,permissionId),webViewLink,md5Checksum,sha1Checksum,sha256Checksum,fileExtension,shortcutDetails,permissions(id,type,role,emailAddress,domain,allowFileDiscovery),ownedByMe,capabilities(canDownload,canTrash)"
-    public init(tokens: any TokenProvider, session: URLSession) { self.tokens = tokens; self.session = session }
+    public init(tokens: any TokenProvider, session: URLSession) {
+        self.init(tokens: tokens, session: session, saveNewFile: { try saveNewDownloadedFile($0, to: $1) })
+    }
+    /// Keep new-file filesystem commits separate from transport; the public client uses exclusive production saves.
+    init(tokens: any TokenProvider, session: URLSession, saveNewFile: @escaping @Sendable (URL, URL) throws -> Void) {
+        self.tokens = tokens; self.session = session; self.saveNewFile = saveNewFile
+    }
     func request<T: Decodable & Sendable>(_ path: String, query: [String: String], body: Data?, method: String, requiredScope: String?, type: T.Type) async throws -> T {
         var components = URLComponents(string: "https://www.googleapis.com/drive/v3/\(path)")!
         if path == "activity" { components = URLComponents(string: "https://driveactivity.googleapis.com/v2/activity:query")! }

@@ -2,6 +2,7 @@ import Foundation
 import Network
 import CryptoKit
 import Darwin
+import os
 import Testing
 @testable import DriveCore
 
@@ -123,6 +124,144 @@ import Testing
         try await fixture.close()
     }
 
+    @Test func cancelledBatchRetainsStageCleanupFailureAndRemovesTransportTemporary() async throws {
+        let first = streamFixtureFile(id: "saved-stage", name: "Saved.bin", bytes: 1_048_576)
+        let second = streamFixtureFile(id: "cancelled-stage", name: "Cancelled.bin", bytes: 2 * 1_048_576 + 19)
+        let last = streamFixtureFile(id: "later-stage", name: "Unattempted.bin", bytes: 65_536)
+        let files = [first, second, last]
+        let fixture = try await StreamingFixture.open(files: files, responses: [first.id: .complete(1_048_576), second.id: .complete(2 * 1_048_576 + 19), last.id: .complete(65_536)])
+        let saver = CleanupFaultSaver(directory: fixture.directory, selected: second)
+        do {
+            let sentinel = fixture.directory.appendingPathComponent("existing.txt")
+            let original = Data("Earlier parent content must survive cancelled cleanup".utf8)
+            try original.write(to: sentinel, options: .withoutOverwriting)
+            let tokens = FixtureTokens(); await tokens.grantManagement()
+            let client = GoogleClient(tokens: tokens, session: fixture.session, saveNewFile: { @Sendable [saver] source, destination in try saver.saveCancellingStage(source, destination) })
+            let plan = DownloadPlan(items: files.map { DownloadItem(file: $0, components: [$0.name]) }, issues: [])
+            let report = try await runCleanupBatch(client, plan: plan, parent: fixture.directory)
+            try saver.requirePreparedBoundary()
+            try assertCancelledCleanupReport(report, first: first, second: second, last: last)
+            let recorded = saver.snapshot()
+            let temporary = try #require(recorded.temporary)
+            let stageFailure = try #require(recorded.stageFailure)
+            #expect(stageFailure.cause is CancellationError)
+            #expect(stageFailure.cancelled)
+            #expect(stageFailure.temporary == saver.staging)
+            #expect((stageFailure.cleanup as NSError).domain == NSCocoaErrorDomain)
+            #expect((stageFailure.cleanup as NSError).code == NSFileWriteNoPermissionError)
+            #expect(report.results[1].message == stageFailure.localizedDescription)
+            #expect(report.results[1].message?.contains(saver.staging.path) == true)
+            #expect(!FileManager.default.fileExists(atPath: temporary.url.path))
+            #expect(try Data(contentsOf: sentinel) == original)
+            #expect(try streamFileDigest(report.directory.appendingPathComponent("Files/" + first.name)) == first.sha256Checksum)
+            try assertCleanupReportRoundTrip(report)
+            #expect(await fixture.router.requests() == ["metadata:" + first.id, "media:" + first.id, "metadata:" + second.id, "media:" + second.id])
+            #expect(await fixture.server.snapshot().paths == ["/media/" + first.id, "/media/" + second.id])
+            #expect(await fixture.server.snapshot().failures.isEmpty)
+            try saver.repair()
+            #expect(!FileManager.default.fileExists(atPath: saver.staging.path))
+            #expect(try streamFileDigest(report.directory.appendingPathComponent("Files/" + first.name)) == first.sha256Checksum)
+        } catch { try await closeCleanupFixture(fixture, saver: saver, after: error) }
+        try await closeCleanupFixture(fixture, saver: saver)
+    }
+
+    @Test func cancelledBatchRetainsNestedStageAndImmutableTransportCleanupFailures() async throws {
+        let first = streamFixtureFile(id: "saved-nested", name: "Saved.bin", bytes: 1_048_576)
+        let second = streamFixtureFile(id: "cancelled-nested", name: "Cancelled.bin", bytes: 2 * 1_048_576 + 19)
+        let last = streamFixtureFile(id: "later-nested", name: "Unattempted.bin", bytes: 65_536)
+        let files = [first, second, last]
+        let fixture = try await StreamingFixture.open(files: files, responses: [first.id: .complete(1_048_576), second.id: .complete(2 * 1_048_576 + 19), last.id: .complete(65_536)])
+        let saver = CleanupFaultSaver(directory: fixture.directory, selected: second)
+        do {
+            let sentinel = fixture.directory.appendingPathComponent("existing.txt")
+            let original = Data("Earlier content must survive both real cleanup failures".utf8)
+            try original.write(to: sentinel, options: .withoutOverwriting)
+            let tokens = FixtureTokens(); await tokens.grantManagement()
+            let client = GoogleClient(tokens: tokens, session: fixture.session, saveNewFile: { @Sendable [saver] source, destination in try saver.saveCancellingStageAndTransport(source, destination) })
+            let plan = DownloadPlan(items: files.map { DownloadItem(file: $0, components: [$0.name]) }, issues: [])
+            let report = try await runCleanupBatch(client, plan: plan, parent: fixture.directory)
+            try saver.requirePreparedBoundary()
+            try assertCancelledCleanupReport(report, first: first, second: second, last: last)
+            let recorded = saver.snapshot()
+            let temporary = try #require(recorded.temporary)
+            let stageFailure = try #require(recorded.stageFailure)
+            #expect(stageFailure.cause is CancellationError)
+            #expect(stageFailure.cancelled)
+            #expect((stageFailure.cleanup as NSError).domain == NSCocoaErrorDomain)
+            #expect((stageFailure.cleanup as NSError).code == NSFileWriteNoPermissionError)
+            let message = try #require(report.results[1].message)
+            #expect(message.hasPrefix("Download cancelled before completion"))
+            #expect(message.contains(stageFailure.localizedDescription))
+            #expect(message.contains(saver.staging.path))
+            #expect(message.contains(temporary.url.path))
+            try saver.assertImmutableFailedRemoval(stageFailure, message: message)
+            let retained = try streamFileAttributes(temporary.url)
+            #expect(retained.st_flags & UInt32(UF_IMMUTABLE) != 0)
+            #expect(retained.st_dev == temporary.identity.device && retained.st_ino == temporary.identity.inode)
+            #expect(try streamFileDigest(temporary.url) == second.sha256Checksum)
+            #expect(try Data(contentsOf: sentinel) == original)
+            try assertCleanupReportRoundTrip(report)
+            #expect(await fixture.router.requests() == ["metadata:" + first.id, "media:" + first.id, "metadata:" + second.id, "media:" + second.id])
+            #expect(await fixture.server.snapshot().paths == ["/media/" + first.id, "/media/" + second.id])
+            #expect(await fixture.server.snapshot().failures.isEmpty)
+            try saver.repair()
+            #expect(!FileManager.default.fileExists(atPath: saver.staging.path))
+            #expect(!FileManager.default.fileExists(atPath: temporary.url.path))
+            #expect(try streamFileDigest(report.directory.appendingPathComponent("Files/" + first.name)) == first.sha256Checksum)
+        } catch { try await closeCleanupFixture(fixture, saver: saver, after: error) }
+        try await closeCleanupFixture(fixture, saver: saver)
+    }
+
+    @Test func committedBatchTransportCleanupWarningKeepsSavedOutcomeAndContinues() async throws {
+        let first = streamFixtureFile(id: "warning-first", name: "SavedWithWarning.bin", bytes: 2 * 1_048_576 + 19)
+        let next = streamFixtureFile(id: "warning-next", name: "Next.bin", bytes: 1_048_576)
+        let files = [first, next]
+        let fixture = try await StreamingFixture.open(files: files, responses: [first.id: .complete(2 * 1_048_576 + 19), next.id: .complete(1_048_576)])
+        let saver = CleanupFaultSaver(directory: fixture.directory, selected: first)
+        do {
+            let sentinel = fixture.directory.appendingPathComponent("existing.txt")
+            let original = Data("Earlier parent content must survive a cleanup warning".utf8)
+            try original.write(to: sentinel, options: .withoutOverwriting)
+            let tokens = FixtureTokens(); await tokens.grantManagement()
+            let client = GoogleClient(tokens: tokens, session: fixture.session, saveNewFile: { @Sendable [saver] source, destination in try saver.saveWithTransportCleanupFailure(source, destination) })
+            let plan = DownloadPlan(items: files.map { DownloadItem(file: $0, components: [$0.name]) }, issues: [])
+            let report = try await runCleanupBatch(client, plan: plan, parent: fixture.directory)
+            try saver.requirePreparedBoundary()
+            #expect(!report.cancelled)
+            #expect(report.planned == 2 && report.completed == 2 && report.failures == 0 && report.remaining == 0)
+            #expect(report.cleanupWarnings == 1)
+            try #require(report.results.count == 2)
+            #expect(report.results.map(\.path) == files.map(\.name))
+            #expect(report.results.map(\.outcome) == [.downloaded, .downloaded])
+            #expect(report.results[1].message == nil)
+            let temporary = try #require(saver.snapshot().temporary)
+            let message = try #require(report.results[0].message)
+            #expect(message.contains("was saved"))
+            #expect(message.contains(report.directory.appendingPathComponent("Files/" + first.name).path))
+            #expect(message.contains(temporary.url.path))
+            #expect(message.contains("before downloading again"))
+            try saver.assertImmutableSavedRemoval(destination: report.directory.appendingPathComponent("Files/" + first.name), message: message)
+            #expect(try streamFileAttributes(temporary.url).st_flags & UInt32(UF_IMMUTABLE) != 0)
+            #expect(try streamFileDigest(temporary.url) == first.sha256Checksum)
+            for file in files {
+                let saved = report.directory.appendingPathComponent("Files/" + file.name)
+                #expect(try streamFileDigest(saved) == file.sha256Checksum)
+                let expectedSize = try #require(file.size.flatMap(Int64.init))
+                #expect(try streamFileAttributes(saved).st_size == expectedSize)
+                #expect(try streamFileAttributes(saved).st_mode & 0o777 == 0o600)
+            }
+            #expect(try Data(contentsOf: sentinel) == original)
+            try assertCleanupReportRoundTrip(report)
+            #expect(await fixture.router.requests() == ["metadata:" + first.id, "media:" + first.id, "metadata:" + next.id, "media:" + next.id])
+            #expect(await fixture.server.snapshot().paths == ["/media/" + first.id, "/media/" + next.id])
+            #expect(await fixture.server.snapshot().failures.isEmpty)
+            try saver.repair()
+            #expect(!FileManager.default.fileExists(atPath: temporary.url.path))
+            #expect(try streamFileDigest(report.directory.appendingPathComponent("Files/" + first.name)) == first.sha256Checksum)
+        } catch { try await closeCleanupFixture(fixture, saver: saver, after: error) }
+        try await closeCleanupFixture(fixture, saver: saver)
+    }
+
     @Test func shortSuccessfulBodyFailsWithoutReplacingOrRetrying() async throws {
         let file = streamFixtureFile(id: "short", name: "Short.bin", bytes: 1_048_576)
         let fixture = try await StreamingFixture.open(files: [file], responses: [file.id: .complete(65_536)])
@@ -172,6 +311,318 @@ import Testing
         }
         try await fixture.close()
     }
+}
+
+private func runCleanupBatch(_ client: GoogleClient, plan: DownloadPlan, parent: URL) async throws -> BatchDownloadReport {
+    let completion = StreamingCompletion()
+    let task = Task {
+        do {
+            let report = try await client.downloadBatch(plan: plan, parent: parent, progress: { _ in })
+            await completion.finish()
+            return report
+        } catch { await completion.finish(); throw error }
+    }
+    do {
+        try await waitForStreamCondition("complete batch cleanup outcomes and automatic report", seconds: 5) { await completion.finished() }
+    } catch {
+        let cause = error
+        task.cancel()
+        do {
+            try await waitForStreamCondition("cancelled cleanup batch to finish before fixture repair", seconds: 5) { await completion.finished() }
+            do { _ = try await task.value }
+            catch is CancellationError {}
+            catch let failure as URLError where failure.code == .cancelled {}
+        } catch { throw MonitorError.invalid("Batch cleanup check failed: \(cause.localizedDescription). Finishing its owned batch also failed: \(error.localizedDescription).") }
+        throw cause
+    }
+    return try await task.value
+}
+
+private func assertCancelledCleanupReport(_ report: BatchDownloadReport, first: DriveFile, second: DriveFile, last: DriveFile) throws {
+    try #require(report.results.count == 2)
+    #expect(report.cancelled)
+    #expect(report.planned == 3 && report.completed == 1 && report.failures == 1 && report.remaining == 1)
+    #expect(report.cleanupWarnings == 0)
+    #expect(report.summary.hasPrefix("Cancelled"))
+    #expect(report.results.map(\.path) == [first.name, second.name])
+    #expect(report.results.map(\.outcome) == [.downloaded, .failed])
+    #expect(report.unattempted == [last.name])
+    #expect(report.issues.isEmpty)
+    let content = report.directory.appendingPathComponent("Files", isDirectory: true)
+    #expect(try FileManager.default.contentsOfDirectory(atPath: content.path) == [first.name])
+    let saved = content.appendingPathComponent(first.name)
+    #expect(try streamFileDigest(saved) == first.sha256Checksum)
+    let expectedSize = try #require(first.size.flatMap(Int64.init))
+    #expect(try streamFileAttributes(saved).st_size == expectedSize)
+    #expect(try streamFileAttributes(saved).st_mode & 0o777 == 0o600)
+}
+
+private func assertCleanupReportRoundTrip(_ report: BatchDownloadReport) throws {
+    let reportURL = report.directory.appendingPathComponent("download-report.json")
+    let saved = try JSONDecoder().decode(BatchDownloadReport.self, from: Data(contentsOf: reportURL))
+    #expect(saved.directory == report.directory && saved.planned == report.planned && saved.cancelled == report.cancelled)
+    #expect(saved.results.map(\.id) == report.results.map(\.id))
+    #expect(saved.results.map(\.path) == report.results.map(\.path))
+    #expect(saved.results.map(\.outcome) == report.results.map(\.outcome))
+    #expect(saved.results.map(\.message) == report.results.map(\.message))
+    #expect(saved.issues.map(\.id) == report.issues.map(\.id))
+    #expect(saved.issues.map(\.path) == report.issues.map(\.path))
+    #expect(saved.issues.map(\.reason) == report.issues.map(\.reason))
+    #expect(saved.unattempted == report.unattempted)
+    #expect(saved.completed == report.completed && saved.failures == report.failures && saved.remaining == report.remaining)
+    #expect(saved.cleanupWarnings == report.cleanupWarnings)
+    #expect(try streamFileAttributes(reportURL).st_mode & 0o777 == 0o600)
+    #expect(try streamFileAttributes(report.directory).st_mode & 0o777 == 0o700)
+}
+
+private func closeCleanupFixture(_ fixture: StreamingFixture, saver: CleanupFaultSaver) async throws {
+    var repairFailure: (any Error)?
+    do { try saver.repair() } catch { repairFailure = error }
+    do { try await fixture.close() }
+    catch {
+        if let repairFailure { throw MonitorError.invalid("Repairing owned cleanup fixtures failed: \(repairFailure.localizedDescription). Closing their listener/directory also failed: \(error.localizedDescription).") }
+        throw error
+    }
+    if let repairFailure { throw repairFailure }
+}
+
+private func closeCleanupFixture(_ fixture: StreamingFixture, saver: CleanupFaultSaver, after cause: any Error) async throws -> Never {
+    do { try await closeCleanupFixture(fixture, saver: saver) }
+    catch { throw MonitorError.invalid("Batch cleanup check failed: \(cause.localizedDescription). Task-owned repair/closure also failed: \(error.localizedDescription).") }
+    throw cause
+}
+
+private struct CleanupFileIdentity: Sendable {
+    let device: dev_t
+    let inode: ino_t
+    let owner: uid_t
+    func matches(_ attributes: stat) -> Bool { attributes.st_dev == device && attributes.st_ino == inode && attributes.st_uid == owner }
+}
+
+private struct OwnedCleanupTemporary: Sendable {
+    let url: URL
+    let identity: CleanupFileIdentity
+    let originalFlags: UInt32
+}
+
+private struct CleanupFaultState: Sendable {
+    var temporary: OwnedCleanupTemporary?
+    var stagingIdentity: CleanupFileIdentity?
+    var stageFailure: FailedDownloadCleanupError?
+    var preparationFailure: (any Error)?
+}
+
+/// Only exact URLSession-returned files and this connector's private staging directory are changed.
+private final class CleanupFaultSaver: Sendable {
+    let staging: URL
+    private let selected: DriveFile
+    private let state = OSAllocatedUnfairLock(initialState: CleanupFaultState(temporary: nil, stagingIdentity: nil, stageFailure: nil, preparationFailure: nil))
+    init(directory: URL, selected: DriveFile) {
+        self.staging = directory.appendingPathComponent("owned-cleanup-staging", isDirectory: true)
+        self.selected = selected
+    }
+    func snapshot() -> CleanupFaultState { state.withLock { $0 } }
+    func requirePreparedBoundary() throws { if let failure = snapshot().preparationFailure { throw failure } }
+
+    func saveCancellingStage(_ source: URL, _ destination: URL) throws {
+        guard destination.lastPathComponent == selected.name else { try saveNewDownloadedFile(source, to: destination); return }
+        do { try recordTemporary(source) }
+        catch { state.withLock { $0.preparationFailure = error }; throw error }
+        try cancelWithDeniedStaging(source, destination: destination)
+    }
+
+    func saveCancellingStageAndTransport(_ source: URL, _ destination: URL) throws {
+        guard destination.lastPathComponent == selected.name else { try saveNewDownloadedFile(source, to: destination); return }
+        do { try recordTemporary(source); try protectTemporary() }
+        catch { state.withLock { $0.preparationFailure = error }; throw error }
+        try cancelWithDeniedStaging(source, destination: destination)
+    }
+
+    func saveWithTransportCleanupFailure(_ source: URL, _ destination: URL) throws {
+        guard destination.lastPathComponent == selected.name else { try saveNewDownloadedFile(source, to: destination); return }
+        do { try recordTemporary(source); try protectTemporary() }
+        catch { state.withLock { $0.preparationFailure = error }; throw error }
+        try saveNewDownloadedFile(source, to: destination)
+    }
+
+    private func recordTemporary(_ source: URL) throws {
+        let attributes = try streamFileAttributes(source)
+        guard attributes.st_mode & mode_t(S_IFMT) == mode_t(S_IFREG), attributes.st_uid == geteuid() else {
+            throw MonitorError.invalid("The URLSession cleanup fixture must be an owned regular file, never a symlink or another user's file.")
+        }
+        guard let size = selected.size.flatMap(Int64.init), attributes.st_size == size, try streamFileDigest(source) == selected.sha256Checksum else {
+            throw MonitorError.invalid("The returned URLSession temporary did not match the complete known response before cleanup fault injection.")
+        }
+        let owned = OwnedCleanupTemporary(url: source, identity: CleanupFileIdentity(device: attributes.st_dev, inode: attributes.st_ino, owner: attributes.st_uid), originalFlags: attributes.st_flags)
+        try state.withLock {
+            guard $0.temporary == nil else { throw MonitorError.invalid("The selected cleanup-failure item unexpectedly reached its saver more than once.") }
+            $0.temporary = owned
+        }
+    }
+
+    private func protectTemporary() throws {
+        let temporary = try #require(snapshot().temporary)
+        let descriptor = open(temporary.url.path, O_RDONLY | O_NOFOLLOW)
+        guard descriptor >= 0 else { throw cleanupFixturePOSIXFailure("Open exact owned transport temporary before immutable protection", code: errno) }
+        do {
+            let attributes = try cleanupDescriptorAttributes(descriptor)
+            guard temporary.identity.matches(attributes), attributes.st_mode & mode_t(S_IFMT) == mode_t(S_IFREG), attributes.st_flags == temporary.originalFlags else {
+                throw MonitorError.invalid("The transport temporary identity or original flags changed before immutable protection; no foreign file may be changed.")
+            }
+            guard attributes.st_flags & UInt32(UF_IMMUTABLE) == 0 else { throw MonitorError.invalid("The returned transport temporary was already immutable; the intended real flag-change boundary cannot be verified.") }
+            guard fchflags(descriptor, temporary.originalFlags | UInt32(UF_IMMUTABLE)) == 0 else {
+                throw cleanupFixturePOSIXFailure("Set UF_IMMUTABLE on the exact owned transport temporary; this filesystem must support the validation boundary", code: errno)
+            }
+            let protected = try cleanupDescriptorAttributes(descriptor)
+            guard temporary.identity.matches(protected), protected.st_flags == temporary.originalFlags | UInt32(UF_IMMUTABLE) else {
+                throw MonitorError.invalid("The exact transport temporary did not retain its verified identity and immutable flag.")
+            }
+        } catch {
+            let cause = error
+            guard close(descriptor) == 0 else {
+                let code = errno
+                throw MonitorError.invalid("Transport temporary protection failed: \(cause.localizedDescription). Closing its descriptor also failed: \(cleanupFixturePOSIXFailure("Close protected transport temporary", code: code).localizedDescription).")
+            }
+            throw cause
+        }
+        guard close(descriptor) == 0 else { throw cleanupFixturePOSIXFailure("Close protected transport temporary", code: errno) }
+    }
+
+    private func cancelWithDeniedStaging(_ source: URL, destination: URL) throws {
+        try FileManager.default.createDirectory(at: staging, withIntermediateDirectories: false, attributes: [.posixPermissions: 0o700])
+        let attributes = try streamFileAttributes(staging)
+        guard attributes.st_mode & mode_t(S_IFMT) == mode_t(S_IFDIR), attributes.st_uid == geteuid() else {
+            throw MonitorError.invalid("The private staging fixture must be this task's owned directory before cancellation.")
+        }
+        state.withLock { $0.stagingIdentity = CleanupFileIdentity(device: attributes.st_dev, inode: attributes.st_ino, owner: attributes.st_uid) }
+        do {
+            try stageDownloadedFile(source, destination: destination, staging: staging) { staged in
+                let expectedSize = try #require(selected.size.flatMap(Int64.init))
+                guard try streamFileDigest(staged) == selected.sha256Checksum, try streamFileAttributes(staged).st_size == expectedSize, try streamFileAttributes(staged).st_mode & 0o777 == 0o600 else {
+                    throw MonitorError.invalid("Production staging did not preserve the completed known body before controlled cancellation.")
+                }
+                try withUnsafeCurrentTask { task in
+                    guard let task else { throw MonitorError.invalid("The cleanup cancellation boundary must execute inside its owned Swift batch task.") }
+                    try FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: staging.path)
+                    task.cancel()
+                }
+                try Task.checkCancellation()
+            }
+            throw MonitorError.invalid("The controlled cancelled stage unexpectedly committed.")
+        } catch let failure as FailedDownloadCleanupError {
+            state.withLock { $0.stageFailure = failure }
+            throw failure
+        }
+    }
+
+    func assertImmutableFailedRemoval(_ cause: FailedDownloadCleanupError, message: String) throws {
+        let temporary = try verifiedImmutableTemporary()
+        do {
+            try removeFailedDownload(temporary.url, cause: cause)
+            throw MonitorError.invalid("The exact immutable transport temporary unexpectedly allowed failed-transfer cleanup.")
+        } catch let failure as FailedDownloadCleanupError {
+            #expect(failure.temporary == temporary.url)
+            #expect(failure.cancelled)
+            let retainedStage = try #require(failure.cause as? FailedDownloadCleanupError)
+            #expect(retainedStage.cause is CancellationError)
+            #expect(retainedStage.temporary == staging)
+            #expect(retainedStage.cleanup.localizedDescription == cause.cleanup.localizedDescription)
+            #expect((failure.cleanup as NSError).domain == NSCocoaErrorDomain)
+            #expect((failure.cleanup as NSError).code == NSFileWriteNoPermissionError)
+            #expect(failure.localizedDescription == message)
+        }
+    }
+
+    func assertImmutableSavedRemoval(destination: URL, message: String) throws {
+        let temporary = try verifiedImmutableTemporary()
+        do {
+            try removeSavedDownloadTemporary(temporary.url, destination: destination)
+            throw MonitorError.invalid("The exact immutable transport temporary unexpectedly allowed saved-transfer cleanup.")
+        } catch let failure as SavedDownloadCleanupError {
+            #expect(failure.destination == destination)
+            #expect(failure.failures.count == 1)
+            let detail = try #require(failure.failures.first)
+            #expect(detail.temporary == temporary.url)
+            #expect((detail.cause as NSError).domain == NSCocoaErrorDomain)
+            #expect((detail.cause as NSError).code == NSFileWriteNoPermissionError)
+            #expect(failure.localizedDescription == message)
+        }
+    }
+
+    private func verifiedImmutableTemporary() throws -> OwnedCleanupTemporary {
+        let temporary = try #require(snapshot().temporary)
+        let attributes = try streamFileAttributes(temporary.url)
+        guard temporary.identity.matches(attributes), attributes.st_mode & mode_t(S_IFMT) == mode_t(S_IFREG), attributes.st_uid == geteuid(), attributes.st_flags == temporary.originalFlags | UInt32(UF_IMMUTABLE) else {
+            throw MonitorError.invalid("Repeated cleanup refusal must inspect the exact owned immutable transport inode; no replacement file may be removed.")
+        }
+        return temporary
+    }
+
+    func repair() throws {
+        let recorded = snapshot()
+        var stageRepairFailure: (any Error)?
+        do {
+            if let identity = recorded.stagingIdentity, FileManager.default.fileExists(atPath: staging.path) {
+                let attributes = try streamFileAttributes(staging)
+                guard identity.matches(attributes), attributes.st_mode & mode_t(S_IFMT) == mode_t(S_IFDIR) else {
+                    throw MonitorError.invalid("Owned staging identity changed before repair; no replacement directory may be modified.")
+                }
+                try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: staging.path)
+                let files = try FileManager.default.contentsOfDirectory(at: staging, includingPropertiesForKeys: nil)
+                guard files.count == 1, let staged = files.first, try streamFileDigest(staged) == selected.sha256Checksum else {
+                    throw MonitorError.invalid("The retained staging fixture lost its completed known bytes before explicit removal.")
+                }
+                try FileManager.default.removeItem(at: staging)
+            }
+        } catch { stageRepairFailure = error }
+        do { if let temporary = recorded.temporary { try repairCleanupTemporary(temporary) } }
+        catch {
+            if let stageRepairFailure { throw MonitorError.invalid("Repairing the owned staging fixture failed: \(stageRepairFailure.localizedDescription). Repairing its exact transport temporary also failed: \(error.localizedDescription).") }
+            throw error
+        }
+        if let stageRepairFailure { throw stageRepairFailure }
+    }
+}
+
+private func cleanupDescriptorAttributes(_ descriptor: Int32) throws -> stat {
+    var attributes = stat()
+    guard fstat(descriptor, &attributes) == 0 else { throw cleanupFixturePOSIXFailure("Inspect exact owned cleanup descriptor", code: errno) }
+    return attributes
+}
+
+private func repairCleanupTemporary(_ temporary: OwnedCleanupTemporary) throws {
+    let descriptor = open(temporary.url.path, O_RDONLY | O_NOFOLLOW)
+    if descriptor < 0 {
+        let code = errno
+        guard code == ENOENT else { throw cleanupFixturePOSIXFailure("Open exact owned transport temporary for repair", code: code) }
+        return
+    }
+    do {
+        let attributes = try cleanupDescriptorAttributes(descriptor)
+        guard temporary.identity.matches(attributes), attributes.st_mode & mode_t(S_IFMT) == mode_t(S_IFREG), attributes.st_uid == geteuid() else {
+            throw MonitorError.invalid("Transport temporary identity changed before repair; no foreign inode may have its flags changed or be removed.")
+        }
+        guard fchflags(descriptor, temporary.originalFlags) == 0 else { throw cleanupFixturePOSIXFailure("Restore original flags on the verified owned transport inode", code: errno) }
+        let repaired = try cleanupDescriptorAttributes(descriptor)
+        guard temporary.identity.matches(repaired), repaired.st_flags == temporary.originalFlags else { throw MonitorError.invalid("The owned transport inode did not recover its exact original flags.") }
+        let path = try streamFileAttributes(temporary.url)
+        guard temporary.identity.matches(path), path.st_mode & mode_t(S_IFMT) == mode_t(S_IFREG) else {
+            throw MonitorError.invalid("The transport temporary pathname no longer names the verified repaired inode; no replacement item may be removed.")
+        }
+        try FileManager.default.removeItem(at: temporary.url)
+    } catch {
+        let cause = error
+        guard close(descriptor) == 0 else {
+            let code = errno
+            throw MonitorError.invalid("Exact transport temporary repair failed: \(cause.localizedDescription). Closing its descriptor also failed: \(cleanupFixturePOSIXFailure("Close repaired transport descriptor", code: code).localizedDescription).")
+        }
+        throw cause
+    }
+    guard close(descriptor) == 0 else { throw cleanupFixturePOSIXFailure("Close repaired transport descriptor", code: errno) }
+}
+
+private func cleanupFixturePOSIXFailure(_ operation: String, code: Int32) -> NSError {
+    NSError(domain: NSPOSIXErrorDomain, code: Int(code), userInfo: [NSLocalizedDescriptionKey: "\(operation) failed: \(String(cString: strerror(code))) (errno \(code))."])
 }
 
 private let streamFixtureChunk = Data((0..<65_536).map { UInt8($0 % 251) })

@@ -97,7 +97,8 @@ extension GoogleClient {
     }
     public func downloadNewFile(file: DriveFile, to destination: URL) async throws {
         guard destination.isFileURL else { throw MonitorError.invalid("Choose a local file destination for the download.") }
-        try await transferDownload(file: file, destination: destination) { try saveNewDownloadedFile($0, to: destination) }
+        let save = saveNewFile
+        try await transferDownload(file: file, destination: destination) { try save($0, destination) }
     }
     private func transferDownload(file selected: DriveFile, destination: URL, save: @Sendable (URL) throws -> Void) async throws {
         let current = try await file(id: selected.id)
