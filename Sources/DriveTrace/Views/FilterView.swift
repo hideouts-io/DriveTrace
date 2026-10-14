@@ -20,9 +20,12 @@ struct FilterView: View {
             HStack {
                 Text("All filters are combined. Google search uses exact MIME and owner email; size and extension require the local index.").font(.caption).foregroundStyle(.secondary)
                 Spacer()
-                Button("Search Google", action: model.queryGoogle).disabled(model.busy || model.isDemo || !model.connected || model.filterValidationError != nil).accessibilityIdentifier("searchGoogle")
+                Button("Search Google", action: model.queryGoogle).disabled(model.busy || model.isDemo || !model.connected || model.googleSearchValidationError != nil).accessibilityIdentifier("searchGoogle")
             }
-            if let error = model.filterValidationError { Text(error).font(.caption).foregroundStyle(.red) }
+            if let error = model.filterValidationError { Text(error).font(.caption).foregroundStyle(.red).accessibilityIdentifier("filterValidationError") }
+            else if let reason = model.googleSearchValidationError {
+                Label("Google search unavailable: \(reason)", systemImage: "info.circle").font(.caption).foregroundStyle(.secondary).accessibilityIdentifier("googleSearchUnavailable")
+            }
         }.padding(14).background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 9))
     }
     private func field(_ label: String, value: Binding<String>, id: String) -> some View {

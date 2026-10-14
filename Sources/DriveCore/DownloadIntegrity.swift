@@ -21,8 +21,14 @@ private func downloadedSHA256(_ url: URL) throws -> String {
     do {
         while true {
             try Task.checkCancellation()
-            guard let chunk = try handle.read(upToCount: 1_048_576), !chunk.isEmpty else { break }
-            hash.update(data: chunk)
+            // Bound autoreleased Foundation buffers as well as each read's byte count.
+            let hashed = try autoreleasepool {
+                guard let chunk = try handle.read(upToCount: 1_048_576), !chunk.isEmpty else { return false }
+                try Task.checkCancellation()
+                hash.update(data: chunk)
+                return true
+            }
+            if !hashed { break }
         }
     } catch {
         let cause = error

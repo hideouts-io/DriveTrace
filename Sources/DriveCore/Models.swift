@@ -102,7 +102,6 @@ public enum MonitorError: Error, LocalizedError, Sendable {
     public var errorDescription: String? {
         switch self {
         case .invalid(let text), .database(let text), .authentication(let text): text
-        case .http(410, let endpoint): "Google rejected the saved cursor (HTTP 410): \(endpoint). Use Settings → Rebuild local index, then refresh to create a new baseline."
         case .http(let code, let endpoint): "Google request failed (HTTP \(code)): \(endpoint). Check access, API enablement and quota."
         }
     }

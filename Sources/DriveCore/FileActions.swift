@@ -31,22 +31,27 @@ extension GoogleClient {
         url.queryItems = format.exportPDF ? [URLQueryItem(name: "mimeType", value: "application/pdf")] : [URLQueryItem(name: "alt", value: "media"), URLQueryItem(name: "supportsAllDrives", value: "true")]
         let limit = 20 * 1024 * 1024
         var refresh = false
+        var refreshed = false
+        var retryWait: TimeInterval = 0
         for attempt in 0..<4 {
             try Task.checkCancellation()
             let access = try await tokens.accessToken(forceRefresh: refresh)
+            refresh = false
             guard await tokens.grantedScopes().contains("https://www.googleapis.com/auth/drive") else {
                 throw MonitorError.authentication("File previews require the optional file management connection. Choose View files and Move to Trash in the connection guide and sign in again.")
             }
             var request = URLRequest(url: url.url!); request.timeoutInterval = 60
             request.setValue("Bearer \(access)", forHTTPHeaderField: "Authorization")
             request.cachePolicy = .reloadIgnoringLocalCacheData
+            var retryAfter: String?
             do {
                 let (bytes, response) = try await session.bytes(for: request)
                 guard let http = response as? HTTPURLResponse else { throw MonitorError.invalid("Preview returned a non-HTTP response.") }
+                retryAfter = http.value(forHTTPHeaderField: "Retry-After")
                 guard (200..<300).contains(http.statusCode) else {
                     var message = Data()
-                    for try await byte in bytes { message.append(byte); if message.count >= 4096 { break } }
-                    throw MonitorError.http(http.statusCode, "File preview; response=\(String(decoding: message, as: UTF8.self))")
+                    for try await byte in bytes { message.append(byte); if message.count >= 4097 { break } }
+                    throw googleHTTPFailure(status: http.statusCode, responseData: message, operation: format.exportPDF ? .documentPreview : .filePreview)
                 }
                 guard response.expectedContentLength <= limit else { throw MonitorError.invalid("This file exceeds the 20 MiB in-app preview limit. Open it in Google Drive instead.") }
                 var data = Data()
@@ -57,13 +62,14 @@ extension GoogleClient {
                 }
                 try Task.checkCancellation()
                 return PreviewContent(data: data, fileExtension: format.fileExtension)
-            } catch let MonitorError.http(status, _) where attempt < 3 && [401, 429, 500, 502, 503, 504].contains(status) {
+            } catch let failure as MonitorError where attempt < 3 {
+                guard case let .http(status, _) = failure, [401, 429, 500, 502, 503, 504].contains(status) else { throw failure }
+                guard status != 401 || !refreshed else { throw failure }
                 refresh = status == 401
-                logger.warning("Preview retry status=\(status) attempt=\(attempt + 1)")
-                try await Task.sleep(for: .seconds(pow(2, Double(attempt))))
+                if refresh { refreshed = true }
+                retryWait = try await waitForGoogleRetry(retryAfter: retryAfter, attempt: attempt, waited: retryWait, failure: failure, logger: logger)
             } catch let failure as URLError where attempt < 3 && [.timedOut, .networkConnectionLost, .notConnectedToInternet, .cannotConnectToHost].contains(failure.code) {
-                logger.warning("Preview network retry code=\(failure.errorCode) attempt=\(attempt + 1)")
-                try await Task.sleep(for: .seconds(pow(2, Double(attempt))))
+                retryWait = try await waitForGoogleRetry(retryAfter: nil, attempt: attempt, waited: retryWait, failure: failure, logger: logger)
             }
         }
         throw MonitorError.invalid("Preview retries ended without a response.")

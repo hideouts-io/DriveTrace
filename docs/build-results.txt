@@ -1,17 +1,19 @@
 Building for production...
-[2 / 13]
-[4 / 15] DriveCore
-[8 / 20] DriveCore
-[14 / 18] DriveTrace-product
-[15 / 19] DriveTrace-product
-[18 / 21] DriveTrace-product
-[19 / 22] DriveTrace-product
-[19 / 23] DriveTrace-product
+[Planning deferred tasks]
+[1 / 1]
+[3 / 5] DriveCore
+[6 / 8] DriveCore
+[7 / 9] DriveCore
+[11 / 19] DriveCore
+[18 / 20] DriveTrace-product
 [21 / 23] DriveTrace-product
-[23 / 23] DriveTrace-product
-Build complete! (34.24 sec)
-~/Library/Caches/DriveExplorerBuild/package.umoWoE/DriveTrace.app: replacing existing signature
+[22 / 23] DriveTrace-product
+[25 / 30] DriveTrace-product
+[27 / 30] DriveTrace-product
+[29 / 30] DriveTrace-product
+Build complete! (45.24 sec)
+/Users/macbookpro/Library/Caches/DriveExplorerBuild/package.6CKEyo/DriveTrace.app: replacing existing signature
 Verified both architectures, signature, bundle identity, minimum OS, icon, canonical logo and license.
 Verified both architectures, signature, bundle identity, minimum OS, icon, canonical logo and license.
-5c6132a35acc4f0ebc6a603e7a2574dd510ed0fc3b3563fead9d5722743d42f6  DriveTrace.zip
+f397dba0467de485605cf76503f845ed896ceb4dd1d3d08628dfc79385834e37  DriveTrace.zip
 Packaged universal ad-hoc preview. Developer ID signing and notarization are not performed.
