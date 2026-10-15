@@ -22,7 +22,7 @@ public struct BatchProgress: Sendable {
     public init(current: String, discovered: Int, completed: Int, failed: Int) { self.current = current; self.discovered = discovered; self.completed = completed; self.failed = failed }
 }
 
-public func downloadNameKey(_ name: String) -> String { name.precomposedStringWithCanonicalMapping.lowercased() }
+public func downloadNameKey(_ name: String) -> String { name.folding(options: .caseInsensitive, locale: Locale(identifier: "en_US_POSIX")).precomposedStringWithCanonicalMapping }
 
 /// Supply canonical occupied keys so large folders do not repeatedly normalize every sibling name.
 public func availableDownloadName(_ name: String, occupiedKeys: Set<String>) throws -> String {
@@ -32,14 +32,15 @@ public func availableDownloadName(_ name: String, occupiedKeys: Set<String>) thr
     let suffix = (base as NSString).pathExtension
     let stem = suffix.isEmpty ? base : (base as NSString).deletingPathExtension
     for number in 2...occupiedKeys.count + 2 {
-        let candidate = "\(stem) (\(number))" + (suffix.isEmpty ? "" : "." + suffix)
-        if !names.contains(downloadNameKey(candidate)) { return try downloadName(candidate) }
+        let candidate = try downloadNameAppendingSuffix(stem, suffix: " (\(number))" + (suffix.isEmpty ? "" : "." + suffix))
+        if !names.contains(downloadNameKey(candidate)) { return candidate }
     }
     throw MonitorError.invalid("Cannot allocate a unique local name for \(name).")
 }
 
 extension GoogleClient {
-    /// Discover live folder contents with pagination. Cached metadata never establishes a complete folder copy.
+    /// Discover live folder contents with pagination. Failed listings retain only their folder placeholder and issue.
+    /// Cached metadata and pages received before a failed listing never establish a complete folder copy.
     public func planDownloads(ids: [String], progress: @Sendable (BatchProgress) async -> Void) async throws -> DownloadPlan {
         guard !ids.isEmpty else { throw MonitorError.invalid("Select at least one file or folder to download.") }
         var roots: [DriveFile] = []
@@ -48,7 +49,10 @@ extension GoogleClient {
             do { try Task.checkCancellation(); roots.append(try await file(id: id)) }
             catch is CancellationError { throw CancellationError() }
             catch let error as URLError where error.code == .cancelled { throw error }
-            catch { issues.append(DownloadIssue(path: id, reason: error.localizedDescription)) }
+            catch {
+                issues.append(DownloadIssue(path: id, reason: "This selected item could not be discovered. Resolve the error, then select it again to retry. " + error.localizedDescription))
+                await progress(BatchProgress(current: id, discovered: 0, completed: 0, failed: issues.count))
+            }
         }
         roots.sort { $0.isFolder != $1.isFolder ? $0.isFolder : $0.id < $1.id }
         var pending: [(file: DriveFile, parent: [String])] = roots.reversed().map { ($0, []) }
@@ -60,7 +64,9 @@ extension GoogleClient {
             let file = next.file
             let display = (next.parent + [file.name]).joined(separator: "/")
             guard visited.insert(file.id).inserted else {
-                issues.append(DownloadIssue(path: display, reason: "Already encountered in this selection; copied only once. A repeated folder may also indicate a cycle.")); continue
+                issues.append(DownloadIssue(path: display, reason: "Already encountered in this selection; copied only once. A repeated folder may also indicate a cycle."))
+                await progress(BatchProgress(current: display, discovered: items.count, completed: 0, failed: issues.count))
+                continue
             }
             do {
                 guard file.id.range(of: "^[A-Za-z0-9_-]+$", options: .regularExpression) != nil else { throw MonitorError.invalid("Google returned an invalid file ID for folder discovery.") }
@@ -73,6 +79,7 @@ extension GoogleClient {
                 let components = next.parent + [name]
                 items.append(DownloadItem(file: file, components: components))
                 await progress(BatchProgress(current: display, discovered: items.count, completed: 0, failed: issues.count))
+                try Task.checkCancellation()
                 if file.isFolder {
                     var children: [DriveFile] = []
                     var page: String?
@@ -89,8 +96,15 @@ extension GoogleClient {
                 }
             } catch is CancellationError { throw CancellationError() }
             catch let error as URLError where error.code == .cancelled { throw error }
-            catch { issues.append(DownloadIssue(path: display, reason: error.localizedDescription)) }
+            catch {
+                let context = file.isFolder && items.last?.file.id == file.id
+                    ? "Folder listing failed. Only this folder's placeholder is planned; none of its children from this listing will be downloaded. Resolve the error, then select the entire folder again to retry. "
+                    : "This item could not be planned for download. Resolve the error, then select it again to retry. "
+                issues.append(DownloadIssue(path: display, reason: context + error.localizedDescription))
+                await progress(BatchProgress(current: display, discovered: items.count, completed: 0, failed: issues.count))
+            }
         }
+        try Task.checkCancellation()
         return DownloadPlan(items: items, issues: issues)
     }
 }

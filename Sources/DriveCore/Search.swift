@@ -113,7 +113,7 @@ public func serverQuery(_ filter: FileFilter) throws -> String {
     try validateFilter(filter)
     guard filter.storage == nil else { throw MonitorError.invalid("Storage categories describe the local index. Clear the category before searching Google.") }
     guard filter.minimumBytes == nil, filter.maximumBytes == nil, filter.ext.isEmpty, filter.fileID.isEmpty, filter.discoveredAfter.isEmpty, filter.discoveredBefore.isEmpty else {
-        throw MonitorError.invalid("Google query does not support this size, extension or file-ID filter. Use Local index, or open a file by ID.")
+        throw MonitorError.invalid("Size, extension, file ID and first-discovered dates require the Local index. Clear those filters before searching Google.")
     }
     func quote(_ value: String) -> String { "'" + value.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "'", with: "\\'") + "'" }
     var parts: [String] = []

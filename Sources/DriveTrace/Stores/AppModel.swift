@@ -10,17 +10,17 @@ import DriveCore
     var saved: [SavedSearch] = []
     var watches: [WatchRule] = []
     var facts = FileFacts(firstSeen: [:], lastActivity: [:], activityCounts: [:])
-    var selection: String? = "all"
-    var selectedFiles: Set<String> = []
+    var selection: String? = "all" { didSet { if selection != oldValue { invalidateGoogleSearch() } } }
+    var selectedFiles: Set<String> = [] { didSet { if selectedFiles != oldValue { previewGeneration += 1 } } }
     var selectedFile: String? {
         get { selectedFiles.count == 1 ? selectedFiles.first : nil }
         set { selectedFiles = newValue.map { [$0] } ?? [] }
     }
     var batchDownload: BatchDownloadPresentation?
-    var filter = FileFilter()
+    var filter = FileFilter() { didSet { if filter != oldValue { invalidateGoogleSearch() } } }
     var storageGrouping = "type"
-    var minimumSizeInput = ""
-    var maximumSizeInput = ""
+    var minimumSizeInput = "" { didSet { if minimumSizeInput != oldValue { invalidateGoogleSearch() } } }
+    var maximumSizeInput = "" { didSet { if maximumSizeInput != oldValue { invalidateGoogleSearch() } } }
     var searching = false
     var focusSearchRequested = false
     var filterValidationError: String? {
@@ -28,6 +28,10 @@ import DriveCore
             guard let bytes = Int64(value), bytes >= 0 else { return "Size must be a nonnegative whole number of bytes. Correct the value or clear the search." }
         }
         do { try validateFilter(filter); return nil } catch { return error.localizedDescription }
+    }
+    var googleSearchValidationError: String? {
+        if let failure = filterValidationError { return failure }
+        do { _ = try serverQuery(filter); return nil } catch { return error.localizedDescription }
     }
     var activityValidationError: String? {
         do { try validateDateRange(after: activityAfter, before: activityBefore, label: "Activity range"); return nil } catch { return error.localizedDescription }
@@ -42,8 +46,8 @@ import DriveCore
     var progress = ""
     var error: String?
     var gaps: [String] = []
-    var isDemo = false
-    var connected = false
+    var isDemo = false { didSet { if isDemo != oldValue { invalidateGoogleSearch(); previewGeneration += 1 } } }
+    var connected = false { didSet { if connected != oldValue { invalidateGoogleSearch(); previewGeneration += 1 } } }
     var hasClient = false
     var syncVerified = false
     var requestedAccess: DriveAccess = .metadata
@@ -51,14 +55,15 @@ import DriveCore
     var pendingTrash: DriveFile?
     var pendingBatchTrash: BatchTrashPresentation?
     var preview: FilePreview?
-    let previewStore = PreviewStore(root: FileManager.default.temporaryDirectory.appendingPathComponent("DriveExplorerPreviews", isDirectory: true))
+    let previewStore: PreviewStore
+    private(set) var previewGeneration = 0
     var operationNotice: String?
     var notificationStatusText = "Checking macOS permission…"
     var notificationTestNotice: String?
     var ready = false
     private var starting = false
     var lastSync: String?
-    var rootID = "root"
+    var rootID = "root" { didSet { if rootID != oldValue { invalidateGoogleSearch(); previewGeneration += 1 } } }
     var rootMetadata: DriveFile?
     var autoRefresh = UserDefaults.standard.bool(forKey: "autoRefresh") { didSet { UserDefaults.standard.set(autoRefresh, forKey: "autoRefresh") } }
     var notifications = UserDefaults.standard.bool(forKey: "notifications") { didSet { UserDefaults.standard.set(notifications, forKey: "notifications") } }
@@ -69,15 +74,36 @@ import DriveCore
     var activityTarget = ""
     var activityAfter = ""
     var activityBefore = ""
-    var database: Database?
-    let credentials = Credentials()
+    var database: Database? { didSet { if database !== oldValue { invalidateGoogleSearch(); previewGeneration += 1 } } }
+    let credentials: Credentials
     var client: GoogleClient?
     private var operation: Task<Void, Never>?
     private var searchTask: Task<Void, Never>?
     private var pollTask: Task<Void, Never>?
     private var callback: Loopback?
+    private var googleSearchGeneration = 0
+    private var googleSearchActive = false
     private let baseURL: URL
-    init() {
+    private let workspaceIdentity: any WorkspaceIdentityStore
+    private var workspaceKey: String?
+    convenience init() {
+        let credentials = Credentials()
+        self.init(
+            previewStore: PreviewStore(root: FileManager.default.temporaryDirectory.appendingPathComponent("DriveExplorerPreviews", isDirectory: true)),
+            credentials: credentials,
+            workspaceIdentity: credentials,
+            restoredWorkspaceKey: nil
+        )
+    }
+    convenience init(previewStore: PreviewStore) {
+        let credentials = Credentials()
+        self.init(previewStore: previewStore, credentials: credentials, workspaceIdentity: credentials, restoredWorkspaceKey: nil)
+    }
+    init(previewStore: PreviewStore, credentials: Credentials, workspaceIdentity: any WorkspaceIdentityStore, restoredWorkspaceKey: String?) {
+        self.previewStore = previewStore
+        self.credentials = credentials
+        self.workspaceIdentity = workspaceIdentity
+        workspaceKey = restoredWorkspaceKey
         baseURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("DriveExplorer", isDirectory: true)
     }
     var filteredEvents: [DriveEvent] {
@@ -88,6 +114,13 @@ import DriveCore
             (activityTarget.isEmpty || $0.fileID == activityTarget || $0.name.localizedStandardContains(activityTarget)) &&
             within($0.time, after: activityAfter, before: activityBefore)
         }
+    }
+    func resetActivityFilters() {
+        activityActor = ""
+        activityAction = ""
+        activityTarget = ""
+        activityAfter = ""
+        activityBefore = ""
     }
     var selected: DriveFile? { files.first { $0.id == selectedFile } ?? serverResults?.first { $0.id == selectedFile } }
     private(set) var index: [String: DriveFile] = [:]
@@ -121,10 +154,19 @@ import DriveCore
         connected = try await credentials.restore()
         managementGranted = await credentials.grantedScopes().contains("https://www.googleapis.com/auth/drive")
         hasClient = await credentials.hasConfiguration()
+        if let stored = try await workspaceIdentity.workspaceKey() {
+            workspaceKey = stored
+            UserDefaults.standard.removeObject(forKey: "accountCache")
+        } else if let legacy = UserDefaults.standard.object(forKey: "accountCache") {
+            guard let legacyKey = legacy as? String else { throw MonitorError.authentication("The saved account preference is invalid. Disconnect and sign in again to select the correct local index.") }
+            try await workspaceIdentity.storeWorkspaceKey(legacyKey)
+            workspaceKey = legacyKey
+            UserDefaults.standard.removeObject(forKey: "accountCache")
+        }
     }
     private func openDatabase(demo: Bool) async throws {
         if let database { try await database.close() }
-        let directory = baseURL.appendingPathComponent(demo ? "Demo" : "Account-" + (UserDefaults.standard.string(forKey: "accountCache") ?? "unconnected"), isDirectory: true)
+        let directory = baseURL.appendingPathComponent(demo ? "Demo" : "Account-" + (workspaceKey ?? "unconnected"), isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
         let store = try Database(path: directory.appendingPathComponent("drive.sqlite").path)
         database = store; isDemo = demo; syncVerified = false; serverResults = nil; selectedFile = nil
@@ -135,8 +177,12 @@ import DriveCore
     func toggleDemo() {
         guard !busy else { return }
         run {
-            try await self.openDatabase(demo: !self.isDemo)
-            if !self.isDemo { try await self.restoreConnection() }
+            if self.isDemo {
+                try await self.restoreConnection()
+                try await self.openDatabase(demo: false)
+            } else {
+                try await self.openDatabase(demo: true)
+            }
         }
     }
     func reload() async throws {
@@ -229,8 +275,8 @@ import DriveCore
         operation = Task {
             defer { busy = false; progress = ""; operation = nil }
             do { try await body() }
-            catch is CancellationError { operationNotice = "Operation cancelled. Any committed observations are retained; refresh to continue synchronization." }
-            catch let failure as URLError where failure.code == .cancelled { operationNotice = "Operation cancelled. Refresh to continue synchronization." }
+            catch is CancellationError { operationNotice = "Operation cancelled." }
+            catch let failure as URLError where failure.code == .cancelled { operationNotice = "Operation cancelled." }
             catch { self.error = error.localizedDescription }
         }
     }
@@ -239,45 +285,85 @@ import DriveCore
         guard !isDemo else { updateResults(); return }
         run {
             self.syncVerified = false
-            guard let client = self.client else { throw MonitorError.invalid("App is not ready.") }
-            let root = try await client.file(id: "root")
-            let accountKey = digest(root.id)
-            if UserDefaults.standard.string(forKey: "accountCache") != accountKey {
-                UserDefaults.standard.set(accountKey, forKey: "accountCache")
-                try await self.openDatabase(demo: false)
+            do {
+                guard let client = self.client else { throw MonitorError.invalid("App is not ready.") }
+                let root = try await client.file(id: "root")
+                let accountKey = digest(root.id)
+                if self.workspaceKey != accountKey {
+                    try await self.workspaceIdentity.storeWorkspaceKey(accountKey)
+                    self.workspaceKey = accountKey
+                    try await self.openDatabase(demo: false)
+                }
+                guard let database = self.database else { throw MonitorError.database("Account database did not open.") }
+                self.connected = true
+                let before = Set(self.events.map(\.id))
+                try await database.setSetting("rootID", value: root.id)
+                try await database.setSetting("rootMetadata", value: encoded(root))
+                let result = try await synchronize(client: client, database: database) { status in
+                    await MainActor.run { self.progress = "\(status.message) · \(status.count) records" }
+                }
+                self.gaps = result.gaps
+                try await database.setSetting("coverage.gaps", value: encoded(result.gaps))
+                if result.gaps.isEmpty { try await database.setSetting("lastSync", value: timestamp(Date())) }
+                try await self.reload()
+                try Task.checkCancellation()
+                self.syncVerified = result.gaps.isEmpty
+                try await self.notify(events: self.events.filter { !before.contains($0.id) })
+                try Task.checkCancellation()
+            } catch {
+                guard error is CancellationError || (error as? URLError)?.code == .cancelled else { throw error }
+                self.syncVerified = false
+                self.operationNotice = "Synchronization cancelled. Any committed observations remain in the local index; displayed results may be older. Choose Refresh to continue. An interrupted initial scan restarts."
             }
-            guard let database = self.database else { throw MonitorError.database("Account database did not open.") }
-            self.connected = true
-            let before = Set(self.events.map(\.id))
-            try await database.setSetting("rootID", value: root.id)
-            try await database.setSetting("rootMetadata", value: encoded(root))
-            let result = try await synchronize(client: client, database: database) { status in
-                await MainActor.run { self.progress = "\(status.message) · \(status.count) records" }
-            }
-            self.gaps = result.gaps
-            try await database.setSetting("coverage.gaps", value: encoded(result.gaps))
-            if result.gaps.isEmpty { try await database.setSetting("lastSync", value: timestamp(Date())) }
-            try await self.reload()
-            self.syncVerified = result.gaps.isEmpty
-            try await self.notify(events: self.events.filter { !before.contains($0.id) })
         }
     }
     func queryGoogle() {
+        guard !busy else { return }
+        let queryFilter = filter, generation = googleSearchGeneration, failure = googleSearchValidationError
+        let queryClient = client, queryConnected = connected, queryDemo = isDemo
+        googleSearchActive = true
         run {
-            guard !self.isDemo, let client = self.client else { throw MonitorError.invalid("Google search requires a connected account. Use Local index in demo mode.") }
-            if let failure = self.filterValidationError { throw MonitorError.invalid(failure) }
-            let query = try serverQuery(self.filter)
-            var output: [DriveFile] = []; var page: String?; var seen: Set<String> = []
-            repeat {
+            defer { self.googleSearchActive = false }
+            do {
                 try Task.checkCancellation()
-                let response = try await client.files(query: query, drive: self.filter.drive.isEmpty ? nil : self.filter.drive, page: page)
-                guard response.incompleteSearch != true else { throw MonitorError.invalid("Google reported an incomplete search. Narrow the scope to a Shared Drive.") }
-                output += response.files ?? []; page = response.nextPageToken
-                if let page, !seen.insert(page).inserted { throw MonitorError.invalid("Search pagination repeated a cursor.") }
-                self.progress = "Google search · \(output.count) records"
-            } while page != nil
-            self.serverResults = output; self.serverCoverage = "Google query · all returned pages · \(output.count) results"
-            self.updateResults()
+                guard !queryDemo, queryConnected, let client = queryClient else { throw MonitorError.invalid("Google search requires a connected account. Use Local index in demo mode.") }
+                if let failure { throw MonitorError.invalid(failure) }
+                let query = try serverQuery(queryFilter), drive = queryFilter.drive.isEmpty ? nil : queryFilter.drive
+                var output: [DriveFile] = []; var page: String?; var seen: Set<String> = []; var fileIDs: Set<String> = []
+                repeat {
+                    try Task.checkCancellation()
+                    let response = try await client.files(query: query, drive: drive, page: page)
+                    try Task.checkCancellation()
+                    guard generation == self.googleSearchGeneration else { throw CancellationError() }
+                    guard response.incompleteSearch != true else { throw MonitorError.invalid("Google reported an incomplete search. Narrow the scope to a Shared Drive.") }
+                    for file in response.files ?? [] {
+                        guard fileIDs.insert(file.id).inserted else { throw MonitorError.invalid("Google search returned a duplicate file ID. Previous results were retained; run Search Google again.") }
+                        output.append(file)
+                    }
+                    page = response.nextPageToken
+                    if let page, !seen.insert(page).inserted { throw MonitorError.invalid("Search pagination repeated a cursor. Previous results were retained; run Search Google again.") }
+                    self.progress = "Google search · \(output.count) records"
+                } while page != nil
+                self.serverResults = output; self.serverCoverage = "Google query · all returned pages · \(output.count) results"
+                self.updateResults()
+            } catch is CancellationError {
+                if self.operationNotice == nil { self.operationNotice = "Google search cancelled. Previous results were retained." }
+            } catch let failure as URLError where failure.code == .cancelled {
+                if self.operationNotice == nil { self.operationNotice = "Google search cancelled. Previous results were retained." }
+            } catch {
+                guard !Task.isCancelled, generation == self.googleSearchGeneration else {
+                    if self.operationNotice == nil { self.operationNotice = "Google search cancelled. Previous results were retained." }
+                    return
+                }
+                throw error
+            }
+        }
+    }
+    private func invalidateGoogleSearch() {
+        googleSearchGeneration += 1
+        if googleSearchActive {
+            operation?.cancel()
+            operationNotice = "Google search cancelled because its filters, view or workspace changed. Run Search Google again for the current view."
         }
     }
     func saveSearch(name: String) {
@@ -363,27 +449,43 @@ import DriveCore
         }
     }
 
+    /// Callback errors close the receiver; cancellation cannot roll back a token already saved by exchange.
     func connect() {
         let access = requestedAccess
         run {
-            let state = try randomURLToken(), verifier = try randomURLToken()
+            let state = try randomURLToken()
             let receiver = Loopback(state: state); self.callback = receiver
             defer { self.callback = nil }
-            let clientID = try await self.credentials.clientID()
-            let redirect = try await receiver.start()
-            guard NSWorkspace.shared.open(authorizationURL(clientID: clientID, redirect: redirect, state: state, verifier: verifier, access: access)) else { await receiver.cancel(); throw MonitorError.authentication("Could not open your default browser.") }
-            self.progress = "Complete Google sign-in in your browser"
-            let code = try await receiver.code()
-            try await self.credentials.exchange(code: code, verifier: verifier, redirect: redirect, access: access)
-            guard let client = self.client else { throw MonitorError.invalid("Google client is unavailable.") }
-            let root = try await client.file(id: "root")
-            UserDefaults.standard.set(digest(root.id), forKey: "accountCache")
-            self.connected = true
-            self.managementGranted = await self.credentials.grantedScopes().contains("https://www.googleapis.com/auth/drive")
-            try await self.openDatabase(demo: false)
-            try await self.database?.setSetting("rootID", value: root.id)
-            self.rootID = root.id
-            self.operationNotice = "Sign-in succeeded. Run the first synchronization to check metadata and activity access."
+            do {
+                try Task.checkCancellation()
+                let verifier = try randomURLToken()
+                let clientID = try await self.credentials.clientID()
+                try Task.checkCancellation()
+                let redirect = try await receiver.start()
+                try Task.checkCancellation()
+                guard NSWorkspace.shared.open(authorizationURL(clientID: clientID, redirect: redirect, state: state, verifier: verifier, access: access)) else { throw MonitorError.authentication("Could not open your default browser. Choose Sign in with Google to retry after checking your default browser in macOS Settings.") }
+                self.progress = "Complete Google sign-in in your browser"
+                let code = try await receiver.code()
+                try Task.checkCancellation()
+                try await self.credentials.exchange(code: code, verifier: verifier, redirect: redirect, access: access)
+                guard let client = self.client else { throw MonitorError.invalid("Google client is unavailable.") }
+                let root = try await client.file(id: "root")
+                try Task.checkCancellation()
+                let accountKey = digest(root.id)
+                try await self.workspaceIdentity.storeWorkspaceKey(accountKey)
+                self.workspaceKey = accountKey
+                self.connected = true
+                self.managementGranted = await self.credentials.grantedScopes().contains("https://www.googleapis.com/auth/drive")
+                try await self.openDatabase(demo: false)
+                try await self.database?.setSetting("rootID", value: root.id)
+                self.rootID = root.id
+                try Task.checkCancellation()
+                self.operationNotice = "Sign-in succeeded. Run the first synchronization to check metadata and activity access."
+            } catch {
+                await receiver.cancel()
+                guard error is CancellationError || (error as? URLError)?.code == .cancelled else { throw error }
+                self.operationNotice = "Sign-in cancelled. Close the sign-in browser page if it is still open. Choose Sign in with Google to retry, then synchronize to verify account access."
+            }
         }
     }
     func disconnect() { setPolling(false); run { try await self.credentials.disconnect(); self.connected = false; self.managementGranted = false; self.syncVerified = false } }

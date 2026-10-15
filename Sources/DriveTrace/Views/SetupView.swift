@@ -18,8 +18,31 @@ private enum SetupStep: Int, CaseIterable, Identifiable {
 /// Cloud configuration cannot be verified locally; only import, sign-in and synchronization report app observations.
 struct SetupView: View {
     @Bindable var model: AppModel
-    @State private var step: SetupStep = .project
+    var body: some View {
+        Group {
+            if model.ready {
+                SetupGuideView(model: model)
+            } else {
+                VStack(spacing: 12) {
+                    ProgressView().accessibilityLabel("Preparing connection guide").accessibilityIdentifier("setupLoadingSpinner")
+                    Text("Preparing connection guide…").accessibilityIdentifier("setupLoading")
+                    Text("Waiting for app setup to finish.").foregroundStyle(.secondary)
+                }
+            }
+        }.frame(minWidth: 820, minHeight: 700)
+    }
+}
+
+/// Select the initial step only after startup has resolved saved state; later changes preserve manual navigation.
+private struct SetupGuideView: View {
+    @Bindable var model: AppModel
+    @State private var step: SetupStep
     @Environment(\.dismissWindow) private var dismissWindow
+    init(model: AppModel) {
+        self.model = model
+        let initial: SetupStep = !model.hasClient ? .project : model.connected && !model.isDemo ? .synchronization : .signIn
+        _step = State(initialValue: initial)
+    }
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 14) {
@@ -52,7 +75,11 @@ struct SetupView: View {
                         Text("\(step.rawValue + 1). \(step.title)").font(.title2.bold()).accessibilityAddTraits(.isHeader)
                         stepContent
                         Divider()
-                        DisclosureGroup("Troubleshooting") { troubleshooting.padding(.top, 10) }.accessibilityIdentifier("setupTroubleshooting")
+                        DisclosureGroup {
+                            troubleshooting.padding(.top, 10)
+                        } label: {
+                            Text("Troubleshooting").accessibilityIdentifier("setupTroubleshooting")
+                        }
                         Text("Instructions checked against Google documentation on September 29, 2026. Cloud screens can change. Use the official links if a label differs.").font(.caption).foregroundStyle(.secondary)
                     }.frame(maxWidth: .infinity, alignment: .leading).padding(24).textSelection(.enabled)
                 }.id(step).accessibilityIdentifier("setupInstructions")
@@ -101,9 +128,11 @@ struct SetupView: View {
             Link("Google’s Desktop OAuth instructions", destination: URL(string: "https://developers.google.com/identity/protocols/oauth2/native-app")!)
         case .signIn:
             Picker("Connection access", selection: $model.requestedAccess) {
-                ForEach(DriveAccess.allCases) { access in Text(access.title).tag(access) }
+                ForEach(DriveAccess.allCases) { access in
+                    Text(access.title).tag(access).accessibilityIdentifier("connectionAccess_" + access.rawValue)
+                }
             }.pickerStyle(.radioGroup).disabled(model.busy).accessibilityIdentifier("connectionAccess")
-            Text("File management requests broad Google Drive access, including permission to read, edit and delete files. This app exposes previews and confirmed Move to Trash only; it has no permanent-delete action. Selecting this option does not grant access until you sign in again and approve it in Google.").font(.callout).foregroundStyle(.secondary)
+            Text("File management requests broad Google Drive access, including permission to read, edit and delete files. This app exposes downloads, previews and confirmed Move to Trash; it has no permanent-delete action. Selecting this option does not grant access until you sign in again and approve it in Google.").font(.callout).foregroundStyle(.secondary)
             instruction("Continue in your browser", "Sign in with the account allowed by your project’s audience. Check the app identity and requested access before consenting. Return here after the browser callback. The app waits up to three minutes; cancel and retry if you run out of time.")
             instruction("Select both requested permissions", "Allow the selected Drive access and read-only Drive activity. If a required permission is missing, the app retains the previous saved sign-in. Existing metadata-only connections keep working until you deliberately authorize management access.")
             Button(model.connected ? "Sign in again…" : "Sign in with Google…", action: model.connect).buttonStyle(.borderedProminent).disabled(model.busy || !model.hasClient).accessibilityIdentifier("connectGoogle")
@@ -141,6 +170,7 @@ struct SetupView: View {
             instruction("Browser timeout / couldn’t connect to localhost", "Keep the app open during sign-in. Cancel and start a fresh attempt, completing it within three minutes. Check whether local security software blocks the app’s 127.0.0.1 callback; do not disable protections broadly.")
             instruction("429 / 5xx / partial results", "Temporary API/network failures receive bounded retries. If retries fail, check connectivity and project quotas, then refresh later. Read the specific coverage gaps before using results; unavailable Shared Drives or activity must remain labelled incomplete.")
             Link("Google native-app errors and remedies", destination: URL(string: "https://developers.google.com/identity/protocols/oauth2/native-app#errors")!)
+                .accessibilityIdentifier("setupTroubleshootingHelp")
         }.font(.callout)
     }
 }
