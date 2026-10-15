@@ -75,7 +75,7 @@ import DriveCore
     var activityAfter = ""
     var activityBefore = ""
     var database: Database? { didSet { if database !== oldValue { invalidateGoogleSearch(); previewGeneration += 1 } } }
-    let credentials = Credentials()
+    let credentials: Credentials
     var client: GoogleClient?
     private var operation: Task<Void, Never>?
     private var searchTask: Task<Void, Never>?
@@ -84,11 +84,26 @@ import DriveCore
     private var googleSearchGeneration = 0
     private var googleSearchActive = false
     private let baseURL: URL
+    private let workspaceIdentity: any WorkspaceIdentityStore
+    private var workspaceKey: String?
     convenience init() {
-        self.init(previewStore: PreviewStore(root: FileManager.default.temporaryDirectory.appendingPathComponent("DriveExplorerPreviews", isDirectory: true)))
+        let credentials = Credentials()
+        self.init(
+            previewStore: PreviewStore(root: FileManager.default.temporaryDirectory.appendingPathComponent("DriveExplorerPreviews", isDirectory: true)),
+            credentials: credentials,
+            workspaceIdentity: credentials,
+            restoredWorkspaceKey: nil
+        )
     }
-    init(previewStore: PreviewStore) {
+    convenience init(previewStore: PreviewStore) {
+        let credentials = Credentials()
+        self.init(previewStore: previewStore, credentials: credentials, workspaceIdentity: credentials, restoredWorkspaceKey: nil)
+    }
+    init(previewStore: PreviewStore, credentials: Credentials, workspaceIdentity: any WorkspaceIdentityStore, restoredWorkspaceKey: String?) {
         self.previewStore = previewStore
+        self.credentials = credentials
+        self.workspaceIdentity = workspaceIdentity
+        workspaceKey = restoredWorkspaceKey
         baseURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("DriveExplorer", isDirectory: true)
     }
     var filteredEvents: [DriveEvent] {
@@ -139,10 +154,19 @@ import DriveCore
         connected = try await credentials.restore()
         managementGranted = await credentials.grantedScopes().contains("https://www.googleapis.com/auth/drive")
         hasClient = await credentials.hasConfiguration()
+        if let stored = try await workspaceIdentity.workspaceKey() {
+            workspaceKey = stored
+            UserDefaults.standard.removeObject(forKey: "accountCache")
+        } else if let legacy = UserDefaults.standard.object(forKey: "accountCache") {
+            guard let legacyKey = legacy as? String else { throw MonitorError.authentication("The saved account preference is invalid. Disconnect and sign in again to select the correct local index.") }
+            try await workspaceIdentity.storeWorkspaceKey(legacyKey)
+            workspaceKey = legacyKey
+            UserDefaults.standard.removeObject(forKey: "accountCache")
+        }
     }
     private func openDatabase(demo: Bool) async throws {
         if let database { try await database.close() }
-        let directory = baseURL.appendingPathComponent(demo ? "Demo" : "Account-" + (UserDefaults.standard.string(forKey: "accountCache") ?? "unconnected"), isDirectory: true)
+        let directory = baseURL.appendingPathComponent(demo ? "Demo" : "Account-" + (workspaceKey ?? "unconnected"), isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
         let store = try Database(path: directory.appendingPathComponent("drive.sqlite").path)
         database = store; isDemo = demo; syncVerified = false; serverResults = nil; selectedFile = nil
@@ -153,8 +177,12 @@ import DriveCore
     func toggleDemo() {
         guard !busy else { return }
         run {
-            try await self.openDatabase(demo: !self.isDemo)
-            if !self.isDemo { try await self.restoreConnection() }
+            if self.isDemo {
+                try await self.restoreConnection()
+                try await self.openDatabase(demo: false)
+            } else {
+                try await self.openDatabase(demo: true)
+            }
         }
     }
     func reload() async throws {
@@ -261,8 +289,9 @@ import DriveCore
                 guard let client = self.client else { throw MonitorError.invalid("App is not ready.") }
                 let root = try await client.file(id: "root")
                 let accountKey = digest(root.id)
-                if UserDefaults.standard.string(forKey: "accountCache") != accountKey {
-                    UserDefaults.standard.set(accountKey, forKey: "accountCache")
+                if self.workspaceKey != accountKey {
+                    try await self.workspaceIdentity.storeWorkspaceKey(accountKey)
+                    self.workspaceKey = accountKey
                     try await self.openDatabase(demo: false)
                 }
                 guard let database = self.database else { throw MonitorError.database("Account database did not open.") }
@@ -442,7 +471,9 @@ import DriveCore
                 guard let client = self.client else { throw MonitorError.invalid("Google client is unavailable.") }
                 let root = try await client.file(id: "root")
                 try Task.checkCancellation()
-                UserDefaults.standard.set(digest(root.id), forKey: "accountCache")
+                let accountKey = digest(root.id)
+                try await self.workspaceIdentity.storeWorkspaceKey(accountKey)
+                self.workspaceKey = accountKey
                 self.connected = true
                 self.managementGranted = await self.credentials.grantedScopes().contains("https://www.googleapis.com/auth/drive")
                 try await self.openDatabase(demo: false)

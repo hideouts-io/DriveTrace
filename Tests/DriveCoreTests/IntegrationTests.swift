@@ -724,6 +724,11 @@ func fixtureClient(_ tokens: FixtureTokens) -> GoogleClient {
     #expect(items.first { $0.name == "state" }?.value == "state-value")
     #expect(!url.absoluteString.contains(verifier))
     #expect(items.first { $0.name == "scope" }?.value?.contains("drive.metadata.readonly") == true)
+    let workspaceKey = digest("synthetic-root")
+    #expect(try validatedWorkspaceKey(workspaceKey) == workspaceKey)
+    for invalid in ["", "A" + String(repeating: "0", count: 63), String(repeating: "0", count: 63), String(repeating: "0", count: 65), String(repeating: "z", count: 64)] {
+        #expect(throws: MonitorError.self) { try validatedWorkspaceKey(invalid) }
+    }
 }
 @Test func loopbackRejectsWrongStateThenAcceptsValidCallback() async throws {
     let loopback = Loopback(state: "expected-state")

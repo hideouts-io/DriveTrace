@@ -76,15 +76,15 @@ private func waitForSyncRequests(_ count: Int) async throws {
     }
 }
 
-private func savedAccountCachePreference() throws -> String? {
-    guard let existing = UserDefaults.standard.object(forKey: "accountCache") else { return nil }
-    guard let value = existing as? String else { throw MonitorError.invalid("The accountCache preference is not a string; the synchronization test refused to modify it.") }
-    return value
+private actor SyncWorkspaceIdentityStore: WorkspaceIdentityStore {
+    private var value: String?
+    init(value: String?) { self.value = value }
+    func workspaceKey() -> String? { value }
+    func storeWorkspaceKey(_ value: String) { self.value = value }
 }
 
 extension GoogleIntegrationTests {
     @Test @MainActor func syncCancellationRetainsCommittedPagesAndSupportsContinuation() async throws {
-        let originalAccount = try savedAccountCachePreference()
         let root = DriveFile(id: "synthetic-sync-root", name: "Synthetic root", mimeType: "application/vnd.google-apps.folder")
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent("drivetrace-sync-cancellation-" + UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false, attributes: [.posixPermissions: 0o700])
@@ -93,16 +93,19 @@ extension GoogleIntegrationTests {
         var databaseOpen = true
         let configuration = URLSessionConfiguration.ephemeral; configuration.protocolClasses = [SyncFixtureProtocol.self]
         let session = URLSession(configuration: configuration)
-        let model = AppModel()
+        let credentials = Credentials()
+        let model = AppModel(
+            previewStore: PreviewStore(root: directory.appendingPathComponent("previews", isDirectory: true)),
+            credentials: credentials,
+            workspaceIdentity: SyncWorkspaceIdentityStore(value: digest(root.id)),
+            restoredWorkspaceKey: digest(root.id)
+        )
         model.client = GoogleClient(tokens: FixtureTokens(), session: session)
         model.database = database
         let previous = sample("previous", name: "Previous", size: nil)
         model.files = [previous]; model.results = [previous]
-        UserDefaults.standard.set(digest(root.id), forKey: "accountCache")
         defer {
             model.cancel()
-            if let originalAccount { UserDefaults.standard.set(originalAccount, forKey: "accountCache") }
-            else { UserDefaults.standard.removeObject(forKey: "accountCache") }
         }
         do {
             let earlierSync = "2026-10-01T00:00:00Z"
