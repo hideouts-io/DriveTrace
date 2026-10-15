@@ -75,7 +75,11 @@ private struct SetupGuideView: View {
                         Text("\(step.rawValue + 1). \(step.title)").font(.title2.bold()).accessibilityAddTraits(.isHeader)
                         stepContent
                         Divider()
-                        DisclosureGroup("Troubleshooting") { troubleshooting.padding(.top, 10) }.accessibilityIdentifier("setupTroubleshooting")
+                        DisclosureGroup {
+                            troubleshooting.padding(.top, 10)
+                        } label: {
+                            Text("Troubleshooting").accessibilityIdentifier("setupTroubleshooting")
+                        }
                         Text("Instructions checked against Google documentation on September 29, 2026. Cloud screens can change. Use the official links if a label differs.").font(.caption).foregroundStyle(.secondary)
                     }.frame(maxWidth: .infinity, alignment: .leading).padding(24).textSelection(.enabled)
                 }.id(step).accessibilityIdentifier("setupInstructions")
@@ -166,6 +170,7 @@ private struct SetupGuideView: View {
             instruction("Browser timeout / couldn’t connect to localhost", "Keep the app open during sign-in. Cancel and start a fresh attempt, completing it within three minutes. Check whether local security software blocks the app’s 127.0.0.1 callback; do not disable protections broadly.")
             instruction("429 / 5xx / partial results", "Temporary API/network failures receive bounded retries. If retries fail, check connectivity and project quotas, then refresh later. Read the specific coverage gaps before using results; unavailable Shared Drives or activity must remain labelled incomplete.")
             Link("Google native-app errors and remedies", destination: URL(string: "https://developers.google.com/identity/protocols/oauth2/native-app#errors")!)
+                .accessibilityIdentifier("setupTroubleshootingHelp")
         }.font(.callout)
     }
 }
