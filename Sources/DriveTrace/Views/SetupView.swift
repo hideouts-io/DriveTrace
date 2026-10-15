@@ -124,7 +124,9 @@ private struct SetupGuideView: View {
             Link("Google’s Desktop OAuth instructions", destination: URL(string: "https://developers.google.com/identity/protocols/oauth2/native-app")!)
         case .signIn:
             Picker("Connection access", selection: $model.requestedAccess) {
-                ForEach(DriveAccess.allCases) { access in Text(access.title).tag(access) }
+                ForEach(DriveAccess.allCases) { access in
+                    Text(access.title).tag(access).accessibilityIdentifier("connectionAccess_" + access.rawValue)
+                }
             }.pickerStyle(.radioGroup).disabled(model.busy).accessibilityIdentifier("connectionAccess")
             Text("File management requests broad Google Drive access, including permission to read, edit and delete files. This app exposes downloads, previews and confirmed Move to Trash; it has no permanent-delete action. Selecting this option does not grant access until you sign in again and approve it in Google.").font(.callout).foregroundStyle(.secondary)
             instruction("Continue in your browser", "Sign in with the account allowed by your project’s audience. Check the app identity and requested access before consenting. Return here after the browser callback. The app waits up to three minutes; cancel and retry if you run out of time.")
