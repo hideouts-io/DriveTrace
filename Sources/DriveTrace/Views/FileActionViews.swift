@@ -1,5 +1,5 @@
 import SwiftUI
-import QuickLookUI
+import class QuickLookUI.QLPreviewView
 import DriveCore
 
 struct FilePreviewView: View {
