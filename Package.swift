@@ -8,8 +8,17 @@ let package = Package(
                .executable(name: "DriveTrace", targets: ["DriveTrace"])],
     targets: [
         .systemLibrary(name: "CSQLite", pkgConfig: "sqlite3"),
+        .target(
+            name: "QuickLookBridge",
+            path: "Sources/QuickLookBridge",
+            publicHeadersPath: "include",
+            linkerSettings: [
+                .linkedFramework("AppKit"),
+                .linkedFramework("QuickLookUI")
+            ]
+        ),
         .target(name: "DriveCore", dependencies: ["CSQLite"]),
-        .executableTarget(name: "DriveTrace", dependencies: ["DriveCore"], resources: [.copy("Resources/drivetrace-icon.png")]),
+        .executableTarget(name: "DriveTrace", dependencies: ["DriveCore", "QuickLookBridge"], resources: [.copy("Resources/drivetrace-icon.png")]),
         .executableTarget(name: "DriveBenchmarks", dependencies: ["DriveCore"], path: "Benchmarks"),
         .testTarget(name: "DriveCoreTests", dependencies: ["DriveCore", "DriveTrace"])
     ]

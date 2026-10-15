@@ -1,6 +1,6 @@
 import SwiftUI
-import class QuickLookUI.QLPreviewView
 import DriveCore
+import QuickLookBridge
 
 struct FilePreviewView: View {
     let preview: FilePreview
@@ -18,14 +18,11 @@ struct FilePreviewView: View {
 /// SwiftUI owns the sheet and URL; AppKit only renders the Quick Look view.
 private struct NativeFilePreview: NSViewRepresentable {
     let url: URL
-    func makeNSView(context: Context) -> QLPreviewView {
-        let view = QLPreviewView(frame: .zero, style: .normal)!
-        view.autostarts = false
-        view.previewItem = url as NSURL
-        return view
+    func makeNSView(context: Context) -> DriveTracePreviewView {
+        DriveTracePreviewView(url: url)
     }
-    func updateNSView(_ view: QLPreviewView, context: Context) { view.previewItem = url as NSURL }
-    static func dismantleNSView(_ view: QLPreviewView, coordinator: ()) { view.previewItem = nil; view.close() }
+    func updateNSView(_ view: DriveTracePreviewView, context: Context) { view.update(url: url) }
+    static func dismantleNSView(_ view: DriveTracePreviewView, coordinator: ()) { view.closePreview() }
 }
 
 struct TrashConfirmationView: View {
