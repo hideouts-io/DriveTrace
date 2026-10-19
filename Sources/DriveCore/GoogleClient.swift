@@ -9,19 +9,31 @@ public struct ActivityPage: Decodable, Sendable { public let activities: [JSONVa
 public actor GoogleClient {
     let tokens: any TokenProvider
     let session: URLSession
+    let saveNewFile: @Sendable (URL, URL) throws -> Void
     let logger = Logger(subsystem: "local.driveexplorer", category: "GoogleAPI")
     public static let fileFields = "id,name,mimeType,parents,driveId,size,quotaBytesUsed,createdTime,modifiedTime,sharedWithMeTime,trashed,shared,owners(displayName,emailAddress,permissionId),webViewLink,md5Checksum,sha1Checksum,sha256Checksum,fileExtension,shortcutDetails,permissions(id,type,role,emailAddress,domain,allowFileDiscovery),ownedByMe,capabilities(canDownload,canTrash)"
-    public init(tokens: any TokenProvider, session: URLSession) { self.tokens = tokens; self.session = session }
+    public init(tokens: any TokenProvider, session: URLSession) {
+        self.init(tokens: tokens, session: session, saveNewFile: { try saveNewDownloadedFile($0, to: $1) })
+    }
+    /// Keep new-file filesystem commits separate from transport; the public client uses exclusive production saves.
+    init(tokens: any TokenProvider, session: URLSession, saveNewFile: @escaping @Sendable (URL, URL) throws -> Void) {
+        self.tokens = tokens; self.session = session; self.saveNewFile = saveNewFile
+    }
     func request<T: Decodable & Sendable>(_ path: String, query: [String: String], body: Data?, method: String, requiredScope: String?, type: T.Type) async throws -> T {
         var components = URLComponents(string: "https://www.googleapis.com/drive/v3/\(path)")!
         if path == "activity" { components = URLComponents(string: "https://driveactivity.googleapis.com/v2/activity:query")! }
         components.queryItems = query.sorted { $0.key < $1.key }.map { URLQueryItem(name: $0.key, value: $0.value) }
         guard let url = components.url else { throw MonitorError.invalid("Cannot form Google endpoint URL for \(path).") }
         var refresh = false
+        var refreshed = false
+        var retryWait: TimeInterval = 0
+        // Activity POST is a read query; an unconfirmed Trash PATCH must never be replayed.
+        let retryableRead = method == "GET" || (method == "POST" && path == "activity")
         for attempt in 0..<4 {
             try Task.checkCancellation()
             var request = URLRequest(url: url); request.timeoutInterval = 60
             let accessToken = try await tokens.accessToken(forceRefresh: refresh)
+            refresh = false
             if let requiredScope, !(await tokens.grantedScopes()).contains(requiredScope) {
                 throw MonitorError.authentication("This action requires file management access. Open Connect Google Drive → Sign in, choose View files and Move to Trash, and complete Google consent.")
             }
@@ -32,18 +44,17 @@ public actor GoogleClient {
             let data: Data; let response: URLResponse
             do { (data, response) = try await session.data(for: request) }
             catch let error as URLError {
-                guard attempt < 3, [.timedOut, .networkConnectionLost, .notConnectedToInternet, .cannotConnectToHost].contains(error.code) else { throw error }
-                logger.warning("Transient network failure; retry attempt=\(attempt + 1) code=\(error.errorCode)")
-                try await Task.sleep(for: .seconds(pow(2, Double(attempt)))); continue
+                guard retryableRead, attempt < 3, [.timedOut, .networkConnectionLost, .notConnectedToInternet, .cannotConnectToHost].contains(error.code) else { throw error }
+                retryWait = try await waitForGoogleRetry(retryAfter: nil, attempt: attempt, waited: retryWait, failure: error, logger: logger); continue
             }
             guard let http = response as? HTTPURLResponse else { throw MonitorError.invalid("Google \(path) returned a non-HTTP response.") }
             if (200..<300).contains(http.statusCode) { return try JSONDecoder().decode(T.self, from: data) }
-            let failure = MonitorError.http(http.statusCode, "\(path); query=\(query.filter { $0.key != "pageToken" }); response=\(String(decoding: data.prefix(4096), as: UTF8.self))")
-            guard attempt < 3, [401, 429, 500, 502, 503, 504].contains(http.statusCode) else { throw failure }
+            let failure = googleHTTPFailure(status: http.statusCode, responseData: data, operation: googleRequestOperation(path, method: method))
+            guard attempt < 3,
+                  (http.statusCode == 401 && !refreshed) || (retryableRead && [429, 500, 502, 503, 504].contains(http.statusCode)) else { throw failure }
             refresh = http.statusCode == 401
-            logger.warning("Google request retry status=\(http.statusCode) attempt=\(attempt + 1)")
-            let delay = min(Double(http.value(forHTTPHeaderField: "Retry-After") ?? "") ?? pow(2, Double(attempt)), 60)
-            try await Task.sleep(for: .seconds(delay))
+            if refresh { refreshed = true }
+            retryWait = try await waitForGoogleRetry(retryAfter: http.value(forHTTPHeaderField: "Retry-After"), attempt: attempt, waited: retryWait, failure: failure, logger: logger)
         }
         throw MonitorError.invalid("Google retry loop exited without a response.")
     }

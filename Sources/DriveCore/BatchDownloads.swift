@@ -7,6 +7,9 @@ public struct DownloadResult: Codable, Sendable, Identifiable {
     public let path: String
     public let outcome: DownloadOutcome
     public let message: String?
+    static func savedWithCleanupFailure(_ failure: SavedDownloadCleanupError, path: String, id: UUID) -> DownloadResult {
+        DownloadResult(id: id, path: path, outcome: .downloaded, message: failure.localizedDescription)
+    }
 }
 public struct BatchDownloadReport: Codable, Sendable {
     public let directory: URL
@@ -18,8 +21,22 @@ public struct BatchDownloadReport: Codable, Sendable {
     public var completed: Int { results.filter { $0.outcome == .downloaded }.count }
     public var failures: Int { results.filter { $0.outcome == .failed }.count + issues.count }
     public var remaining: Int { unattempted.count }
+    public var cleanupWarnings: Int { results.filter { $0.outcome == .downloaded && $0.message != nil }.count }
     public var summary: String {
-        "\(cancelled ? "Cancelled" : failures > 0 ? "Finished with gaps" : "Finished") · \(completed) files saved · \(failures) failed/skipped · \(remaining) not attempted"
+        "\(cancelled ? "Cancelled" : failures > 0 ? "Finished with gaps" : "Finished") · \(completed) files saved · \(failures) failed/skipped · \(remaining) not attempted" + (cleanupWarnings == 0 ? "" : " · \(cleanupWarnings) cleanup warnings")
+    }
+}
+
+/// Transfers have ended, but report persistence failed. Keep the outcomes available to the caller.
+public struct BatchDownloadReportSaveError: LocalizedError {
+    public let report: BatchDownloadReport
+    public let destination: URL
+    public let cause: any Error
+    public let cleanup: (any Error)?
+    public var errorDescription: String? {
+        "Download output remains in \(report.directory.path), but saving \(destination.lastPathComponent) failed at \(destination.path): \(cause.localizedDescription). "
+            + (cleanup.map { "Removing the incomplete report also failed: \($0.localizedDescription). Review that location before removing leftover data. " } ?? "")
+            + "Results are retained in this window. Choose Save Report Copy to select a new writable JSON location; existing files are never overwritten."
     }
 }
 
@@ -45,24 +62,37 @@ extension GoogleClient {
                 await progress(BatchProgress(current: path, discovered: plan.items.count, completed: results.count, failed: failures))
                 try Task.checkCancellation()
                 if item.file.isFolder { try createDownloadDirectory(destination) }
-                else { try await downloadNewFile(file: item.file, to: destination) }
+                else {
+                    try validateBatchDestination(destination.deletingLastPathComponent())
+                    try await downloadNewFile(file: item.file, to: destination)
+                }
                 results.append(DownloadResult(id: UUID(), path: path, outcome: item.file.isFolder ? .folderCreated : .downloaded, message: nil))
             } catch is CancellationError { cancelled = true; break }
             catch let error as URLError where error.code == .cancelled { cancelled = true; break }
+            catch let failure as DownloadFileCloseError where failure.cancelled {
+                cancelled = true
+                results.append(DownloadResult(id: UUID(), path: path, outcome: .failed, message: failure.localizedDescription))
+                break
+            }
+            catch let failure as FailedDownloadCleanupError where failure.cancelled {
+                cancelled = true
+                results.append(DownloadResult(id: UUID(), path: path, outcome: .failed, message: failure.localizedDescription))
+                break
+            }
+            catch let failure as SavedDownloadCleanupError { results.append(.savedWithCleanupFailure(failure, path: path, id: UUID())) }
             catch { failures += 1; results.append(DownloadResult(id: UUID(), path: path, outcome: .failed, message: error.localizedDescription)) }
         }
         let unattempted = plan.items.dropFirst(results.count).map { $0.components.joined(separator: "/") }
         let report = BatchDownloadReport(directory: directory, planned: plan.items.count, results: results, issues: plan.issues, unattempted: unattempted, cancelled: cancelled)
         let reportURL = directory.appendingPathComponent("download-report.json")
-        let encoder = JSONEncoder(); encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        do {
-            try encoder.encode(report).write(to: reportURL, options: .withoutOverwriting)
-            try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: reportURL.path)
-        } catch { throw MonitorError.invalid("\(report.summary). Files remain in \(directory.path), but saving the download report failed: \(error.localizedDescription)") }
+        _ = try saveBatchDownloadReport(report, to: reportURL)
         return report
     }
 }
 
 private func createDownloadDirectory(_ url: URL) throws {
-    guard mkdir(url.path, 0o700) == 0 else { throw MonitorError.invalid("Could not create download folder at \(url.path): \(String(cString: strerror(errno))). Existing folders are never merged or replaced.") }
+    guard mkdir(url.path, 0o700) == 0 else {
+        let code = errno
+        throw MonitorError.invalid("Could not create download folder at \(url.path): \(String(cString: strerror(code))) (errno \(code)). Choose a writable destination with available space, then retry. Existing folders are never merged or replaced.")
+    }
 }
