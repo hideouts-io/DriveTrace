@@ -142,10 +142,10 @@ No Google account, OAuth client, paid Apple Developer membership or third-party 
 
 ### 2. Get the current preview source
 
-The current preview is on `codex/download-transfer-validation` in [PR #2](https://github.com/hideouts-io/DriveTrace/pull/2), **not yet merged into `main`**. For this preview, clone that branch into a new directory:
+Clone the current development preview from `main` into a new directory. This builds the source tree; it does not download or publish a release:
 
 ```sh
-git clone --branch codex/download-transfer-validation --single-branch \
+git clone --branch main --single-branch \
   https://github.com/hideouts-io/DriveTrace.git
 cd DriveTrace
 ```
