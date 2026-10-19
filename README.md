@@ -124,6 +124,8 @@ Group known storage by type, direct parent, or Drive. Click a chart bar or categ
 
 ## Build and run
 
+See the [GitHub build guide](docs/BUILD.md) for local source checks, the native app packaging path, CI, CodeQL and the pull-request checklist.
+
 Use macOS 14 or later and a Swift 6 toolchain with the macOS SDK. Development was verified on Apple silicon with Swift 6.4 and the macOS 27 SDK; older OS/toolchain and Intel compatibility have not been run.
 
 ```sh
