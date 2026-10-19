@@ -62,7 +62,7 @@ jobs:
           xcrun clang -std=c17 -Wall -Wextra -Werror -x c -c Sources/CSQLite/shim.h -o "$RUNNER_TEMP/CSQLite.o"
           xcrun clang -fobjc-arc -fmodules -mmacosx-version-min=14.0 -Wall -Wextra -Werror -I Sources/QuickLookBridge/include -c Sources/QuickLookBridge/DriveTracePreviewView.m -o "$RUNNER_TEMP/QuickLookBridge.o"
       - name: Analyze without a security write token
-        uses: github/codeql-action/analyze@24c54180a607b1449ed407dd24f251e4e9147c8d # v4
+        uses: github/codeql-action/analyze@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4
         with:
           category: /language:${{ matrix.language }}
           output: ${{ runner.temp }}/codeql-results
