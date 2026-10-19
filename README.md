@@ -124,22 +124,83 @@ Group known storage by type, direct parent, or Drive. Click a chart bar or categ
 
 ## Build and run
 
-See the [GitHub build guide](docs/BUILD.md) for local source checks, the native app packaging path, CI, CodeQL and the pull-request checklist.
+### 1. Install and select Xcode
 
-Use macOS 14 or later and a Swift 6 toolchain with the macOS SDK. Development was verified on Apple silicon with Swift 6.4 and the macOS 27 SDK; older OS/toolchain and Intel compatibility have not been run.
+Build on a Mac with the full Xcode application installed. Open Xcode once to finish its setup and license prompts. The app targets macOS 14 or later; the build machine must also meet the selected Xcode version's requirements. Windows and Linux cannot build this native macOS app.
+
+GitHub CI uses **Xcode 26.6 / Swift 6.3.3**. Local tests and universal packaging also passed with **Xcode 27.1 / Swift 6.4** on Apple silicon. Intel and older-macOS app runtime remain unverified.
+
+Select your installed Xcode for the current Terminal session and check its versions. Adjust the application path if you installed a differently named copy:
 
 ```sh
-git clone https://github.com/hideouts-io/DriveTrace.git
-cd DriveTrace
-./script/test.sh
-./script/build_and_run.sh
+export DEVELOPER_DIR="/Applications/Xcode.app/Contents/Developer"
+xcodebuild -version
+swift --version
 ```
 
-The second command builds Release, packages the original blue Dock icon, creates and ad-hoc signs the native bundle, then launches it. `dist/DriveTrace.app` is a local symbolic link to the verified bundle in the build cache; `dist/DriveTrace.zip` is the portable archive. The Codex Run action uses the same script. The generated app and build intermediates go to `~/Library/Caches/DriveExplorerBuild` because this machine's Documents file provider attaches metadata that can invalidate strict signature checks on application and test bundles. Only generated application-bundle extended attributes are cleared before signing.
+No Google account, OAuth client, paid Apple Developer membership or third-party package installation is needed to build and test the local preview. SQLite and the app's other dependencies are supplied by macOS/Xcode.
 
-The `.app` is for local use. It is not notarized or signed with a Developer ID; do not present it as a distributable release. The build does not install the app or modify Google Drive.
+### 2. Get the current preview source
 
-Choose **Explore demo** to use synthetic data without credentials or startup Keychain access. In a demo item’s inspector, **Try a synthetic preview sample** opens clearly labelled local sample text in Quick Look. Demo is a separate SQLite workspace; its files do not open in Google Drive. The app remembers demo mode, saved searches, watch rules, notification preference and appearance.
+The current preview is on `codex/download-transfer-validation` in [PR #2](https://github.com/hideouts-io/DriveTrace/pull/2), **not yet merged into `main`**. For this preview, clone that branch into a new directory:
+
+```sh
+git clone --branch codex/download-transfer-validation --single-branch \
+  https://github.com/hideouts-io/DriveTrace.git
+cd DriveTrace
+```
+
+If you already have a checkout, preserve any local changes before switching branches. Run the remaining commands from the repository root containing `Package.swift`.
+
+### 3. Test and package the app
+
+Quit DriveTrace first. Run these commands one at a time and stop if either fails:
+
+```sh
+./script/test.sh
+./script/build.sh
+```
+
+`test.sh` runs the Swift Testing suite, including local SQLite, filesystem and loopback integrations with synthetic Google responses. `build.sh` builds **arm64 and x86_64 Release slices**, packages the icon/resources/license, ad-hoc signs the app, and verifies both the generated bundle and a fresh extraction of the ZIP. It does not launch the app, install it, sign in to Google or notarize it.
+
+| Output | Location |
+| --- | --- |
+| Built app | `~/Library/Caches/DriveExplorerBuild/DriveTrace.app` |
+| Convenience link to the app | `dist/DriveTrace.app` |
+| Local preview archive | `dist/DriveTrace.zip` |
+| Archive SHA-256 checksum | `dist/SHA256SUMS` |
+
+The local build cache keeps generated bundles outside file-provider-synced source folders. Keep SwiftPM commands serialized when using this shared cache; later builds replace its generated app and the files in `dist`.
+
+To repeat the bundle and checksum checks:
+
+```sh
+./script/verify_bundle.sh "$HOME/Library/Caches/DriveExplorerBuild/DriveTrace.app"
+(cd dist && shasum -a 256 -c SHA256SUMS)
+```
+
+### 4. Open the app
+
+After a successful build:
+
+```sh
+open "$HOME/Library/Caches/DriveExplorerBuild/DriveTrace.app"
+```
+
+For later rebuilds, `./script/build_and_run.sh` combines packaging and launch. **It terminates matching running DriveTrace/legacy DriveExplorer processes at the project's output paths before rebuilding**; finish or cancel active work and quit the app yourself first. Launch the `.app` bundle, not the raw Swift executable, so its identity and resources are available.
+
+Choose **Explore demo** to use synthetic data without Google credentials or sign-in. In a demo item's inspector, **Try a synthetic preview sample** opens clearly labelled local sample text in Quick Look. Demo uses a separate SQLite workspace; its files do not open in Google Drive. The app remembers demo mode and other preferences. An existing live setup can restore its saved connection when launched; the build/test commands themselves do not connect to Google.
+
+For live access, follow [Connect your Google account](#connect-your-google-account). You must supply your own **Desktop OAuth client**; none is bundled.
+
+> [!WARNING]
+> This is a local ad-hoc preview, **not Developer ID signed or notarized**. A passing signature check or checksum does not establish Gatekeeper acceptance or distribution readiness. Do not disable macOS security controls to run a downloaded build. See [signed distribution](#preparing-a-signed-distribution--not-verified-yet) before sharing a binary.
+
+### GitHub-hosted build checks
+
+Open the pull request's **Checks** tab to inspect **Swift build and tests** and **CodeQL source analysis** for its current commit. CI builds the native arm64 app and runs the tests on a macOS runner. These workflows **do not produce a downloadable app release or perform Google sign-in**; use the local packaging steps above for an app bundle.
+
+The [contributor build guide](docs/BUILD.md) covers source-only commands, workflow details and the review checklist.
 
 ### Preparing a signed distribution — not verified yet
 

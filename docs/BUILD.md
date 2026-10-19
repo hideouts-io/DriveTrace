@@ -2,50 +2,25 @@
 
 This is the repository build guide for GitHub contributors. DriveTrace is a native Swift Package Manager macOS application with a system SQLite target. The supported source-validation path is separate from local app packaging and from Developer ID distribution.
 
-## Requirements
-
-- macOS 14 or later for local development.
-- Swift 6 and a compatible macOS SDK locally.
-- The repository-pinned GitHub checks use `macos-26` with Xcode 26.6 and Swift 6.3.3.
-- No Google account, OAuth client JSON, token, Drive cache, or private export is required for the source build and synthetic/integration tests.
+For prerequisites, selecting the preview branch, running tests, packaging, output paths and launching the app, follow the [README build-and-run instructions](../README.md#build-and-run). This guide covers additional contributor checks and GitHub workflows.
 
 ## Local source checks
 
-Run these commands from the repository root with the app closed:
+For a source-only build without packaging or launch, run these commands from the repository root. They use a local scratch path and do not require GitHub's `RUNNER_TEMP` environment variable:
 
 ```sh
-./script/test.sh
-swift build --product DriveTrace --arch arm64 --scratch-path "$RUNNER_TEMP/drivetrace-build" --jobs 2
+swift build --product DriveTrace \
+  --scratch-path "$HOME/Library/Caches/DriveTrace-development" --jobs 2
 xcrun clang -std=c17 -Wall -Wextra -Werror \
-  -x c -c Sources/CSQLite/shim.h -o "$TMPDIR/DriveTrace-CSQLite.o"
+  -x c -c Sources/CSQLite/shim.h \
+  -o "$HOME/Library/Caches/DriveTrace-development/CSQLite.o"
 ```
 
-If `RUNNER_TEMP` is not defined in a local shell, use a task-owned scratch directory under `~/Library/Caches`, for example:
-
-```sh
-swift build --product DriveTrace --arch arm64 \
-  --scratch-path "$HOME/Library/Caches/DriveTrace-development/canonical-build" --jobs 2
-```
-
-The repository test script owns the supported Swift Testing invocation. Keep concurrent SwiftPM commands serialized when they share a scratch directory.
-
-## Build and open the native app locally
-
-To package and open the current preview:
-
-```sh
-./script/build_and_run.sh
-```
-
-This stops the existing task-owned DriveTrace process, builds arm64 and x86_64 Release slices, stages `DriveTrace.app` under `~/Library/Caches/DriveExplorerBuild`, ad-hoc signs and verifies the bundle, creates the local ZIP and opens the app. The generated `dist/DriveTrace.app` is a symlink to the verified cached bundle.
-
-Use the build script as the entry point for local packaging. Do not launch the SwiftUI executable directly; the app needs its bundle identity, resources and native application lifecycle.
-
-The local preview is not a distribution release. It is not Developer ID signed or notarized, and it does not install the app or modify Google Drive. Keep generated bundles, archives, caches, credentials, real Drive data and private reports outside Git.
+The source-only command builds for the host architecture; `script/build.sh` owns universal packaging. Keep concurrent SwiftPM commands serialized when they share a scratch directory. Keep generated bundles, archives, caches, credentials, real Drive data and private reports outside Git.
 
 ## GitHub Actions
 
-The workflows are in [`.github/workflows/`](../.github/workflows/) and run automatically for pull requests and pushes to `main`. They can also be started with **Actions → [CI](../actions/workflows/ci.yml) → Run workflow** or **Actions → [CodeQL](../actions/workflows/codeql.yml) → Run workflow** when GitHub offers the manual trigger for the repository.
+The workflows are in [`.github/workflows/`](../.github/workflows/) and run automatically for pull requests and pushes to `main`. Use the pull request's **Checks** tab for the current preview. They can also be started with **Actions → [CI](https://github.com/hideouts-io/DriveTrace/actions/workflows/ci.yml) → Run workflow** or **Actions → [CodeQL](https://github.com/hideouts-io/DriveTrace/actions/workflows/codeql.yml) → Run workflow** when GitHub offers the manual trigger for the repository. These workflows validate source; they do not upload a distributable app or publish a release.
 
 ### CI — Swift build and tests
 
@@ -64,7 +39,7 @@ The required check is named **Swift build and tests**. A passing check validates
 [`codeql.yml`](../.github/workflows/codeql.yml) analyzes three configured languages:
 
 - Swift, with a manual native build and strict extraction-diagnostic rejection.
-- C/C++, including the SQLite and Quick Look interoperability boundaries.
+- C/C++, covering the SQLite header. The Objective-C Quick Look bridge is also compiled with strict warnings, but is not represented in C/C++ CodeQL extraction; compilation is not analysis coverage.
 - GitHub Actions workflow files.
 
 The workflow retains bounded Swift extraction context on failure and requires successful analysis and SARIF upload for every configured language. A successful setup or an older successful run is not evidence for a different commit; inspect the checks and extraction diagnostics on the current pull-request head.
@@ -85,6 +60,4 @@ Before requesting review:
 
 GitHub Actions do not authorize merging a pull request, creating a release, publishing an artifact, deploying the application, changing repository settings or broadening credentials. Those remain separate project decisions.
 
-## Google sign-in after a local build
-
-Open **DriveTrace → Settings → Connect Google Drive…**. Follow the five-step guide, keep the Desktop OAuth JSON local, and use the default browser only after the intended project and requested scopes are confirmed. The source build and GitHub Actions do not perform Google sign-in or validate live Drive behavior.
+For Google sign-in after a local build, follow the [README connection guide](../README.md#connect-your-google-account). Source builds and GitHub Actions do not validate live Drive behavior.
