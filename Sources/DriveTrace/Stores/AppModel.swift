@@ -39,7 +39,8 @@ import DriveCore
     var order: FileOrder = .name
     var ascending = true
     var results: [DriveFile] = []
-    var resultGeneration = 0
+    var filePage = 0 { didSet { if filePage != oldValue { selectedFiles = [] } } }
+    private var fileResultContext: FileResultContext?
     var serverResults: [DriveFile]?
     var serverCoverage = ""
     var busy = false
@@ -234,9 +235,13 @@ import DriveCore
     }
     func updateResults() {
         searchTask?.cancel()
-        if filterValidationError != nil { results = []; resultGeneration += 1; searching = false; return }
-        searching = true
         let remote = serverResults != nil
+        let context = FileResultContext(queryGeneration: googleSearchGeneration, order: order, ascending: ascending, usesGoogleResults: remote)
+        if fileResultContext != context {
+            filePage = 0; selectedFiles = []; fileResultContext = context
+        }
+        if filterValidationError != nil { publishFileResults([]); return }
+        searching = true
         let all = serverResults ?? files, filter = filter, order = order, ascending = ascending, facts = facts, scope = selection, root = rootID
         searchTask = Task {
             let task = Task.detached(priority: .userInitiated) { () throws -> [DriveFile] in
@@ -262,13 +267,21 @@ import DriveCore
             }
             do {
                 let output = try await withTaskCancellationHandler { try await task.value } onCancel: { task.cancel() }
-                guard !Task.isCancelled else { return }; results = output; resultGeneration += 1; searching = false
+                guard !Task.isCancelled else { return }; publishFileResults(output)
             } catch is CancellationError {
                 // A newer search owns the spinner and result set.
             } catch {
-                guard !Task.isCancelled else { return }; self.error = error.localizedDescription; searching = false; results = []
+                guard !Task.isCancelled else { return }; self.error = error.localizedDescription; publishFileResults([])
             }
         }
+    }
+    /// Reconcile current IDs, not an earlier selection snapshot, against the refreshed visible page.
+    private func publishFileResults(_ output: [DriveFile]) {
+        results = output
+        filePage = min(filePage, max(0, (output.count - 1) / filePageSize))
+        let visibleIDs = Set(output[filePageRange(total: output.count, page: filePage)].map(\.id))
+        selectedFiles = selectedFiles.intersection(visibleIDs)
+        searching = false
     }
     func run(_ body: @escaping @MainActor () async throws -> Void) {
         guard !busy else { return }; busy = true; error = nil; operationNotice = nil
