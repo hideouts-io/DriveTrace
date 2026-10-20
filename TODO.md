@@ -8,15 +8,15 @@ Keep the original blue branding, SwiftUI design, Keychain storage and existing p
 
 The report pathname-replacement implementation `9295c9b` passes local and native Xcode 26.6 CI with 156 tests in seven suites plus production build/strict CSQLite. Its Swift CodeQL result **failed** one app extraction ambiguity despite all 51 production Swift sources being represented; inclusion does not establish complete imported-module semantics. The evidence-only checkpoints `cf0de94b`, `2081e10` and `093e1e8` also pass native CI with 156 tests in seven suites (37.433, 40.577 and 37.883 seconds respectively); all strict Swift CodeQL gates fail the same extraction ambiguity. The access-option identifier checkpoint `d60eecd` passes native CI with 156 tests in seven suites (40.135 seconds) and strict CSQLite; its strict Swift CodeQL gate fails the same ambiguity. The latest SARIF also retains an existing unpublished cache-digest scanner observation, which remains untriaged. The current troubleshooting-identifier correction needs separate hosted checks after publication. Preserve the gate and [hosted evidence](docs/VERIFICATION.md#hosted-validation-checkpoint). This does not complete the product plan or authorize integration.
 
-## Critical deferred bug
+## Current selection repair
 
-### P0 — Modifier-click selection: BROKEN AND DEFERRED
+### P0 — Modifier-click selection: refresh loss repaired, live acceptance open
 
-**Status: partial — user-confirmed failure, explicitly deferred. Effort: M after reproduction.**
+**Status: partial — refresh-loss reproduction, repair, automated checks and native demo gestures pass; original live-account acceptance remains open. Effort: S for remaining scoped checks.**
 
 - **Problem / benefit:** Shift-click and Command-click failed the user's native check. Reliable selection is essential before batch downloads or Trash review; keyboard Shift+Down success does not prove either mouse gesture works.
-- **Implementation:** Follow the existing [reproduction and return checklist](docs/VERIFICATION.md#open-bug--modifier-click-selection). Inspect `Views/ExplorerView.swift` (`FileTable`), `Stores/AppModel.swift` selection, and batch-action stores. Reproduce first; do not presume cell gestures or polling are the cause. Preserve selection for right-click actions and background refresh.
-- **Dependencies / permissions / blocker:** No new Google permission. The user's explicit deferral is active; do not repair or silently count this as complete during other work.
+- **Implementation:** `Stores/AppModel.swift` owns page state and reconciles current selection against visible result IDs. Same-context refreshes retain page/selection; query, scope, sort, source and workspace changes clear selection. Keep native Table gestures and the existing polling deferral. See the [reproduction and remaining checks](docs/VERIFICATION.md#open-bug--modifier-click-selection).
+- **Dependencies / permissions / blocker:** The user resumed this repair on 2026-10-19 and authorized scoped read-only Google smoke testing. No new dependency or Google scope is added. Account-mode startup is waiting with SecurityAgent active; the user must check for a macOS credential prompt. No password or Keychain-access change is automated.
 - **Acceptance / validation:** Native range selection, nonadjacent addition/removal, right-click on selected/unselected rows, polling preservation, and exact reviewed batch IDs. Use disposable metadata and cancel Trash review; this plan does not authorize a new mutation.
 
 ## Current bounded milestones

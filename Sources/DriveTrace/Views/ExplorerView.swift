@@ -93,8 +93,7 @@ struct ExplorerView: View {
 }
 struct FileTable: View {
     @Bindable var model: AppModel
-    @State private var page = 0
-    private var range: Range<Int> { filePageRange(total: model.results.count, page: page) }
+    private var range: Range<Int> { filePageRange(total: model.results.count, page: model.filePage) }
     @State private var headerSort = [KeyPathComparator(\DriveFile.name)]
     var body: some View {
         VStack(spacing: 0) {
@@ -146,12 +145,10 @@ struct FileTable: View {
             Text(model.results.isEmpty ? "No results" : "\(range.lowerBound + 1)–\(range.upperBound) of \(model.results.count.formatted())").monospacedDigit()
             Text("\(model.selectedFiles.count) selected").accessibilityIdentifier("fileSelectionCount").foregroundStyle(.secondary)
             Spacer()
-            Button("Previous") { page -= 1 }.disabled(page == 0 || model.searching).accessibilityIdentifier("previousFilePage")
-            Button("Next") { page += 1 }.disabled(range.upperBound >= model.results.count || model.searching).accessibilityIdentifier("nextFilePage")
+            Button("Previous") { model.filePage -= 1 }.disabled(model.filePage == 0 || model.searching).accessibilityIdentifier("previousFilePage")
+            Button("Next") { model.filePage += 1 }.disabled(range.upperBound >= model.results.count || model.searching).accessibilityIdentifier("nextFilePage")
         }.font(.caption).padding(10).accessibilityElement(children: .contain).accessibilityIdentifier("filePagination")
         }
-        .onChange(of: model.resultGeneration) { _, _ in page = 0; model.selectedFiles = [] }
-        .onChange(of: page) { _, _ in model.selectedFiles = [] }
     }
     private func updateHeaderSort() {
         let direction: SortOrder = model.ascending ? .forward : .reverse
