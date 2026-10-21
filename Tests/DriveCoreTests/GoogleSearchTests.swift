@@ -121,6 +121,27 @@ private func queryValues(_ request: URLRequest) throws -> [String: String] {
         }
         #expect(try queryValues(requests[1])["pageToken"] == "page2")
     }
+    @Test @MainActor func googleOnlyRowsHaveAnExplicitPrimaryAction() async throws {
+        await GoogleSearchProtocol.responses.prepare([
+            GoogleSearchResponse(status: 200, body: #"{"files":[{"id":"remote-file","name":"Remote file","mimeType":"text/plain","webViewLink":"https://example.test/file"},{"id":"remote-folder","name":"Remote folder","mimeType":"application/vnd.google-apps.folder","webViewLink":"https://example.test/folder"}]}"#)
+        ])
+        let model = searchModel([]); defer { model.cancel() }
+        model.queryGoogle(); try await waitForSearch(model)
+        #expect(model.index.isEmpty)
+        #expect(model.results.map(\.id) == ["remote-file", "remote-folder"])
+        #expect(model.results[1].isFolder)
+
+        model.activateResult("remote-file")
+        #expect(model.error == "Google returned an unsupported web link. Inspect the file metadata before opening it.")
+        model.error = nil
+        model.activateResult("remote-folder")
+        #expect(model.error == "Google returned an unsupported web link. Inspect the file metadata before opening it.")
+        #expect(model.selection == "all")
+        #expect(model.serverResults?.count == 2)
+        model.error = nil
+        model.activateResult("missing")
+        #expect(model.error == "The selected result is no longer visible. Refresh the results and try again.")
+    }
     @Test @MainActor func changingAndRestoringFilterCancelsObsoleteSearch() async throws {
         await GoogleSearchProtocol.responses.prepare([GoogleSearchResponse(status: 200, body: #"{"files":[{"id":"remote","name":"Remote","mimeType":"text/plain"}]}"#)])
         await GoogleSearchProtocol.responses.holdResponse(1)
