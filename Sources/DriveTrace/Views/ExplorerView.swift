@@ -128,7 +128,7 @@ struct FileTable: View {
             if ids.count > 1 {
                 Button("Move Selected to Trash…", role: .destructive) { model.prepareTrashSelection(ids) }.disabled(model.busy || model.isDemo || !model.managementGranted).accessibilityIdentifier("trashContextSelection")
             }
-            if ids.count == 1, let id = ids.first, let file = model.index[id] ?? model.serverResults?.first(where: { $0.id == id }) {
+            if ids.count == 1, let id = ids.first, let file = model.results.first(where: { $0.id == id }) {
                 Button("Open in Google Drive") { model.open(file) }
                 if !file.isFolder && file.shortcutDetails == nil {
                     Button("Download…") { model.downloadFile(file) }.disabled(model.busy || model.isDemo || !model.managementGranted).accessibilityIdentifier("downloadContextFile")
@@ -136,10 +136,13 @@ struct FileTable: View {
                 }
                 Button("Move to Trash…", role: .destructive) { model.prepareTrash(file) }.disabled(model.busy || model.isDemo || !model.managementGranted || file.trashed == true).accessibilityIdentifier("trashContextFile")
                 Button("Show activity") { model.activityTarget = file.id; model.navigate("activity") }
-                if file.isFolder { Button("Browse folder") { model.navigate("folder:" + id) }; Button("Watch folder") { model.watch(file) } }
+                if file.isFolder {
+                    if model.index[id] != nil { Button("Browse folder") { model.navigate("folder:" + id) } }
+                    Button("Watch folder") { model.watch(file) }
+                }
                 if let shortcut = file.shortcutDetails { Button("Inspect shortcut target") { model.selectedFile = shortcut.targetId; model.showInspector = true } }
             }
-        } primaryAction: { ids in if ids.count == 1, let id = ids.first, let file = model.index[id] { if file.isFolder { model.navigate("folder:" + id) } else { model.open(file) } } }
+        } primaryAction: { ids in if ids.count == 1, let id = ids.first { model.activateResult(id) } }
         .overlay { if model.results.isEmpty && !model.searching && model.filterValidationError == nil { ContentUnavailableView("No matching files", systemImage: "doc.text.magnifyingglass", description: Text("Adjust the filters or refresh your Drive index.")) } }
         Divider()
         HStack {

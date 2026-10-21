@@ -496,6 +496,14 @@ import DriveCore
         guard panel.runModal() == .OK, let url = panel.url else { return }
         run { let data = try self.selection == "activity" ? exportEvents(self.filteredEvents, format: format) : exportFiles(self.results, format: format); try data.write(to: url, options: .atomic) }
     }
+    func activateResult(_ id: String) {
+        guard let file = results.first(where: { $0.id == id }) else {
+            error = "The selected result is no longer visible. Refresh the results and try again."
+            return
+        }
+        if file.isFolder && index[id] != nil { navigate("folder:" + id) }
+        else { open(file) }
+    }
     func open(_ file: DriveFile) {
         if isDemo { error = "Demo files are synthetic and cannot be opened in Google Drive."; return }
         if let link = file.webViewLink {
