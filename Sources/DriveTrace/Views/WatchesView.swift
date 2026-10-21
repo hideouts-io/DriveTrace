@@ -5,14 +5,14 @@ struct WatchesView: View {
     @Bindable var model: AppModel
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
-            Text("Folder watches").font(.largeTitle.bold())
+            Text("Folder watches").font(.title2.bold())
             Text("Watch a folder from its context menu or its browse view. Rules include indexed descendants and recorded move parents.").foregroundStyle(.secondary)
             if model.watches.isEmpty { ContentUnavailableView("No watched folders", systemImage: "bell.badge", description: Text("Choose a folder in the sidebar, then select Watch folder.")) }
             else {
                 List {
                     ForEach(model.watches) { rule in
                         VStack(alignment: .leading, spacing: 12) {
-                            HStack { Label(rule.name, systemImage: "folder").font(.headline); Spacer(); Toggle("Enabled", isOn: Binding(get: { rule.enabled }, set: { enabled in model.saveWatches(model.watches.map { var value = $0; if value.id == rule.id { value.enabled = enabled }; return value }) })).toggleStyle(.switch).accessibilityLabel("Enable watch for " + rule.name).accessibilityIdentifier("watchEnabled-" + rule.id); Button(role: .destructive) { model.saveWatches(model.watches.filter { $0.id != rule.id }) } label: { Image(systemName: "trash") }.accessibilityLabel("Remove watch for " + rule.name).accessibilityIdentifier("removeWatch-" + rule.id) }
+                            HStack { Label(rule.name, systemImage: "folder").font(.headline); Spacer(); Toggle("Enabled", isOn: Binding(get: { rule.enabled }, set: { enabled in model.saveWatches(model.watches.map { var value = $0; if value.id == rule.id { value.enabled = enabled }; return value }) })).toggleStyle(.switch).accessibilityLabel("Enable watch for " + rule.name).accessibilityIdentifier("watchEnabled-" + rule.id); Button(role: .destructive) { model.saveWatches(model.watches.filter { $0.id != rule.id }) } label: { Image(systemName: "trash") }.driveGlassAction().controlSize(.small).accessibilityLabel("Remove watch for " + rule.name).accessibilityIdentifier("removeWatch-" + rule.id) }
                             HStack {
                                 Picker("Actions", selection: Binding(get: { rule.actions.first ?? "" }, set: { action in model.saveWatches(model.watches.map { var value = $0; if value.id == rule.id { value.actions = action.isEmpty ? [] : [action] }; return value }) })) {
                                     Text("All actions").tag(""); ForEach(["UPLOADED", "MOVED", "MODIFIED", "PERMISSION", "SHARED", "TRASHED"], id: \.self) { Text($0.capitalized).tag($0) }

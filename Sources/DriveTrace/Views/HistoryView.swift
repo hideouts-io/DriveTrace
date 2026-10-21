@@ -27,13 +27,13 @@ struct HistoryView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Observed history").font(.largeTitle.bold())
+                Text("Observed history").font(.title2.bold())
                 Text("Browse the last recorded metadata at or before a local observation cutoff. Removed or inaccessible items can remain here; this is not proof of historical access or continuous coverage.").foregroundStyle(.secondary)
                 HStack {
                     TextField("Observation cutoff · RFC3339", text: $cutoff).textFieldStyle(.roundedBorder).accessibilityIdentifier("historyCutoff")
                         .onSubmit { request = UUID() }
-                    Button("Load history") { request = UUID() }.accessibilityIdentifier("loadHistory")
-                    Button("Now") { cutoff = timestamp(Date()); request = UUID() }.accessibilityIdentifier("historyNow")
+                    Button("Load history") { request = UUID() }.drivePrimaryAction().accessibilityIdentifier("loadHistory")
+                    Button("Now") { cutoff = timestamp(Date()); request = UUID() }.driveGlassAction().accessibilityIdentifier("historyNow")
                     if loading { ProgressView().controlSize(.small) }
                 }
                 if let failure { Text(failure).foregroundStyle(.red).textSelection(.enabled).accessibilityIdentifier("historyError") }
@@ -41,7 +41,7 @@ struct HistoryView: View {
                     Text("Loaded cutoff: \(loadedCutoff) · \(observations.count) observed items · current metadata is not substituted").font(.caption).foregroundStyle(.secondary).accessibilityIdentifier("historyCoverage")
                 }
                 HStack {
-                    Button("All observed items") { folder = nil; selected = nil; query = "" }.accessibilityIdentifier("historyAll")
+                    Button("All observed items") { folder = nil; selected = nil; query = "" }.driveGlassAction().accessibilityIdentifier("historyAll")
                     if let folder {
                         BreadcrumbView(components: folderTrail(folder, index: index, roots: [model.rootID: "My Drive"]), current: folder, navigate: browse)
                     }
@@ -72,10 +72,10 @@ struct HistoryView: View {
                             Text("Last observed: " + displayDate(row.observedAt)).font(.caption).foregroundStyle(.secondary)
                             Text(folderTrail(row.id, index: index, roots: [model.rootID: "My Drive"]).map(\.label).joined(separator: " / ")).textSelection(.enabled)
                             Text("Current existence and accessibility are unknown. Ancestor names come only from observations at this cutoff; different items may have been observed at different times.").font(.caption).foregroundStyle(.secondary)
-                            if row.file.isFolder { Button("Browse observed folder") { browse(row.id) }.accessibilityIdentifier("browseHistoryFolder") }
+                            if row.file.isFolder { Button("Browse observed folder") { browse(row.id) }.driveGlassAction().accessibilityIdentifier("browseHistoryFolder") }
                             Button("Inspect observation") {
                                 do { raw = EvidenceText(text: try encoded(row)) } catch { failure = error.localizedDescription }
-                            }.accessibilityIdentifier("inspectHistoryObservation")
+                            }.driveGlassAction().accessibilityIdentifier("inspectHistoryObservation")
                         }.padding(22)
                     }.frame(minWidth: 240, idealWidth: 280, maxWidth: 340)
                 }

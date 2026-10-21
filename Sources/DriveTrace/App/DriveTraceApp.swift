@@ -45,6 +45,9 @@ import AppKit
             SetupView(model: model)
                 .preferredColorScheme(appearance == "dark" ? .dark : appearance == "light" ? .light : nil)
         }.defaultSize(width: 880, height: 740)
-        Settings { SettingsView(model: model).frame(width: 680, height: 720) }
+        Settings {
+            SettingsView(model: model).frame(width: 680, height: 720)
+                .preferredColorScheme(appearance == "dark" ? .dark : appearance == "light" ? .light : nil)
+        }
     }
 }

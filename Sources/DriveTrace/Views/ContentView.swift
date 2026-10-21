@@ -15,8 +15,8 @@ struct ContentView: View {
                         Text("Demo workspace").fontWeight(.semibold)
                         Text("Synthetic files and activity • no Google account used").foregroundStyle(.secondary)
                         Spacer()
-                        Button("Leave demo", action: model.toggleDemo).buttonStyle(.link).disabled(model.busy).accessibilityIdentifier("leaveDemo")
-                    }.font(.caption).padding(.horizontal, 22).padding(.vertical, 9).background(.orange.opacity(0.08))
+                        Button("Leave demo", action: model.toggleDemo).driveGlassAction().controlSize(.small).disabled(model.busy).accessibilityIdentifier("leaveDemo")
+                    }.font(.caption).padding(.horizontal, 20).padding(.vertical, 10)
                     Divider()
                 }
                 if let error = model.error {
@@ -24,7 +24,7 @@ struct ContentView: View {
                         Image(systemName: "exclamationmark.triangle").foregroundStyle(.red)
                         ScrollView { Text(error).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading) }
                             .frame(maxHeight: 120).accessibilityIdentifier("explorerActionError")
-                        Button("Dismiss") { model.error = nil }.accessibilityIdentifier("dismissExplorerError")
+                        Button("Dismiss") { model.error = nil }.driveGlassAction().accessibilityIdentifier("dismissExplorerError")
                     }.font(.callout).padding(16)
                     Divider()
                 }
@@ -44,22 +44,28 @@ struct ContentView: View {
                     Circle().fill(model.isDemo ? .orange : model.gaps.isEmpty ? .green : .orange).frame(width: 6, height: 6)
                     Text(model.busy ? model.progress : model.operationNotice ?? (model.isDemo ? "Demo data · local SQLite" : model.lastSync.map { "Last complete poll \(displayDate($0))" } ?? "Index not yet synchronized"))
                     Spacer()
-                    if model.busy { ProgressView().controlSize(.small); Button("Cancel", action: model.cancel).accessibilityIdentifier("cancelOperation") }
+                    if model.busy { ProgressView().controlSize(.small); Button("Cancel", action: model.cancel).driveGlassAction().controlSize(.small).accessibilityIdentifier("cancelOperation") }
                     Text(model.autoRefresh ? "Polling every 60 seconds" : "Manual refresh").foregroundStyle(.secondary)
                 }.font(.caption).padding(.horizontal, 16).padding(.vertical, 8)
             }
             .navigationTitle(model.title)
             .toolbar {
                 ToolbarItemGroup {
+                    Button(action: model.sync) { Label("Refresh", systemImage: "arrow.clockwise") }.disabled(model.busy || (!model.connected && !model.isDemo)).accessibilityIdentifier("refreshDrive")
+                    Button { model.showFilters.toggle() } label: { Label("Filters", systemImage: "line.3.horizontal.decrease.circle") }.accessibilityIdentifier("showFilters")
+                }
+                if #available(macOS 26, *) { ToolbarSpacer(.fixed, placement: .automatic) }
+                ToolbarItemGroup {
                     Button { model.downloadSelection(model.selectedFiles) } label: { Label("Download Selected…", systemImage: "arrow.down.to.line") }
                         .disabled(model.selectedFiles.isEmpty || model.busy || model.searching || model.isDemo || !model.managementGranted)
                         .accessibilityIdentifier("downloadSelectedItems")
-                    Button { model.prepareTrashSelection(model.selectedFiles) } label: { Label("Move Selected to Trash…", systemImage: "trash") }
+                    Button(role: .destructive) { model.prepareTrashSelection(model.selectedFiles) } label: { Label("Move Selected to Trash…", systemImage: "trash") }
                         .disabled(model.selectedFiles.isEmpty || model.busy || model.searching || model.isDemo || !model.managementGranted)
                         .accessibilityIdentifier("trashSelectedItems")
-                    Button(action: model.sync) { Label("Refresh", systemImage: "arrow.clockwise") }.disabled(model.busy || (!model.connected && !model.isDemo)).accessibilityIdentifier("refreshDrive")
-                    Button { model.showFilters.toggle() } label: { Label("Filters", systemImage: "line.3.horizontal.decrease.circle") }.accessibilityIdentifier("showFilters")
                     Menu { ForEach(ExportFormat.allCases, id: \.self) { format in Button(format.rawValue.uppercased()) { model.export(format) } } } label: { Label("Export", systemImage: "square.and.arrow.up") }.disabled(model.searching || model.selection == "history" || (model.selection == "activity" ? model.filteredEvents.isEmpty : model.results.isEmpty)).accessibilityIdentifier("exportFiles")
+                }
+                if #available(macOS 26, *) { ToolbarSpacer(.fixed, placement: .automatic) }
+                ToolbarItem {
                     Button { model.showInspector.toggle() } label: { Label("Inspector", systemImage: "sidebar.right") }.accessibilityIdentifier("showInspector")
                 }
             }
@@ -92,9 +98,9 @@ struct WelcomeView: View {
                 Text("Find the newest and largest files. Explore folders.\nUnderstand who changed what, with the evidence beside it.").multilineTextAlignment(.center).foregroundStyle(.secondary).font(.title3)
             }
             HStack(spacing: 14) {
-                Button("Explore demo", action: model.toggleDemo).buttonStyle(.borderedProminent).controlSize(.large).accessibilityIdentifier("startDemo")
-                Button("Connect Google Drive…") { openWindow(id: "setup") }.controlSize(.large).accessibilityIdentifier("openSettings")
-            }
+                Button("Explore demo", action: model.toggleDemo).drivePrimaryAction().controlSize(.large).accessibilityIdentifier("startDemo")
+                Button("Connect Google Drive…") { openWindow(id: "setup") }.driveGlassAction().controlSize(.large).accessibilityIdentifier("openSettings")
+            }.driveActionGroup()
             HStack(spacing: 28) { Label("Optional file management", systemImage: "lock.shield"); Label("Stored on your Mac", systemImage: "internaldrive"); Label("No telemetry", systemImage: "hand.raised") }.font(.caption).foregroundStyle(.secondary)
         }.frame(maxWidth: .infinity, maxHeight: .infinity).padding(40)
     }

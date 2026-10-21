@@ -15,9 +15,10 @@ struct InspectorView: View {
                         Text(file.name).font(.title2.bold()).textSelection(.enabled)
                         Text(file.typeLabel).font(.caption).foregroundStyle(.secondary)
                     }
+                    VStack(alignment: .leading, spacing: 8) {
                     Button("Open in Google Drive") { model.open(file) }.accessibilityIdentifier("openSelectedFile")
                     if model.isDemo {
-                        Button("Try a synthetic preview sample", action: model.showPreviewSample).disabled(model.busy).accessibilityIdentifier("previewDemoSample")
+                        Button("Try a synthetic preview sample", action: model.showPreviewSample).drivePrimaryAction().disabled(model.busy).accessibilityIdentifier("previewDemoSample")
                     }
                     if file.isFolder {
                         Button("Download Folder…") { model.downloadSelection([file.id]) }.disabled(model.busy || model.isDemo || !model.managementGranted).accessibilityIdentifier("downloadSelectedFolder")
@@ -27,6 +28,7 @@ struct InspectorView: View {
                         Button("Preview file") { model.showPreview(file) }.disabled(model.busy || model.isDemo || !model.managementGranted).accessibilityIdentifier("previewSelectedFile")
                     }
                     Button("Move to Trash…", role: .destructive) { model.prepareTrash(file) }.disabled(model.busy || model.isDemo || !model.managementGranted || file.trashed == true).accessibilityIdentifier("trashSelectedFile")
+                    }.controlSize(.small).driveGlassAction().driveActionGroup()
                     if !model.managementGranted && !model.isDemo {
                         Text("To enable downloads, previews and Trash, choose View files and Move to Trash in Connect Google Drive → Sign in.").font(.caption).foregroundStyle(.secondary)
                     }
@@ -50,7 +52,7 @@ struct InspectorView: View {
                         Button("Inspect target") {
                             if model.index[shortcut.targetId] != nil { model.selectedFile = shortcut.targetId }
                             else { model.error = "The target is not in this local index. It may be outside the indexed scope or inaccessible." }
-                        }
+                        }.driveGlassAction().controlSize(.small)
                     }
                     Divider()
                     Text("Sharing").font(.headline)
@@ -71,7 +73,7 @@ struct InspectorView: View {
                             }.font(.caption).frame(maxWidth: .infinity, alignment: .leading)
                         }.buttonStyle(.plain)
                     }
-                    Button("Show full timeline") { model.activityTarget = file.id; model.navigate("activity") }.accessibilityIdentifier("selectedFileActivity")
+                    Button("Show full timeline") { model.activityTarget = file.id; model.navigate("activity") }.driveGlassAction().controlSize(.small).accessibilityIdentifier("selectedFileActivity")
                     DisclosureGroup("Local snapshots (\(snapshots.count))") {
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Observed states only. Gaps and pre-index history cannot be reconstructed.").font(.caption).foregroundStyle(.secondary)
@@ -85,19 +87,19 @@ struct InspectorView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             if let md5 = file.md5Checksum { detail("MD5", md5) }
                             if let sha = file.sha256Checksum { detail("SHA-256", sha) }
-                            Button("Inspect metadata JSON") { do { raw = try encoded(file) } catch { model.error = error.localizedDescription } }
+                            Button("Inspect metadata JSON") { do { raw = try encoded(file) } catch { model.error = error.localizedDescription } }.driveGlassAction().controlSize(.small)
                         }.padding(.top, 8)
                     }
-                }.padding(22)
+                }.padding(20)
             } else if model.selectedFiles.count > 1 {
                 VStack(alignment: .leading, spacing: 16) {
                     Text("\(model.selectedFiles.count) items selected").font(.title2)
                     Text("Download or move this selection to Trash. Preview and activity details are available when one item is selected.").font(.callout).foregroundStyle(.secondary)
                     Button("Move Selected to Trash…", role: .destructive) { model.prepareTrashSelection(model.selectedFiles) }.disabled(model.busy || model.isDemo || !model.managementGranted).accessibilityIdentifier("trashInspectorSelection")
-                    Button("Download Selected…") { model.downloadSelection(model.selectedFiles) }.disabled(model.busy || model.isDemo || !model.managementGranted).accessibilityIdentifier("downloadInspectorSelection")
-                }.padding(22)
-            } else { ContentUnavailableView("Select a file", systemImage: "sidebar.right", description: Text("Metadata, sharing and evidence appear here.")).padding(.top, 70) }
-        }.background(.background).accessibilityIdentifier("fileInspector")
+                    Button("Download Selected…") { model.downloadSelection(model.selectedFiles) }.drivePrimaryAction().disabled(model.busy || model.isDemo || !model.managementGranted).accessibilityIdentifier("downloadInspectorSelection")
+                }.controlSize(.small).driveGlassAction().driveActionGroup().padding(20)
+            } else { ContentUnavailableView("Select a file", systemImage: "sidebar.right", description: Text("Metadata, sharing and evidence appear here.")) }
+        }.accessibilityIdentifier("fileInspector")
         .task(id: model.selectedFile) {
             snapshots = []; evidence = []
             guard let id = model.selectedFile, let database = model.database else { return }
@@ -116,7 +118,7 @@ struct RawEvidenceView: View {
     @Environment(\.dismiss) private var dismiss
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            HStack { Text("Raw evidence").font(.title2.bold()); Spacer(); Button("Done") { dismiss() }.keyboardShortcut(.cancelAction).accessibilityIdentifier("closeEvidence") }
+            HStack { Text("Raw evidence").font(.title2.bold()); Spacer(); Button("Done") { dismiss() }.driveGlassAction().keyboardShortcut(.cancelAction).accessibilityIdentifier("closeEvidence") }
             Text("API payloads may contain file names and account identifiers. Review before sharing.").foregroundStyle(.secondary)
             ScrollView([.horizontal, .vertical]) { Text(text).font(.system(.caption, design: .monospaced)).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading) }.background(.quaternary.opacity(0.3))
         }.padding(24).frame(width: 760, height: 600)

@@ -6,12 +6,12 @@ struct FilePreviewView: View {
     let preview: FilePreview
     @Environment(\.dismiss) private var dismiss
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack { Text(preview.name).font(.title2.bold()).lineLimit(2); Spacer(); Button("Done") { dismiss() }.keyboardShortcut(.cancelAction).accessibilityIdentifier("closeFilePreview") }
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .top, spacing: 16) { Text(preview.name).font(.title2.bold()).lineLimit(2); Spacer(); Button("Done") { dismiss() }.drivePrimaryAction().keyboardShortcut(.cancelAction).accessibilityIdentifier("closeFilePreview") }
             Text("Temporary local preview · up to 20 MiB · Google PDF exports have a 10 MB API limit").font(.caption).foregroundStyle(.secondary)
             NativeFilePreview(url: preview.url).accessibilityIdentifier("nativeFilePreview")
             Text("The app removes its temporary file when this sheet closes. Quick Look is a macOS service and may maintain its own caches.").font(.caption).foregroundStyle(.secondary)
-        }.padding(20).frame(minWidth: 700, minHeight: 540).accessibilityElement(children: .contain).accessibilityIdentifier("filePreviewSheet")
+        }.padding(24).frame(minWidth: 700, minHeight: 540).accessibilityElement(children: .contain).accessibilityIdentifier("filePreviewSheet")
     }
 }
 
@@ -41,12 +41,12 @@ struct TrashConfirmationView: View {
                     .frame(maxHeight: 140).foregroundStyle(.red).accessibilityIdentifier("trashActionError")
             }
             if model.busy { ProgressView(model.progress).accessibilityIdentifier("trashActionProgress") }
-            HStack {
-                Button("View in Google Drive") { model.open(file) }.accessibilityIdentifier("reviewTrashItem")
+            HStack(spacing: 10) {
+                Button("View in Google Drive") { model.open(file) }.driveGlassAction().accessibilityIdentifier("reviewTrashItem")
                 Spacer()
-                Button("Cancel") { model.pendingTrash = nil; model.error = nil }.disabled(model.busy).keyboardShortcut(.cancelAction).accessibilityIdentifier("cancelMoveToTrash")
-                Button("Move to Trash", role: .destructive) { model.confirmTrash(file) }.disabled(model.busy).accessibilityIdentifier("confirmMoveToTrash")
-            }
+                Button("Cancel") { model.pendingTrash = nil; model.error = nil }.driveGlassAction().disabled(model.busy).keyboardShortcut(.cancelAction).accessibilityIdentifier("cancelMoveToTrash")
+                Button("Move to Trash", role: .destructive) { model.confirmTrash(file) }.driveGlassAction().disabled(model.busy).accessibilityIdentifier("confirmMoveToTrash")
+            }.driveActionGroup()
         }.padding(24).frame(width: 540).accessibilityElement(children: .contain).accessibilityIdentifier("trashConfirmation").interactiveDismissDisabled(model.busy)
     }
 }

@@ -51,6 +51,8 @@ Use it to find recent additions, inspect the largest known files, combine metada
 
 The app runs directly on macOS with system frameworks. It has no Python service, embedded browser UI, hosted backend, analytics SDK, or third-party runtime packages. Authentication opens your default browser. Metadata and activity remain the default connection. An optional management connection enables on-demand native previews and confirmed Move to Trash. There is no permanent-delete or empty-trash action.
 
+On macOS 26 and later, actions use native Liquid Glass controls with grouped toolbar actions and a system-managed inspector. Earlier supported systems retain native bordered controls; Reduce Transparency and increased contrast also select opaque action styles. Settings and the connection guide follow the app's chosen appearance. See the [redesign verification and limits](docs/VERIFICATION.md#liquid-glass-redesign).
+
 ## Current status
 
 | Area | Status | What that means |
@@ -69,6 +71,8 @@ Detailed evidence and limits are in [Verification](docs/VERIFICATION.md) and the
 ## Native app screenshots
 
 These are direct captures from the native macOS app using synthetic files and `example.test` identities. They contain no connected Google account or private Drive inventory.
+
+These captures predate the Liquid Glass refresh; the current controls and inspector layout differ.
 
 ### App identity and account setup
 
