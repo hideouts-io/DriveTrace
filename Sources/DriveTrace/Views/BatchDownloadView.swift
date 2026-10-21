@@ -56,19 +56,23 @@ struct BatchDownloadView: View {
                          + (job.reportURL == nil ? " Save Report Copy before closing to retain the full results; a saved private report could not be confirmed." : " The full private report is saved at the location below.")).font(.caption).foregroundStyle(.secondary).accessibilityIdentifier("batchDownloadReportStorage")
                     if let url = job.reportURL {
                         Text("Report: \(url.path)").font(.caption).textSelection(.enabled).accessibilityIdentifier("batchDownloadReportPath")
-                        Button("Show report in Finder") { NSWorkspace.shared.activateFileViewerSelecting([url]) }.accessibilityIdentifier("revealBatchDownloadReport")
                     }
-                    Button("Show download folder in Finder") { NSWorkspace.shared.activateFileViewerSelecting([report.directory]) }.accessibilityIdentifier("revealBatchDownload")
-                    ReportCopyButton(enabled: job.finished && !model.busy, action: model.saveBatchReportCopy).fixedSize()
+                    VStack(alignment: .leading, spacing: 10) {
+                        if let url = job.reportURL {
+                            Button("Show report in Finder") { NSWorkspace.shared.activateFileViewerSelecting([url]) }.driveGlassAction().accessibilityIdentifier("revealBatchDownloadReport")
+                        }
+                        Button("Show download folder in Finder") { NSWorkspace.shared.activateFileViewerSelecting([report.directory]) }.driveGlassAction().accessibilityIdentifier("revealBatchDownload")
+                        ReportCopyButton(enabled: job.finished && !model.busy, action: model.saveBatchReportCopy).fixedSize()
+                    }.driveActionGroup()
                 }
                 if model.busy && job.finished { ProgressView(model.progress).accessibilityIdentifier("batchReportCopyProgress") }
                 Spacer()
-                HStack {
+                HStack(spacing: 10) {
                     Spacer()
                     if job.finished {
-                        Button("Done") { model.batchDownload = nil }.disabled(model.busy).keyboardShortcut(.cancelAction).accessibilityIdentifier("closeBatchDownload")
+                        Button("Done") { model.batchDownload = nil }.drivePrimaryAction().disabled(model.busy).keyboardShortcut(.cancelAction).accessibilityIdentifier("closeBatchDownload")
                     } else {
-                        Button("Cancel Download", action: model.cancel).keyboardShortcut(.cancelAction).accessibilityIdentifier("cancelBatchDownload")
+                        Button("Cancel Download", action: model.cancel).driveGlassAction().keyboardShortcut(.cancelAction).accessibilityIdentifier("cancelBatchDownload")
                     }
                 }
             }

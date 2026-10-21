@@ -54,17 +54,22 @@ private struct SetupGuideView: View {
             }.padding(24)
             Divider()
             HStack(alignment: .top, spacing: 0) {
-                VStack(alignment: .leading, spacing: 12) {
-                    ForEach(SetupStep.allCases) { item in
-                        Button { step = item } label: {
-                            HStack(alignment: .top, spacing: 8) {
-                                Text("\(item.rawValue + 1)").font(.callout.monospacedDigit().bold()).frame(width: 22)
-                                Text(item.title).multilineTextAlignment(.leading)
-                            }.padding(9).frame(maxWidth: .infinity, alignment: .leading)
-                                .background(step == item ? Color.accentColor.opacity(0.12) : .clear, in: RoundedRectangle(cornerRadius: 8))
-                        }.buttonStyle(.plain).accessibilityIdentifier("setupStep\(item.rawValue + 1)")
-                            .accessibilityAddTraits(step == item ? [.isSelected] : [])
-                    }
+                VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        ForEach(SetupStep.allCases) { item in
+                            let button = Button { step = item } label: {
+                                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                                    Text("\(item.rawValue + 1)").font(.callout.monospacedDigit().bold()).frame(width: 22)
+                                    Text(item.title).multilineTextAlignment(.leading)
+                                        .fontWeight(step == item ? .semibold : .regular)
+                                }.padding(.vertical, 6).padding(.horizontal, 4).frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                                .accessibilityIdentifier("setupStep\(item.rawValue + 1)")
+                                .accessibilityAddTraits(step == item ? [.isSelected] : [])
+                            if step == item { button.drivePrimaryAction() }
+                            else { button.driveGlassAction() }
+                        }
+                    }.driveActionGroup()
                     Spacer()
                     Label(model.managementGranted ? "File management enabled" : "Metadata-only connection", systemImage: "lock.shield").font(.caption).foregroundStyle(.secondary)
                     Text("No credentials or tokens belong in chat, screenshots or Git.").font(.caption).foregroundStyle(.secondary)
@@ -87,17 +92,17 @@ private struct SetupGuideView: View {
             Divider()
             VStack(alignment: .leading, spacing: 10) {
                 if model.busy {
-                    HStack { ProgressView().controlSize(.small); Text(model.progress.isEmpty ? "Preparing…" : model.progress); Spacer(); Button("Cancel", action: model.cancel).accessibilityIdentifier("setupCancel") }
+                    HStack(spacing: 10) { ProgressView().controlSize(.small); Text(model.progress.isEmpty ? "Preparing…" : model.progress); Spacer(); Button("Cancel", action: model.cancel).driveGlassAction().accessibilityIdentifier("setupCancel") }
                 }
                 if let error = model.error { Label(error, systemImage: "exclamationmark.triangle").foregroundStyle(.red).textSelection(.enabled).accessibilityIdentifier("setupError") }
                 if let notice = model.operationNotice { Text(notice).foregroundStyle(.secondary).accessibilityIdentifier("setupNotice") }
-                HStack {
+                HStack(spacing: 10) {
                     Text("Client: \(model.hasClient ? "saved" : "needed") · Sign-in: \(model.connected ? "saved" : "needed")").font(.caption).foregroundStyle(.secondary)
                     Spacer()
-                    if let previous = SetupStep(rawValue: step.rawValue - 1) { Button("Back") { step = previous }.accessibilityIdentifier("setupBack") }
-                    if let next = SetupStep(rawValue: step.rawValue + 1) { Button("Next") { step = next }.accessibilityIdentifier("setupNext") }
-                    else { Button("Return to explorer") { dismissWindow(id: "setup") }.accessibilityIdentifier("setupDone") }
-                }
+                    if let previous = SetupStep(rawValue: step.rawValue - 1) { Button("Back") { step = previous }.driveGlassAction().accessibilityIdentifier("setupBack") }
+                    if let next = SetupStep(rawValue: step.rawValue + 1) { Button("Next") { step = next }.driveGlassAction().accessibilityIdentifier("setupNext") }
+                    else { Button("Return to explorer") { dismissWindow(id: "setup") }.driveGlassAction().accessibilityIdentifier("setupDone") }
+                }.driveActionGroup()
             }.font(.callout).padding(18)
         }.frame(minWidth: 820, minHeight: 700)
     }
@@ -122,7 +127,7 @@ private struct SetupGuideView: View {
         case .client:
             instruction("Create a Desktop app client", "In Google Auth platform → Clients → Create Client, choose Desktop app. Name it DriveTrace Mac, create it and download the JSON. Keep the downloaded file on your Mac. No manual redirect URI or web server setup is needed.")
             instruction("Import the downloaded file", "Choose the JSON below. DriveTrace checks its Desktop-client structure before storing it in macOS Keychain. Do not use a Web application client, service-account key or token file.")
-            Button(model.hasClient ? "Replace Desktop client JSON…" : "Import Desktop client JSON…", action: model.importClient).buttonStyle(.borderedProminent).disabled(model.busy).accessibilityIdentifier("importOAuth")
+            Button(model.hasClient ? "Replace Desktop client JSON…" : "Import Desktop client JSON…", action: model.importClient).drivePrimaryAction().disabled(model.busy).accessibilityIdentifier("importOAuth")
             Label(model.hasClient ? "Desktop configuration saved; Google validity is checked during sign-in." : "No Desktop client has been imported.", systemImage: model.hasClient ? "checkmark.circle" : "circle")
             Text("Replacing a different client removes the saved sign-in. Your local metadata is retained.").font(.caption).foregroundStyle(.secondary)
             Link("Google’s Desktop OAuth instructions", destination: URL(string: "https://developers.google.com/identity/protocols/oauth2/native-app")!)
@@ -135,14 +140,14 @@ private struct SetupGuideView: View {
             Text("File management requests broad Google Drive access, including permission to read, edit and delete files. This app exposes downloads, previews and confirmed Move to Trash; it has no permanent-delete action. Selecting this option does not grant access until you sign in again and approve it in Google.").font(.callout).foregroundStyle(.secondary)
             instruction("Continue in your browser", "Sign in with the account allowed by your project’s audience. Check the app identity and requested access before consenting. Return here after the browser callback. The app waits up to three minutes; cancel and retry if you run out of time.")
             instruction("Select both requested permissions", "Allow the selected Drive access and read-only Drive activity. If a required permission is missing, the app retains the previous saved sign-in. Existing metadata-only connections keep working until you deliberately authorize management access.")
-            Button(model.connected ? "Sign in again…" : "Sign in with Google…", action: model.connect).buttonStyle(.borderedProminent).disabled(model.busy || !model.hasClient).accessibilityIdentifier("connectGoogle")
+            Button(model.connected ? "Sign in again…" : "Sign in with Google…", action: model.connect).drivePrimaryAction().disabled(model.busy || !model.hasClient).accessibilityIdentifier("connectGoogle")
             Text(model.managementGranted ? "Current grant: file management and activity" : "Current grant: metadata-only or not connected").font(.caption).accessibilityIdentifier("currentConnectionAccess")
             if !model.hasClient { Text("Import your Desktop JSON in step 3 to enable sign-in.").foregroundStyle(.secondary) }
             Text(model.connected ? "A sign-in is saved in Keychain. Step 5 checks current access to both APIs." : "No sign-in is saved yet.")
             Text("Google may show a warning for your own unverified test project. Check that the client and project are yours. If access is blocked by organization policy, ask your administrator; changing the client type does not bypass it.").font(.callout).foregroundStyle(.secondary)
         case .synchronization:
             instruction("Build your first local index", "Run synchronization to read accessible file metadata and recent activity. Progress appears below. A large Drive can take time; cancellation retains committed observations and the next refresh resumes where supported.")
-            Button("Run synchronization", action: model.sync).buttonStyle(.borderedProminent).disabled(model.busy || !model.connected || model.isDemo).accessibilityIdentifier("setupSync")
+            Button("Run synchronization", action: model.sync).drivePrimaryAction().disabled(model.busy || !model.connected || model.isDemo).accessibilityIdentifier("setupSync")
             if model.isDemo { Text("You are viewing synthetic demo data. Sign in in step 4 to switch to your account workspace.").foregroundStyle(.secondary) }
             else if model.syncVerified {
                 Label("Collection completed for My Drive and observed Shared Drives without reported gaps in this session.", systemImage: "checkmark.circle.fill").foregroundStyle(.green)

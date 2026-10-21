@@ -36,7 +36,7 @@ struct StorageView: View {
         let groups = groups
         ScrollView {
             VStack(alignment: .leading, spacing: 26) {
-                VStack(alignment: .leading, spacing: 7) { Text("Storage overview").font(.largeTitle.bold()); Text("Understand the space behind your files.").foregroundStyle(.secondary) }
+                VStack(alignment: .leading, spacing: 7) { Text("Storage overview").font(.title2.bold()); Text("Understand the space behind your files.").font(.callout).foregroundStyle(.secondary) }
                 HStack(spacing: 16) {
                     metric("Known file size", value: byteLabel(sumKnown(groups.compactMap(\.bytes))), icon: "externaldrive")
                     metric("Reported quota usage", value: byteLabel(sumKnown(model.files.filter { $0.trashed != true }.compactMap(\.quotaBytes))), icon: "chart.pie")

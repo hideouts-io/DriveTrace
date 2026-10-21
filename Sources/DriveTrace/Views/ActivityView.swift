@@ -9,8 +9,8 @@ struct ActivityView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 14) {
-                Text("Activity").font(.largeTitle.bold())
-                Text("Who did what, and when — with the source attached.").foregroundStyle(.secondary)
+                Text("Activity").font(.title2.bold())
+                Text("Who did what, and when — with the source attached.").font(.callout).foregroundStyle(.secondary)
                 HStack {
                     TextField("Actor name or People resource", text: $model.activityActor).accessibilityIdentifier("activityActor")
                     TextField("File name or ID", text: $model.activityTarget).accessibilityIdentifier("activityTarget")
@@ -23,7 +23,7 @@ struct ActivityView: View {
                     TextField("After · RFC3339", text: $model.activityAfter).accessibilityIdentifier("activityAfter")
                     TextField("Before · RFC3339", text: $model.activityBefore).accessibilityIdentifier("activityBefore")
                     Menu("Time range") { Button("All recorded time") { model.activityAfter = ""; model.activityBefore = "" }; ForEach([1,7,30], id: \.self) { days in Button("Last \(days) days") { model.activityAfter = timestamp(Date().addingTimeInterval(Double(-days * 86400))); model.activityBefore = "" } } }
-                    Button("Reset", action: resetFilters).accessibilityIdentifier("resetActivity")
+                    Button("Reset", action: resetFilters).driveGlassAction().accessibilityIdentifier("resetActivity")
                 }.textFieldStyle(.roundedBorder)
                 if let error = model.activityValidationError { Text(error).font(.caption).foregroundStyle(.red).accessibilityIdentifier("activityFilterError") }
                 Text("\(filtered.count) matching source records · latest \(model.events.count) loaded (limit 10,000). Changes actors are unknown; Activity identities can be unavailable. Sources are not merged into assumed actions.").font(.caption).foregroundStyle(.secondary).accessibilityIdentifier("activityResultCount")
@@ -63,8 +63,8 @@ struct ActivityView: View {
                                     guard !records.isEmpty else { throw MonitorError.invalid("No local snapshots were recorded for this item. Activity may predate the metadata index.") }
                                     raw = EvidenceText(text: try encoded(records))
                                 }
-                            }.accessibilityIdentifier("inspectObservedHistory")
-                            Button("Inspect raw evidence") { raw = EvidenceText(text: event.raw) }.accessibilityIdentifier("inspectActivityEvidence")
+                            }.driveGlassAction().accessibilityIdentifier("inspectObservedHistory")
+                            Button("Inspect raw evidence") { raw = EvidenceText(text: event.raw) }.driveGlassAction().accessibilityIdentifier("inspectActivityEvidence")
                         }.padding(22)
                     }.frame(minWidth: 260, idealWidth: 300, maxWidth: 380)
                 }
@@ -78,7 +78,7 @@ struct ActivityView: View {
             } description: {
                 Text(error)
             } actions: {
-                Button("Reset filters", action: resetFilters).accessibilityIdentifier("resetInvalidActivity")
+                Button("Reset filters", action: resetFilters).driveGlassAction().accessibilityIdentifier("resetInvalidActivity")
             }.accessibilityElement(children: .contain).accessibilityIdentifier("activityInvalidDates")
         } else if model.events.isEmpty {
             ContentUnavailableView("No activity records loaded", systemImage: "doc.badge.clock", description: Text("Synchronize your Drive index and review any coverage gaps. This view contains only loaded source records; Google may not expose every action."))
@@ -89,7 +89,7 @@ struct ActivityView: View {
             } description: {
                 Text("Try another actor, action, file or date range, or reset the filters to see all loaded records.")
             } actions: {
-                Button("Reset filters", action: resetFilters).accessibilityIdentifier("resetEmptyActivity")
+                Button("Reset filters", action: resetFilters).driveGlassAction().accessibilityIdentifier("resetEmptyActivity")
             }.accessibilityElement(children: .contain).accessibilityIdentifier("activityNoMatches")
         }
     }

@@ -20,7 +20,7 @@ struct FilterView: View {
             HStack {
                 Text("All filters are combined. Google search uses exact MIME and owner email; size and extension require the local index.").font(.caption).foregroundStyle(.secondary)
                 Spacer()
-                Button("Search Google", action: model.queryGoogle).disabled(model.busy || model.isDemo || !model.connected || model.googleSearchValidationError != nil).accessibilityIdentifier("searchGoogle")
+                Button("Search Google", action: model.queryGoogle).drivePrimaryAction().disabled(model.busy || model.isDemo || !model.connected || model.googleSearchValidationError != nil).accessibilityIdentifier("searchGoogle")
             }
             if let error = model.filterValidationError { Text(error).font(.caption).foregroundStyle(.red).accessibilityIdentifier("filterValidationError") }
             else if let reason = model.googleSearchValidationError {

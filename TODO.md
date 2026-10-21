@@ -8,6 +8,10 @@ Keep the original blue branding, SwiftUI design, Keychain storage and existing p
 
 The report pathname-replacement implementation `9295c9b` passes local and native Xcode 26.6 CI with 156 tests in seven suites plus production build/strict CSQLite. Its Swift CodeQL result **failed** one app extraction ambiguity despite all 51 production Swift sources being represented; inclusion does not establish complete imported-module semantics. The evidence-only checkpoints `cf0de94b`, `2081e10` and `093e1e8` also pass native CI with 156 tests in seven suites (37.433, 40.577 and 37.883 seconds respectively); all strict Swift CodeQL gates fail the same extraction ambiguity. The access-option identifier checkpoint `d60eecd` passes native CI with 156 tests in seven suites (40.135 seconds) and strict CSQLite; its strict Swift CodeQL gate fails the same ambiguity. The latest SARIF also retains an existing unpublished cache-digest scanner observation, which remains untriaged. The current troubleshooting-identifier correction needs separate hosted checks after publication. Preserve the gate and [hosted evidence](docs/VERIFICATION.md#hosted-validation-checkpoint). This does not complete the product plan or authorize integration.
 
+## Current UI modernization
+
+The accepted 2026-10-20 task prioritizes native Liquid Glass presentation while retaining the selection repair below. Shared availability/accessibility-aware action styles, grouped toolbar, native inspector and setup/settings/sheets are implemented. Local source/tests, universal packaging and bounded native demo workflows pass; final setup contrast review and exact-candidate hosted checks remain. Deliver the UI-only review PR stacked on the selection-repair branch. Preserve macOS 14 compatibility and the unpublished preview release; older-platform/accessibility runtime and live-account acceptance stay separate. See [current evidence](docs/VERIFICATION.md#liquid-glass-redesign).
+
 ## Current selection repair
 
 ### P0 — Modifier-click selection: refresh loss repaired, live acceptance open

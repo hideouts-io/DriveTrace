@@ -24,17 +24,17 @@ struct BatchTrashView: View {
                 }
                 if let error = model.error { Text(error).foregroundStyle(.red).textSelection(.enabled).accessibilityIdentifier("batchTrashError") }
                 if model.busy { ProgressView(model.progress).accessibilityIdentifier("batchTrashProgress") }
-                HStack {
+                HStack(spacing: 10) {
                     Spacer()
                     if model.busy {
-                        Button("Stop batch", action: model.cancel).accessibilityIdentifier("stopBatchTrash")
+                        Button("Stop batch", action: model.cancel).driveGlassAction().accessibilityIdentifier("stopBatchTrash")
                     } else if review.report != nil {
-                        Button("Done") { model.pendingBatchTrash = nil }.keyboardShortcut(.cancelAction).accessibilityIdentifier("closeBatchTrash")
+                        Button("Done") { model.pendingBatchTrash = nil }.drivePrimaryAction().keyboardShortcut(.cancelAction).accessibilityIdentifier("closeBatchTrash")
                     } else {
-                        Button("Cancel") { model.pendingBatchTrash = nil; model.error = nil }.keyboardShortcut(.cancelAction).accessibilityIdentifier("cancelBatchTrash")
-                        Button("Move \(review.files.count) Items to Trash", role: .destructive) { model.confirmTrashSelection(review) }.accessibilityIdentifier("confirmBatchTrash")
+                        Button("Cancel") { model.pendingBatchTrash = nil; model.error = nil }.driveGlassAction().keyboardShortcut(.cancelAction).accessibilityIdentifier("cancelBatchTrash")
+                        Button("Move \(review.files.count) Items to Trash", role: .destructive) { model.confirmTrashSelection(review) }.driveGlassAction().accessibilityIdentifier("confirmBatchTrash")
                     }
-                }
+                }.driveActionGroup()
             }.padding(24).frame(width: 640, height: 550).interactiveDismissDisabled(model.busy).accessibilityElement(children: .contain).accessibilityIdentifier("batchTrashSheet")
         }
     }
