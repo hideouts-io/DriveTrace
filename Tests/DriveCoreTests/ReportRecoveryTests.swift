@@ -146,7 +146,93 @@ import Testing
     #expect(try Data(contentsOf: file) == downloaded)
     #expect(try Data(contentsOf: occupied) == earlier)
     #expect(model.operationNotice?.contains(destination.path) == true)
+    model.closeBatchDownload()
+    #expect(model.batchDownload == nil)
+    #expect(model.operationNotice?.contains(destination.path) == true)
+    #expect(model.operationNotice?.contains(root.path) == true)
+    #expect(try encodedReportRecovery(JSONDecoder().decode(BatchDownloadReport.self, from: Data(contentsOf: destination))) == encodedReportRecovery(report))
+    #expect(try reportRecoveryMode(destination) == 0o600)
+    #expect(try Data(contentsOf: file) == downloaded)
+    #expect(try Data(contentsOf: occupied) == earlier)
     #expect(model.client == nil); #expect(!model.connected); #expect(!model.hasClient)
+}
+
+@Test @MainActor func closingUnsavedReportClearsItsErrorWithoutChangingDownloads() throws {
+    let root = try reportRecoveryDirectory()
+    defer { removeReportRecoveryDirectory(root) }
+    let report = reportRecoveryOutcomes(root)
+    let file = root.appendingPathComponent("saved.txt")
+    let occupied = root.appendingPathComponent("download-report.json")
+    let downloaded = Data("already downloaded bytes".utf8)
+    let earlier = Data("earlier report content".utf8)
+    try downloaded.write(to: file, options: .withoutOverwriting)
+    try earlier.write(to: occupied, options: .withoutOverwriting)
+    let failure: BatchDownloadReportSaveError
+    do {
+        _ = try saveBatchDownloadReport(report, to: occupied)
+        throw MonitorError.invalid("The occupied automatic report must fail before dismissal.")
+    } catch let error as BatchDownloadReportSaveError { failure = error }
+    let model = AppModel(previewStore: PreviewStore(root: root.appendingPathComponent("previews", isDirectory: true)))
+    model.batchDownload = BatchDownloadPresentation(id: UUID(), status: "Downloading…", progress: BatchProgress(current: "Remaining.txt", discovered: 4, completed: 2, failed: 2), report: nil, reportSaveError: nil, finished: false).reportingFailure(failure)
+    model.error = failure.localizedDescription
+    model.operationNotice = "\(report.summary) · Report save failed; results are retained."
+    model.closeBatchDownload()
+    #expect(model.batchDownload == nil); #expect(model.error == nil)
+    #expect(model.operationNotice?.contains("Results closed") == true)
+    #expect(model.operationNotice?.contains("No saved private report was confirmed") == true)
+    #expect(model.operationNotice?.contains(root.path) == true)
+    #expect(model.operationNotice?.contains("retained") == false)
+    #expect(try Data(contentsOf: file) == downloaded)
+    #expect(try Data(contentsOf: occupied) == earlier)
+}
+
+@Test @MainActor func closingAfterLaterReportCopyFailurePreservesConfirmedCopy() async throws {
+    let root = try reportRecoveryDirectory()
+    defer { removeReportRecoveryDirectory(root) }
+    let report = reportRecoveryOutcomes(root)
+    let model = AppModel(previewStore: PreviewStore(root: root.appendingPathComponent("previews", isDirectory: true)))
+    let jobID = UUID()
+    model.batchDownload = BatchDownloadPresentation(id: jobID, status: report.summary, progress: BatchProgress(current: "Remaining.txt", discovered: 4, completed: 2, failed: 2), report: report, reportSaveError: nil, finished: true)
+    let destination = root.appendingPathComponent("report-copy.json")
+    try await model.writeBatchReportCopy(jobID: jobID, destination: destination)
+    let saved = try Data(contentsOf: destination)
+    do {
+        try await model.writeBatchReportCopy(jobID: jobID, destination: destination)
+        Issue.record("A second copy at the same path must fail without replacing the confirmed report.")
+    } catch let failure as BatchDownloadReportSaveError {
+        model.error = failure.localizedDescription
+    }
+    #expect(model.batchDownload?.recoveryError == model.error)
+    model.closeBatchDownload()
+    #expect(model.batchDownload == nil); #expect(model.error == nil)
+    #expect(model.operationNotice?.contains(destination.path) == true)
+    #expect(model.operationNotice?.contains("No saved private report was confirmed") == false)
+    #expect(try Data(contentsOf: destination) == saved)
+    #expect(try reportRecoveryMode(destination) == 0o600)
+}
+
+@Test @MainActor func reportDismissalPreservesUnrelatedErrorsAndActiveJobs() throws {
+    let root = try reportRecoveryDirectory()
+    defer { removeReportRecoveryDirectory(root) }
+    let model = AppModel(previewStore: PreviewStore(root: root.appendingPathComponent("previews", isDirectory: true)))
+    let jobID = UUID()
+    model.batchDownload = BatchDownloadPresentation(id: jobID, status: "Discovery failed before transfers started", progress: BatchProgress(current: "Unavailable", discovered: 4, completed: 0, failed: 1), report: nil, reportSaveError: nil, finished: true)
+    model.error = "An unrelated explorer operation failed."
+    model.operationNotice = "Keep this notice while busy."
+    model.busy = true
+    model.closeBatchDownload()
+    #expect(model.batchDownload?.id == jobID)
+    #expect(model.operationNotice == "Keep this notice while busy.")
+    model.busy = false; model.batchDownload?.finished = false
+    model.closeBatchDownload()
+    #expect(model.batchDownload?.id == jobID)
+    #expect(model.operationNotice == "Keep this notice while busy.")
+    model.batchDownload?.finished = true
+    model.closeBatchDownload()
+    #expect(model.batchDownload == nil)
+    #expect(model.error == "An unrelated explorer operation failed.")
+    #expect(model.operationNotice?.contains("No completion report is available") == true)
+    #expect(model.operationNotice?.contains("Download folder") == false)
 }
 
 @Test @MainActor func alreadyCancelledReportCopyLeavesRetainedResultsAndDiskUnchanged() async throws {

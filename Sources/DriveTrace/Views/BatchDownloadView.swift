@@ -66,7 +66,7 @@ struct BatchDownloadView: View {
                 HStack {
                     Spacer()
                     if job.finished {
-                        Button("Done") { model.batchDownload = nil }.disabled(model.busy).keyboardShortcut(.cancelAction).accessibilityIdentifier("closeBatchDownload")
+                        Button("Done", action: model.closeBatchDownload).disabled(model.busy).keyboardShortcut(.cancelAction).accessibilityIdentifier("closeBatchDownload")
                     } else {
                         Button("Cancel Download", action: model.cancel).keyboardShortcut(.cancelAction).accessibilityIdentifier("cancelBatchDownload")
                     }
