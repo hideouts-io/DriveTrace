@@ -23,6 +23,18 @@ struct BatchDownloadPresentation: Identifiable {
 }
 
 extension AppModel {
+    func closeBatchDownload() {
+        guard !busy, let job = batchDownload, job.finished else { return }
+        if let error, error == job.reportSaveError || error == job.recoveryError { self.error = nil }
+        if let report = job.report {
+            let storage = job.reportURL.map { "Private report: \($0.path)." } ?? "No saved private report was confirmed."
+            operationNotice = "\(report.summary) · Results closed. \(storage) Download folder: \(report.directory.path)."
+        } else {
+            operationNotice = "\(job.status) · Results closed. No completion report is available."
+        }
+        batchDownload = nil
+    }
+
     func downloadSelection(_ ids: Set<String>) {
         guard !ids.isEmpty else { error = "Select one or more files or folders first."; return }
         run {
