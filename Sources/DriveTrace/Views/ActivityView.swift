@@ -5,8 +5,12 @@ struct ActivityView: View {
     @Bindable var model: AppModel
     @State private var selected: String?
     @State private var raw: EvidenceText?
+    @State private var page = 0
     private var filtered: [DriveEvent] { model.filteredEvents }
     var body: some View {
+        let records = filtered
+        let pageSize = 100
+        let range = tablePageRange(total: records.count, page: page, pageSize: pageSize)
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 14) {
                 Text("Activity").font(.largeTitle.bold())
@@ -26,22 +30,33 @@ struct ActivityView: View {
                     Button("Reset", action: resetFilters).accessibilityIdentifier("resetActivity")
                 }.textFieldStyle(.roundedBorder)
                 if let error = model.activityValidationError { Text(error).font(.caption).foregroundStyle(.red).accessibilityIdentifier("activityFilterError") }
-                Text("\(filtered.count) matching source records · latest \(model.events.count) loaded (limit 10,000). Changes actors are unknown; Activity identities can be unavailable. Sources are not merged into assumed actions.").font(.caption).foregroundStyle(.secondary).accessibilityIdentifier("activityResultCount")
+                Text("\(records.count) matching source records · latest \(model.events.count) loaded (limit 10,000). Changes actors are unknown; Activity identities can be unavailable. Sources are not merged into assumed actions.").font(.caption).foregroundStyle(.secondary).accessibilityIdentifier("activityResultCount")
             }.padding(22)
             Divider()
             HSplitView {
-                if filtered.isEmpty {
+                if records.isEmpty {
                     emptyState.frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    Table(filtered, selection: $selected) {
-                        TableColumn("Action") { event in Label(event.action.capitalized, systemImage: eventIcon(event.action)) }.width(min: 110, ideal: 140)
+                    VStack(spacing: 0) {
+                    Table(records[range], selection: $selected) {
+                        TableColumn("Action") { event in Label(event.action.capitalized, systemImage: eventIcon(event.action)).accessibilityIdentifier("activity-\(event.id)") }.width(min: 110, ideal: 140)
                         TableColumn("Item", value: \.name).width(min: 160, ideal: 280)
                         TableColumn("Actor") { Text($0.actor ?? "Unavailable").foregroundStyle(.secondary) }.width(min: 110, ideal: 160)
                         TableColumn("When") { Text(displayDate($0.time)) }.width(min: 130, ideal: 160)
                         TableColumn("Source") { Text($0.source.rawValue.capitalized).font(.caption).foregroundStyle(.tint) }.width(75)
                     }.accessibilityIdentifier("activityTable")
+                    Divider()
+                    HStack {
+                        Text("\(range.lowerBound + 1)–\(range.upperBound) of \(records.count.formatted())").monospacedDigit().accessibilityIdentifier("activityPageRange")
+                        Spacer()
+                        Button("First") { page = 0 }.disabled(page == 0).accessibilityIdentifier("firstActivityPage")
+                        Button("Previous") { page -= 1 }.disabled(page == 0).accessibilityIdentifier("previousActivityPage")
+                        Button("Next") { page += 1 }.disabled(range.upperBound >= records.count).accessibilityIdentifier("nextActivityPage")
+                        Button("Last") { page = (records.count - 1) / pageSize }.disabled(range.upperBound >= records.count).accessibilityIdentifier("lastActivityPage")
+                    }.font(.caption).padding(10)
+                    }
                 }
-                if let event = filtered.first(where: { $0.id == selected }) {
+                if let event = records.first(where: { $0.id == selected }) {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 18) {
                             Image(systemName: eventIcon(event.action)).font(.largeTitle).foregroundStyle(.tint)
@@ -69,7 +84,11 @@ struct ActivityView: View {
                     }.frame(minWidth: 260, idealWidth: 300, maxWidth: 380)
                 }
             }
-        }.sheet(item: $raw) { RawEvidenceView(text: $0.text) }
+        }
+        .onChange(of: [model.activityActor, model.activityAction, model.activityTarget, model.activityAfter, model.activityBefore]) { _, _ in page = 0; selected = nil }
+        .onChange(of: model.events) { _, _ in page = 0; selected = nil }
+        .onChange(of: page) { _, _ in selected = nil }
+        .sheet(item: $raw) { RawEvidenceView(text: $0.text) }
     }
     @ViewBuilder private var emptyState: some View {
         if let error = model.activityValidationError {
@@ -95,6 +114,7 @@ struct ActivityView: View {
     }
     private func resetFilters() {
         model.resetActivityFilters()
+        page = 0
         selected = nil
     }
     private func detail(_ label: String, _ value: String) -> some View { VStack(alignment: .leading, spacing: 4) { Text(label).font(.caption).foregroundStyle(.secondary); Text(value).textSelection(.enabled) } }

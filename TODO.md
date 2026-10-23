@@ -102,10 +102,10 @@ The report pathname-replacement implementation `9295c9b` passes local and native
 
 ### P2 — Measure Activity, observed history and deep hierarchy responsiveness
 
-**Status: partial — file-table bounds measured; these workloads are unmeasured. Effort: M/L.**
+**Status: partial — bounded SQLite/model measurements and native Activity/history paging, filtering, cutoff recovery and depth-128 navigation pass. Larger workloads, active supersession and spoken accessibility remain unverified. Effort: M/L.**
 
-- **Problem / benefit:** File paging resolved an observed large-table freeze. Activity loads up to 10,000 records and History renders a cutoff set; neither has equivalent scale evidence.
-- **Implementation:** Prepare isolated SQLite workloads for `Views/ActivityView.swift`, `HistoryView.swift`, `DriveCore/Navigation.swift` and database snapshot queries. Measure load/filter/sort/selection/RSS for deep ancestors, missing roots, cycles and large sibling sets. If a problem is reproduced, reuse `Views/FilePagination.swift` or move result preparation off the main actor; do not speculate about a required database migration.
+- **Problem / benefit:** Activity loads up to 10,000 source records and History renders a cutoff set. Their native table accessibility work must remain bounded as retained observations grow.
+- **Implementation:** Isolated SQLite workloads cover `Views/ActivityView.swift`, `HistoryView.swift`, `DriveCore/Navigation.swift` and database snapshot queries. Native accessibility interaction reproduced a 30-second timeout with 10,000 Activity records and 8,454 observations. Both evidence tables now reuse `Views/FilePagination.swift` with 100-row pages and First/Previous/Next/Last controls, retaining full filtering, ordering and ID-based evidence lookup. The file table retains its existing 500-row bound. Continue the [recorded measurement and validation limits](docs/VERIFICATION.md#activity-and-observed-history-native-bounds); no database migration was needed.
 - **Dependencies / permissions / blockers:** Local synthetic observations only, no Google scope. Preserve the existing demo and account databases.
 - **Acceptance / validation:** Record workload count/depth, timings, memory and measurement overhead. Stable ordering and exact page coverage; superseded loads cannot publish stale results. Cutoff paths must exclude future ancestor names. Recheck UI interaction after any performance change, rather than reporting source timing as native responsiveness.
 
