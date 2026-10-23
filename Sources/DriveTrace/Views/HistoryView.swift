@@ -9,6 +9,7 @@ struct HistoryView: View {
     @State private var folder: String?
     @State private var selected: String?
     @State private var query = ""
+    @State private var page = 0
     @State private var request = UUID()
     @State private var loading = false
     @State private var failure: String?
@@ -25,6 +26,9 @@ struct HistoryView: View {
         }
     }
     var body: some View {
+        let records = rows
+        let pageSize = 100
+        let range = tablePageRange(total: records.count, page: page, pageSize: pageSize)
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Observed history").font(.largeTitle.bold())
@@ -41,7 +45,7 @@ struct HistoryView: View {
                     Text("Loaded cutoff: \(loadedCutoff) · \(observations.count) observed items · current metadata is not substituted").font(.caption).foregroundStyle(.secondary).accessibilityIdentifier("historyCoverage")
                 }
                 HStack {
-                    Button("All observed items") { folder = nil; selected = nil; query = "" }.accessibilityIdentifier("historyAll")
+                    Button("All observed items") { folder = nil; selected = nil; query = ""; page = 0 }.accessibilityIdentifier("historyAll")
                     if let folder {
                         BreadcrumbView(components: folderTrail(folder, index: index, roots: [model.rootID: "My Drive"]), current: folder, navigate: browse)
                     }
@@ -51,8 +55,9 @@ struct HistoryView: View {
             }.padding(22)
             Divider()
             HSplitView {
-                Table(rows, selection: $selected) {
-                    TableColumn("Name") { row in Label(row.file.name, systemImage: fileIcon(row.file)) }.width(min: 180, ideal: 270)
+                VStack(spacing: 0) {
+                Table(records[range], selection: $selected) {
+                    TableColumn("Name") { row in Label(row.file.name, systemImage: fileIcon(row.file)).accessibilityIdentifier("history-\(row.id)") }.width(min: 180, ideal: 270)
                     TableColumn("Last observed") { Text(displayDate($0.observedAt)) }.width(min: 150, ideal: 180)
                     TableColumn("Size") { Text(byteLabel($0.file.bytes)) }.width(min: 75, ideal: 90)
                     TableColumn("Recorded state") { Text($0.file.trashed == true ? "Trashed" : $0.file.trashed == false ? "Not trashed" : "Unknown") }.width(min: 100, ideal: 120)
@@ -61,9 +66,19 @@ struct HistoryView: View {
                     if let id = ids.first, index[id]?.isFolder == true { Button("Browse observed folder") { browse(id) } }
                 } primaryAction: { ids in if let id = ids.first, index[id]?.isFolder == true { browse(id) } }
                 .overlay {
-                    if !loading && rows.isEmpty {
+                    if !loading && records.isEmpty {
                         ContentUnavailableView("No observations at this level", systemImage: "clock.arrow.circlepath", description: Text("Try another cutoff, clear the search, or return to All observed items. Absence here does not establish that an item did not exist."))
                     }
+                }
+                Divider()
+                HStack {
+                    Text(records.isEmpty ? "No results" : "\(range.lowerBound + 1)–\(range.upperBound) of \(records.count.formatted())").monospacedDigit().accessibilityIdentifier("historyPageRange")
+                    Spacer()
+                    Button("First") { page = 0 }.disabled(page == 0 || loading).accessibilityIdentifier("firstHistoryPage")
+                    Button("Previous") { page -= 1 }.disabled(page == 0 || loading).accessibilityIdentifier("previousHistoryPage")
+                    Button("Next") { page += 1 }.disabled(range.upperBound >= records.count || loading).accessibilityIdentifier("nextHistoryPage")
+                    Button("Last") { page = max(0, (records.count - 1) / pageSize) }.disabled(range.upperBound >= records.count || loading).accessibilityIdentifier("lastHistoryPage")
+                }.font(.caption).padding(10)
                 }
                 if let row = observations.first(where: { $0.id == selected }) {
                     ScrollView {
@@ -81,13 +96,16 @@ struct HistoryView: View {
                 }
             }.disabled(loading)
         }
+        .onChange(of: query) { _, _ in page = 0; selected = nil }
+        .onChange(of: folder) { _, _ in page = 0; selected = nil }
+        .onChange(of: page) { _, _ in selected = nil }
         .task(id: request) { await load() }
         .sheet(item: $raw) { RawEvidenceView(text: $0.text) }
     }
     private func browse(_ id: String) { folder = id; selected = nil; query = "" }
     private func load() async {
         let requestedCutoff = cutoff
-        loading = true; failure = nil; loadedCutoff = nil; observations = []; folder = nil; selected = nil
+        loading = true; failure = nil; loadedCutoff = nil; observations = []; folder = nil; selected = nil; page = 0
         do {
             guard let database = model.database else { throw MonitorError.database("The local database is not open.") }
             let records = try await database.observedFiles(at: requestedCutoff)

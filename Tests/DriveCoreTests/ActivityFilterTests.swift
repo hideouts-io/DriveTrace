@@ -3,6 +3,20 @@ import Testing
 @testable import DriveCore
 @testable import DriveTrace
 
+/// Smaller native evidence pages retain every ordered record, including a partial final page.
+@Test func evidenceTablePagesCoverFullAndPartialWorkloads() {
+    for total in [0, 1, 99, 100, 101, 1_536, 8_454, 10_000] {
+        let source = Array(0..<total)
+        let pages = (0...max(0, (total - 1) / 100)).map { tablePageRange(total: total, page: $0, pageSize: 100) }
+        #expect(pages.allSatisfy { $0.count <= 100 })
+        #expect(pages.flatMap { Array(source[$0]) } == source)
+    }
+    #expect(tablePageRange(total: 8_454, page: Int.max, pageSize: 100) == 8_400..<8_454)
+    #expect(tablePageRange(total: 10_000, page: 99, pageSize: 100) == 9_900..<10_000)
+    #expect(tablePageRange(total: 0, page: Int.max, pageSize: 100).isEmpty)
+    #expect(tablePageRange(total: Int.max, page: Int.max, pageSize: 100).upperBound == Int.max)
+}
+
 /// Correcting or resetting filters must not change the loaded source evidence or invent an actor.
 @Test @MainActor func activityFiltersRecoverWithoutChangingLoadedEvidence() {
     let model = AppModel()
