@@ -47,7 +47,7 @@ jobs:
           swift --version
           xcrun --sdk macosx --show-sdk-version
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@24c54180a607b1449ed407dd24f251e4e9147c8d # v4
+        uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
@@ -62,7 +62,7 @@ jobs:
           xcrun clang -std=c17 -Wall -Wextra -Werror -x c -c Sources/CSQLite/shim.h -o "$RUNNER_TEMP/CSQLite.o"
           xcrun clang -fobjc-arc -fmodules -mmacosx-version-min=14.0 -Wall -Wextra -Werror -I Sources/QuickLookBridge/include -c Sources/QuickLookBridge/DriveTracePreviewView.m -o "$RUNNER_TEMP/QuickLookBridge.o"
       - name: Analyze without a security write token
-        uses: github/codeql-action/analyze@24c54180a607b1449ed407dd24f251e4e9147c8d # v4
+        uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4
         with:
           category: /language:${{ matrix.language }}
           output: ${{ runner.temp }}/codeql-results
@@ -137,7 +137,7 @@ jobs:
           name: codeql-${{ matrix.language }}
           path: ${{ runner.temp }}/codeql-results
       - name: Upload the completed analysis
-        uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # v4
+        uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4
         with:
           sarif_file: ${{ runner.temp }}/codeql-results
           category: /language:${{ matrix.language }}
