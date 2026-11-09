@@ -56,9 +56,11 @@ jobs:
         run: |
           swiftc -swift-version 6 -module-name SwiftExtractionSummary .github/scripts/report-swift-extraction.swift -o "$RUNNER_TEMP/report-swift-extraction"
           swift build --build-system native -c release --product DriveTrace --arch arm64 --scratch-path "$RUNNER_TEMP/drivetrace-codeql" --jobs 2
-      - name: Compile the SQLite system header
+      - name: Compile the native interoperability boundaries
         if: matrix.language == 'c-cpp'
-        run: xcrun clang -std=c17 -Wall -Wextra -Werror -x c -c Sources/CSQLite/shim.h -o "$RUNNER_TEMP/CSQLite.o"
+        run: |
+          xcrun clang -std=c17 -Wall -Wextra -Werror -x c -c Sources/CSQLite/shim.h -o "$RUNNER_TEMP/CSQLite.o"
+          xcrun clang -fobjc-arc -fmodules -mmacosx-version-min=14.0 -Wall -Wextra -Werror -I Sources/QuickLookBridge/include -c Sources/QuickLookBridge/DriveTracePreviewView.m -o "$RUNNER_TEMP/QuickLookBridge.o"
       - name: Analyze without a security write token
         uses: github/codeql-action/analyze@24c54180a607b1449ed407dd24f251e4e9147c8d # v4
         with:
