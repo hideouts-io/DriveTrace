@@ -46,7 +46,7 @@ The workflow retains bounded Swift extraction context on failure and requires su
 
 ### Dependabot
 
-[`dependabot.yml`](../.github/dependabot.yml) checks GitHub Actions dependencies weekly and limits the number of open update pull requests. Review action publisher, version and full commit SHA before accepting an update.
+[`dependabot.yml`](../.github/dependabot.yml) checks GitHub Actions dependencies weekly and limits the number of open update pull requests. Review action publisher, version and full commit SHA before accepting an update. The CodeQL init, analyze and upload-sarif steps share one verified release commit and update as a single dependency group. These steps exchange versioned configuration, so independently advancing one step can prevent analysis before SARIF is produced. Keep their commit pins aligned when reviewing updates.
 
 ## Pull-request checklist
 
