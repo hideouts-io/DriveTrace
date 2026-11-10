@@ -292,7 +292,15 @@ private actor LocalCallbackEvents {
     }
     func connected() throws -> Bool { if let failure { throw failure }; return ready }
     func finishedSending() throws -> Bool { if let failure { throw failure }; return sendCompleted }
-    func closed() throws -> Bool { if let failure { throw failure }; return remoteClosed }
+    func closed() throws -> Bool {
+        // Cancelling the listener aborts the peer with ECONNRESET. The receive callback
+        // already records that reset as closure; the connection state reports the same reset.
+        if let failure {
+            if failure == .posix(.ECONNRESET) { return true }
+            throw failure
+        }
+        return remoteClosed
+    }
     func stopped() -> Bool { locallyStopped }
 }
 
