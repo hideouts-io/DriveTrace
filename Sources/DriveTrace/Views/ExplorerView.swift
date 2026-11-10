@@ -144,7 +144,7 @@ struct FileTable: View {
         Divider()
         HStack {
             Text(model.results.isEmpty ? "No results" : "\(range.lowerBound + 1)–\(range.upperBound) of \(model.results.count.formatted())").monospacedDigit()
-            Text("\(model.selectedFiles.count) selected · Shift-click a range; Command-click individual items.").accessibilityIdentifier("fileSelectionCount").foregroundStyle(.secondary)
+            Text("\(model.selectedFiles.count) selected").accessibilityIdentifier("fileSelectionCount").foregroundStyle(.secondary)
             Spacer()
             Button("Previous") { page -= 1 }.disabled(page == 0 || model.searching).accessibilityIdentifier("previousFilePage")
             Button("Next") { page += 1 }.disabled(range.upperBound >= model.results.count || model.searching).accessibilityIdentifier("nextFilePage")

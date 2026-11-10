@@ -21,7 +21,19 @@ struct OAuthToken: Codable, Sendable {
     let scopes: [String]?
 }
 
-actor Credentials: TokenProvider {
+protocol WorkspaceIdentityStore: Sendable {
+    func workspaceKey() async throws -> String?
+    func storeWorkspaceKey(_ value: String) async throws
+}
+
+func validatedWorkspaceKey(_ value: String) throws -> String {
+    guard value.range(of: "^[0-9a-f]{64}$", options: .regularExpression) != nil else {
+        throw MonitorError.authentication("The Google account workspace identifier is invalid. Disconnect and sign in again to select the correct local index.")
+    }
+    return value
+}
+
+actor Credentials: TokenProvider, WorkspaceIdentityStore {
     private let service = "local.driveexplorer.oauth"
     private var configuration: OAuthConfiguration?
     private var token: OAuthToken?
@@ -51,6 +63,16 @@ actor Credentials: TokenProvider {
     }
     func grantedScopes() -> Set<String> { Set(token?.scopes ?? []) }
     func hasConfiguration() -> Bool { configuration != nil }
+    func workspaceKey() throws -> String? {
+        guard let data = try read("workspace") else { return nil }
+        guard let value = String(data: data, encoding: .utf8) else {
+            throw MonitorError.authentication("The saved workspace identifier in Keychain is invalid. Disconnect and sign in again to select the correct local index.")
+        }
+        return try validatedWorkspaceKey(value)
+    }
+    func storeWorkspaceKey(_ value: String) throws {
+        try write("workspace", data: Data(validatedWorkspaceKey(value).utf8))
+    }
     func configure(_ data: Data) throws {
         let value = try OAuthConfiguration.load(data)
         if let old = configuration, old.installed.client_id != value.installed.client_id { try disconnect() }

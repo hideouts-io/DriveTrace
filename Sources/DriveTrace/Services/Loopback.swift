@@ -8,17 +8,31 @@ actor Loopback {
     private var ready: CheckedContinuation<String, Error>?
     private var callback: CheckedContinuation<String, Error>?
     private var received: Result<String, Error>?
+    private var started = false
+    private var connections: [ObjectIdentifier: NWConnection] = [:]
     private let state: String
     private var timeout: Task<Void, Never>?
     init(state: String) { self.state = state }
+    /// Cancellation before readiness closes the listener; each receiver permits only one startup.
     func start() async throws -> String {
-        let parameters = NWParameters.tcp
-        parameters.requiredLocalEndpoint = .hostPort(host: "127.0.0.1", port: .any)
-        let listener = try NWListener(using: parameters); self.listener = listener
-        listener.stateUpdateHandler = { status in Task { await self.changed(status) } }
-        listener.newConnectionHandler = { connection in Task { await self.accept(connection) } }
-        timeout = Task { do { try await Task.sleep(for: .seconds(180)); self.finish(.failure(MonitorError.authentication("Sign-in timed out. Connect again to retry."))) } catch is CancellationError {} catch { self.finish(.failure(error)) } }
-        return try await withCheckedThrowingContinuation { continuation in ready = continuation; listener.start(queue: .global(qos: .userInitiated)) }
+        try Task.checkCancellation()
+        if let received { _ = try received.get(); throw MonitorError.authentication("Sign-in callback has already completed. Connect again to retry.") }
+        guard !started else { throw MonitorError.authentication("Sign-in callback is already started. Cancel the current attempt before connecting again.") }
+        started = true
+        do {
+            let redirect = try await withTaskCancellationHandler {
+                try Task.checkCancellation()
+                let parameters = NWParameters.tcp
+                parameters.requiredLocalEndpoint = .hostPort(host: "127.0.0.1", port: .any)
+                let listener = try NWListener(using: parameters); self.listener = listener
+                listener.stateUpdateHandler = { status in Task { await self.changed(status) } }
+                listener.newConnectionHandler = { connection in Task { await self.accept(connection) } }
+                timeout = Task { do { try await Task.sleep(for: .seconds(180)); self.finish(.failure(MonitorError.authentication("Sign-in timed out. Connect again to retry."))) } catch is CancellationError {} catch { self.finish(.failure(error)) } }
+                return try await withCheckedThrowingContinuation { continuation in ready = continuation; listener.start(queue: .global(qos: .userInitiated)) }
+            } onCancel: { Task { await self.cancel() } }
+            try Task.checkCancellation()
+            return redirect
+        } catch { finish(.failure(error)); throw error }
     }
     private func changed(_ status: NWListener.State) {
         switch status {
@@ -30,13 +44,20 @@ actor Loopback {
         }
     }
     func code() async throws -> String {
-        if let received { return try received.get() }
-        return try await withTaskCancellationHandler {
-            try await withCheckedThrowingContinuation { callback = $0 }
-        } onCancel: { Task { await self.cancel() } }
+        do {
+            return try await withTaskCancellationHandler {
+                try Task.checkCancellation()
+                if let received { return try received.get() }
+                let code: String = try await withCheckedThrowingContinuation { callback = $0 }
+                try Task.checkCancellation()
+                return code
+            } onCancel: { Task { await self.cancel() } }
+        } catch { finish(.failure(error)); throw error }
     }
     func cancel() { finish(.failure(CancellationError())) }
     private func accept(_ connection: NWConnection) {
+        guard received == nil else { connection.cancel(); return }
+        connections[ObjectIdentifier(connection)] = connection
         connection.start(queue: .global(qos: .userInitiated))
         receive(connection, bytes: Data())
     }
@@ -46,10 +67,11 @@ actor Loopback {
         }
     }
     private func consume(_ connection: NWConnection, bytes: Data, complete: Bool, error: NWError?) {
-        if let error { connection.cancel(); finish(.failure(error)); return }
-        guard bytes.count <= 16384 else { connection.cancel(); return }
+        guard received == nil else { close(connection); return }
+        if let error { close(connection); finish(.failure(error)); return }
+        guard bytes.count <= 16384 else { close(connection); return }
         guard let request = String(data: bytes, encoding: .utf8), request.contains("\r\n\r\n") else {
-            if complete { connection.cancel() } else { receive(connection, bytes: bytes) }; return
+            if complete { close(connection) } else { receive(connection, bytes: bytes) }; return
         }
         let parts = request.components(separatedBy: "\r\n")[0].split(separator: " ")
         guard parts.count == 3, parts[0] == "GET", let url = URLComponents(string: "http://127.0.0.1\(parts[1])"), url.path == "/oauth/callback" else { respond(connection, text: "Not found", status: "404 Not Found"); return }
@@ -65,8 +87,13 @@ actor Loopback {
         finish(.success(code))
     }
     private func respond(_ connection: NWConnection, text: String, status: String) {
+        // The send completion owns this connection so terminal cleanup cannot truncate its response.
+        connections.removeValue(forKey: ObjectIdentifier(connection))
         let response = "HTTP/1.1 \(status)\r\nContent-Type: text/plain; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: \(text.utf8.count)\r\nConnection: close\r\n\r\n\(text)"
         connection.send(content: Data(response.utf8), completion: .contentProcessed { _ in connection.cancel() })
+    }
+    private func close(_ connection: NWConnection) {
+        connections.removeValue(forKey: ObjectIdentifier(connection)); connection.cancel()
     }
     private func finish(_ result: Result<String, Error>) {
         guard received == nil else { return }
@@ -74,5 +101,7 @@ actor Loopback {
         callback?.resume(with: result); callback = nil
         if case .failure(let error) = result { ready?.resume(throwing: error); ready = nil }
         listener?.cancel(); listener = nil
+        for connection in connections.values { connection.cancel() }
+        connections.removeAll()
     }
 }

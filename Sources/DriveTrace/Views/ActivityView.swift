@@ -23,20 +23,24 @@ struct ActivityView: View {
                     TextField("After · RFC3339", text: $model.activityAfter).accessibilityIdentifier("activityAfter")
                     TextField("Before · RFC3339", text: $model.activityBefore).accessibilityIdentifier("activityBefore")
                     Menu("Time range") { Button("All recorded time") { model.activityAfter = ""; model.activityBefore = "" }; ForEach([1,7,30], id: \.self) { days in Button("Last \(days) days") { model.activityAfter = timestamp(Date().addingTimeInterval(Double(-days * 86400))); model.activityBefore = "" } } }
-                    Button("Reset") { model.activityActor = ""; model.activityTarget = ""; model.activityAction = ""; model.activityAfter = ""; model.activityBefore = "" }.accessibilityIdentifier("resetActivity")
+                    Button("Reset", action: resetFilters).accessibilityIdentifier("resetActivity")
                 }.textFieldStyle(.roundedBorder)
                 if let error = model.activityValidationError { Text(error).font(.caption).foregroundStyle(.red).accessibilityIdentifier("activityFilterError") }
-                Text("\(filtered.count) matching source records · latest \(model.events.count) loaded (limit 10,000). Changes actors are unknown; Activity identities can be unavailable. Sources are not merged into assumed actions.").font(.caption).foregroundStyle(.secondary)
+                Text("\(filtered.count) matching source records · latest \(model.events.count) loaded (limit 10,000). Changes actors are unknown; Activity identities can be unavailable. Sources are not merged into assumed actions.").font(.caption).foregroundStyle(.secondary).accessibilityIdentifier("activityResultCount")
             }.padding(22)
             Divider()
             HSplitView {
-                Table(filtered, selection: $selected) {
-                    TableColumn("Action") { event in Label(event.action.capitalized, systemImage: eventIcon(event.action)) }.width(min: 110, ideal: 140)
-                    TableColumn("Item", value: \.name).width(min: 160, ideal: 280)
-                    TableColumn("Actor") { Text($0.actor ?? "Unavailable").foregroundStyle(.secondary) }.width(min: 110, ideal: 160)
-                    TableColumn("When") { Text(displayDate($0.time)) }.width(min: 130, ideal: 160)
-                    TableColumn("Source") { Text($0.source.rawValue.capitalized).font(.caption).foregroundStyle(.tint) }.width(75)
-                }.accessibilityIdentifier("activityTable")
+                if filtered.isEmpty {
+                    emptyState.frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    Table(filtered, selection: $selected) {
+                        TableColumn("Action") { event in Label(event.action.capitalized, systemImage: eventIcon(event.action)) }.width(min: 110, ideal: 140)
+                        TableColumn("Item", value: \.name).width(min: 160, ideal: 280)
+                        TableColumn("Actor") { Text($0.actor ?? "Unavailable").foregroundStyle(.secondary) }.width(min: 110, ideal: 160)
+                        TableColumn("When") { Text(displayDate($0.time)) }.width(min: 130, ideal: 160)
+                        TableColumn("Source") { Text($0.source.rawValue.capitalized).font(.caption).foregroundStyle(.tint) }.width(75)
+                    }.accessibilityIdentifier("activityTable")
+                }
                 if let event = filtered.first(where: { $0.id == selected }) {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 18) {
@@ -66,6 +70,32 @@ struct ActivityView: View {
                 }
             }
         }.sheet(item: $raw) { RawEvidenceView(text: $0.text) }
+    }
+    @ViewBuilder private var emptyState: some View {
+        if let error = model.activityValidationError {
+            ContentUnavailableView {
+                Label("Correct the activity dates", systemImage: "calendar.badge.exclamationmark")
+            } description: {
+                Text(error)
+            } actions: {
+                Button("Reset filters", action: resetFilters).accessibilityIdentifier("resetInvalidActivity")
+            }.accessibilityElement(children: .contain).accessibilityIdentifier("activityInvalidDates")
+        } else if model.events.isEmpty {
+            ContentUnavailableView("No activity records loaded", systemImage: "doc.badge.clock", description: Text("Synchronize your Drive index and review any coverage gaps. This view contains only loaded source records; Google may not expose every action."))
+                .accessibilityIdentifier("activityNoRecords")
+        } else {
+            ContentUnavailableView {
+                Label("No activity matches these filters", systemImage: "line.3.horizontal.decrease.circle")
+            } description: {
+                Text("Try another actor, action, file or date range, or reset the filters to see all loaded records.")
+            } actions: {
+                Button("Reset filters", action: resetFilters).accessibilityIdentifier("resetEmptyActivity")
+            }.accessibilityElement(children: .contain).accessibilityIdentifier("activityNoMatches")
+        }
+    }
+    private func resetFilters() {
+        model.resetActivityFilters()
+        selected = nil
     }
     private func detail(_ label: String, _ value: String) -> some View { VStack(alignment: .leading, spacing: 4) { Text(label).font(.caption).foregroundStyle(.secondary); Text(value).textSelection(.enabled) } }
 }
